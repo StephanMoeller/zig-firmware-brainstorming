@@ -2,6 +2,7 @@ pub const core = @import("core.zig");
 pub const matrix_scanning = @import("matrix_scanning.zig");
 pub const processing = @import("processing.zig");
 pub const usb = @import("usb_command_executor.zig");
+pub const encoder = @import("encoder.zig");
 
 const std = @import("std");
 const microzig = @import("microzig");
@@ -19,6 +20,7 @@ pub fn run_primary(
     comptime keymap: *const [dimensions.layer_count][dimensions.key_count]core.KeyDef,
     comptime side_definition: [dimensions.key_count]core.Side,
     uart_or_null: ?rp2xxx.uart.UART,
+    encoder_pins_or_null: ?[2]rp2xxx.gpio.Pin,
 ) !void {
     // Data queues
     var matrix_change_queue = core.MatrixStateChangeQueue.Create();
@@ -26,6 +28,9 @@ pub fn run_primary(
 
     // Matrix scanning
     const matrix_scanner = matrix_scanning.CreateMatrixScannerType(dimensions, pin_cols, pin_rows, pin_mappings, scanner_settings){};
+
+    // Encoder
+    var kb_encoder: ?encoder.Encoder = if (encoder_pins_or_null) |pins| encoder.Encoder.init(pins[0], pins[1]) else null;
 
     // PRIMARY HALF
     // Processing
@@ -47,6 +52,32 @@ pub fn run_primary(
 
         // Scan local matrix changes
         try matrix_scanner.DetectKeyboardChanges(&matrix_change_queue, current_time);
+
+        // Poll encoder
+        if (kb_encoder) |*enc| {
+            if (enc.update()) |event| {
+                try usb_command_queue.send_raw_hid_signal(core.RAWHID_SIGNAL_ENCODER_ROTATE, @intFromEnum(event.direction));
+
+                // Find encoder indices in the sides definition
+                var cw_index: ?core.KeyIndex = null;
+                var ccw_index: ?core.KeyIndex = null;
+                for (side_definition, 0..) |side, i| {
+                    if (side == .E) {
+                        if (cw_index == null) {
+                            cw_index = @intCast(i);
+                        } else if (ccw_index == null) {
+                            ccw_index = @intCast(i);
+                            break;
+                        }
+                    }
+                }
+
+                const key_index = if (event.direction == .CW) cw_index else ccw_index;
+                if (key_index) |idx| {
+                    try processor.ProcessEncoderEvent(idx, current_time);
+                }
+            }
+        }
 
         // if uart specified, we are dealing with a primary half of a split keyboard
         if (uart_or_null) |uart| {

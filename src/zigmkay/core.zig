@@ -4,6 +4,8 @@ const string_printing = @import("string_printing.zig");
 
 pub const special_keycode_BOOT: u8 = 0x001;
 pub const special_keycode_PRINT_STATS: u8 = 0x002;
+pub const special_keycode_COMPANION: u8 = 0x003;
+pub const special_keycode_SHUTDOWN_COMPANION: u8 = 0x004;
 
 pub const KeymapDimensions = struct {
     key_count: KeyIndex,
@@ -14,10 +16,24 @@ pub const KeyCodeFire = struct {
     tap_modifiers: ?Modifiers = null,
     dead: bool = false,
 };
+pub const MouseAction = enum(u8) {
+    None = 0,
+    LeftClick,
+    RightClick,
+    MiddleClick,
+    Button4,
+    Button5,
+    WheelUp,
+    WheelDown,
+    WheelLeft,
+    WheelRight,
+};
 pub const TapDef = struct {
     key_press: ?KeyCodeFire = null,
     one_shot: ?HoldDef = null,
     custom: u8 = 0,
+    media_key: u16 = 0,
+    mouse_action: MouseAction = .None,
 };
 pub const HoldDef = struct {
     hold_modifiers: ?Modifiers = null,
@@ -40,7 +56,7 @@ pub const KeyDef = union(enum) {
     tap_with_autofire: AutoFireDef,
 };
 
-pub const Side = enum { L, R, X };
+pub const Side = enum { L, R, X, E };
 pub const Combo2Def = struct {
     key_indexes: [2]KeyIndex,
     timeout: TimeSpan,
@@ -77,12 +93,29 @@ pub const UartMessage = packed struct {
 pub const MatrixStateChange = struct { pressed: bool, key_index: KeyIndex, time: TimeSinceBoot };
 pub const MatrixStateChangeQueue = generic_queue.GenericQueue(MatrixStateChange, queue_capacities);
 
+// RAWHID Signal IDs
+pub const RAWHID_SIGNAL_LAYER_CHANGED: u8 = 0x01;
+pub const RAWHID_SIGNAL_COMPANION_KEY: u8 = 0x02;
+pub const RAWHID_SIGNAL_ENCODER_ROTATE: u8 = 0x03;
+pub const RAWHID_SIGNAL_SHUTDOWN_COMPANION: u8 = 0x04;
+
+// Media Key Codes (Consumer Page)
+pub const MEDIA_VOLUME_UP: u16 = 0xE9;
+pub const MEDIA_VOLUME_DOWN: u16 = 0xEA;
+pub const MEDIA_MUTE: u16 = 0xE2;
+pub const MEDIA_PLAY_PAUSE: u16 = 0xCD;
+pub const MEDIA_NEXT_TRACK: u16 = 0xB5;
+pub const MEDIA_PREV_TRACK: u16 = 0xB6;
+
 // USB output
 pub const OutputCommand = union(enum) {
     KeyCodePress: u8,
     KeyCodeRelease: u8,
     ModifiersChanged: Modifiers,
     ActivateBootMode,
+    RawHidSignal: struct { signal_id: u8, payload: u8 },
+    ConsumerKey: u16,
+    MouseCommand: struct { action: MouseAction, pressed: bool },
 };
 pub const OutputCommandQueue = struct {
     const QueueType = generic_queue.GenericQueue(OutputCommand, queue_capacities);
@@ -147,6 +180,10 @@ pub const OutputCommandQueue = struct {
         try self.queue.enqueue(.{ .ModifiersChanged = modifiers });
     }
 
+    pub fn send_raw_hid_signal(self: *OutputCommandQueue, signal_id: u8, payload: u8) !void {
+        try self.queue.enqueue(.{ .RawHidSignal = .{ .signal_id = signal_id, .payload = payload } });
+    }
+
     pub fn print_string(self: *OutputCommandQueue, string: []u8) !void {
         try string_printing.print_string(string, self);
     }
@@ -188,16 +225,17 @@ pub const LayerActivations = struct {
     layers: [32]bool = [_]bool{false} ** 32,
     top_most_active_layer: LayerIndex = 0,
     const Self = @This();
-    pub fn activate(self: *Self, layer_index: LayerIndex) void {
+    pub fn activate(self: *Self, layer_index: LayerIndex, output_queue: *OutputCommandQueue) void {
         if (layer_index == 0)
             return;
         self.layers[layer_index] = true;
         if (layer_index > self.top_most_active_layer) {
             self.top_most_active_layer = layer_index;
+            output_queue.send_raw_hid_signal(RAWHID_SIGNAL_LAYER_CHANGED, self.top_most_active_layer) catch {};
         }
     }
 
-    pub fn deactivate(self: *Self, layer_index: LayerIndex) void {
+    pub fn deactivate(self: *Self, layer_index: LayerIndex, output_queue: *OutputCommandQueue) void {
         if (layer_index == 0)
             return;
         self.layers[layer_index] = false;
@@ -207,14 +245,17 @@ pub const LayerActivations = struct {
             while (self.layers[counter] == false and counter > 0) {
                 counter -= 1;
             }
-            self.top_most_active_layer = counter;
+            if (self.top_most_active_layer != counter) {
+                self.top_most_active_layer = counter;
+                output_queue.send_raw_hid_signal(RAWHID_SIGNAL_LAYER_CHANGED, self.top_most_active_layer) catch {};
+            }
         }
     }
 
-    pub fn set_layer_state(self: *Self, layer_index: LayerIndex, state: bool) void {
+    pub fn set_layer_state(self: *Self, layer_index: LayerIndex, state: bool, output_queue: *OutputCommandQueue) void {
         switch (state) {
-            true => activate(self, layer_index),
-            false => deactivate(self, layer_index),
+            true => activate(self, layer_index, output_queue),
+            false => deactivate(self, layer_index, output_queue),
         }
     }
 

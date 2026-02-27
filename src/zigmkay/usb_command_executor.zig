@@ -4,68 +4,112 @@ const microzig = @import("microzig");
 const rp2xxx = @import("microzig").hal;
 
 const usb_if = @import("usb_if.zig");
-const usb_dev = rp2xxx.usb.Usb(.{});
 const time = rp2xxx.time;
 
 pub fn CreateAndInitUsbCommandExecutor() UsbCommandExecutor {
-    // First we initialize the USB clock
-    usb_if.init(usb_dev);
+    usb_if.init();
     return UsbCommandExecutor{};
 }
 
 pub const UsbCommandExecutor = struct {
-    var data: [7]u8 = [7]u8{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+    var keyboard_report: usb_if.KeyboardInReport = .empty;
+    var mouse_report: usb_if.MouseInReport = .empty;
     var prev_action_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(0);
 
-    const next_tick_delay: u64 = 10000;
+    const next_tick_delay: u64 = 1000; // Increased frequency for lower latency
     pub fn HouseKeepAndProcessCommands(self: *const UsbCommandExecutor, output_command_queue: *core.OutputCommandQueue, current_time: core.TimeSinceBoot) !void {
         _ = self;
 
-        usb_dev.task(false) catch unreachable; // Process pending USB housekeeping
+        usb_if.poll(); // Process pending USB events
 
-        const diff_us = try current_time.diff_us(&prev_action_time);
+        const diff_us = current_time.time_since_boot_us - prev_action_time.time_since_boot_us;
 
-        if (diff_us > next_tick_delay and output_command_queue.has_events()) {
-            prev_action_time = current_time;
-            const command = output_command_queue.dequeue() catch unreachable;
-            switch (command) {
-                .KeyCodePress => |keycode| {
-                    var idx: usize = 1;
-                    // if the keycode was already pressed, ensure to release it first and then press it again
-                    // ZMK's handling of this case: https://github.com/zmkfirmware/zmk/blob/a8a392807e1d3908bb53e90d35aae8558e2b96d1/app/src/hid_listener.c#L19
-                    // Look for the log message "unregistering usage_page 0x%02X keycode 0x%02X since it was already pressed"
-                    while (idx < data.len) {
-                        //if (data[idx] == keycode) {
-                        //    break; // already registered as pressed
-                        //}
-                        if (data[idx] == 0) {
-                            data[idx] = keycode; // found empty spot
-                            break;
-                        }
-
-                        idx += 1;
+        if (diff_us > next_tick_delay) {
+                if (output_command_queue.has_events()) {
+                    prev_action_time = current_time;
+                    const command = output_command_queue.dequeue() catch unreachable;
+                    var should_send_keyboard_report = false;
+                    switch (command) {
+                        .KeyCodePress => |keycode| {
+                            should_send_keyboard_report = true;
+                            for (&keyboard_report.keys) |*key| {
+                                if (key.* == 0) {
+                                    key.* = keycode;
+                                    break;
+                                }
+                            }
+                        },
+                        .KeyCodeRelease => |keycode| {
+                            should_send_keyboard_report = true;
+                            for (&keyboard_report.keys) |*key| {
+                                if (key.* == keycode) {
+                                    key.* = 0;
+                                    break;
+                                }
+                            }
+                        },
+                        .ModifiersChanged => |modifiers| {
+                            should_send_keyboard_report = true;
+                            keyboard_report.modifiers = modifiers.toByte();
+                        },
+                        .ActivateBootMode => {
+                            rp2xxx.rom.reset_to_usb_boot();
+                        },
+                        .RawHidSignal => |sig| {
+                            var report: usb_if.RawHidReport = [_]u8{0} ** 32;
+                            report[0] = sig.signal_id;
+                            report[1] = sig.payload;
+                            usb_if.send_raw_report(&report);
+                        },
+                        .ConsumerKey => |key| {
+                            var report = usb_if.ConsumerInReport{ .button = key };
+                            usb_if.send_consumer_report(&report);
+                            // Auto-release
+                            var empty_report = usb_if.ConsumerInReport{ .button = 0 };
+                            usb_if.send_consumer_report(&empty_report);
+                        },
+                        .MouseCommand => |cmd| {
+                            switch (cmd.action) {
+                                .LeftClick => {
+                                    if (cmd.pressed) mouse_report.buttons |= 0x01 else mouse_report.buttons &= ~@as(u8, 0x01);
+                                },
+                                .RightClick => {
+                                    if (cmd.pressed) mouse_report.buttons |= 0x02 else mouse_report.buttons &= ~@as(u8, 0x02);
+                                },
+                                .MiddleClick => {
+                                    if (cmd.pressed) mouse_report.buttons |= 0x04 else mouse_report.buttons &= ~@as(u8, 0x04);
+                                },
+                                .Button4 => {
+                                    if (cmd.pressed) mouse_report.buttons |= 0x08 else mouse_report.buttons &= ~@as(u8, 0x08);
+                                },
+                                .Button5 => {
+                                    if (cmd.pressed) mouse_report.buttons |= 0x10 else mouse_report.buttons &= ~@as(u8, 0x10);
+                                },
+                                .WheelUp => {
+                                    if (cmd.pressed) mouse_report.wheel = 1;
+                                },
+                                .WheelDown => {
+                                    if (cmd.pressed) mouse_report.wheel = -1;
+                                },
+                                .WheelLeft => {
+                                    if (cmd.pressed) mouse_report.pan = -1;
+                                },
+                                .WheelRight => {
+                                    if (cmd.pressed) mouse_report.pan = 1;
+                                },
+                                .None => {},
+                            }
+                            usb_if.send_mouse_report(&mouse_report);
+                            // Clear relative movements after sending
+                            mouse_report.wheel = 0;
+                            mouse_report.pan = 0;
+                        },
                     }
-                },
-                .KeyCodeRelease => |keycode| {
-                    var idx: usize = 1;
-                    while (idx < data.len) {
-                        if (data[idx] == keycode) {
-                            data[idx] = 0; // Found one instance of the keycode
-                            break;
-                        }
 
-                        idx += 1;
+                    if (should_send_keyboard_report) {
+                        usb_if.send_keyboard_report(&keyboard_report);
                     }
-                },
-                .ModifiersChanged => |modifiers| {
-                    data[0] = modifiers.toByte();
-                },
-                .ActivateBootMode => {
-                    rp2xxx.rom.reset_to_usb_boot();
-                },
-            }
-
-            usb_if.send_keyboard_report(usb_dev, &data);
+                }
         }
     }
 };

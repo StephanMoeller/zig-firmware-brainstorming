@@ -2,13 +2,8 @@ const std = @import("std");
 const microzig = @import("microzig");
 
 const rp2xxx = microzig.hal;
-const flash = rp2xxx.flash;
-const time = rp2xxx.time;
-const gpio = rp2xxx.gpio;
-const clocks = rp2xxx.clocks;
-const usb = rp2xxx.usb;
-
-const hid = usb.hid;
+const usb = microzig.core.usb;
+const USB_Device = rp2xxx.usb.Polled(.{});
 
 pub const HID_KeymodifierCodes = enum(u8) {
     left_control = 0xe0,
@@ -21,105 +16,252 @@ pub const HID_KeymodifierCodes = enum(u8) {
     right_gui,
 };
 
-// HID descriptor for keyboard
-const KeyboardReportDescriptor = hid.hid_usage_page(1, hid.UsageTable.desktop) ++
-    hid.hid_usage(1, hid.DesktopUsage.keyboard) ++
-    hid.hid_collection(hid.CollectionItem.Application) ++
-    hid.hid_usage_page(1, hid.UsageTable.keyboard) ++
-    hid.hid_usage_min(1, .{@intFromEnum(HID_KeymodifierCodes.left_control)}) ++
-    hid.hid_usage_max(1, .{@intFromEnum(HID_KeymodifierCodes.right_gui)}) ++
-    hid.hid_logical_min(1, "\x00".*) ++
-    hid.hid_logical_max(1, "\x01".*) ++
-    hid.hid_report_size(1, "\x01".*) ++
-    hid.hid_report_count(1, "\x08".*) ++
-    hid.hid_input(hid.HID_DATA | hid.HID_VARIABLE | hid.HID_ABSOLUTE) ++
-    hid.hid_report_count(1, "\x06".*) ++
-    hid.hid_report_size(1, "\x08".*) ++
-    hid.hid_logical_max(1, "\x65".*) ++
-    hid.hid_usage_min(1, "\x00".*) ++
-    hid.hid_usage_max(1, "\x65".*) ++
-    hid.hid_input(hid.HID_DATA | hid.HID_ARRAY | hid.HID_ABSOLUTE) ++
-    hid.hid_collection_end();
+pub const KeyboardInReport = extern struct {
+    modifiers: u8,
+    keys: [6]u8,
 
-// HID report buffer
-const keyboardEpAddr = rp2xxx.usb.Endpoint.to_address(1, .In);
-
-const usb_packet_size = 7;
-const usb_config_len = usb.templates.config_descriptor_len + usb.templates.hid_in_descriptor_len;
-const usb_config_descriptor = usb.templates.config_descriptor(1, 1, 0, usb_config_len, 0x80, 500) ++
-    (usb.types.InterfaceDescriptor{
-        .interface_number = 1,
-        .alternate_setting = 0,
-        .num_endpoints = 1,
-        .interface_class = 3,
-        .interface_subclass = 0,
-        .interface_protocol = 1,
-        .interface_s = 4,
-    }).serialize() ++
-    (hid.HidDescriptor{
-        .bcd_hid = 0x0111,
-        .country_code = 0,
-        .num_descriptors = 1,
-        .report_length = KeyboardReportDescriptor.len,
-    }).serialize() ++
-    (usb.types.EndpointDescriptor{
-        .endpoint_address = keyboardEpAddr,
-        .attributes = @intFromEnum(usb.types.TransferType.Interrupt),
-        .max_packet_size = usb_packet_size,
-        .interval = 10,
-    }).serialize();
-
-// Create keyboard HID driver
-var driver_keyboard = usb.hid.HidClassDriver{
-    .ep_in = keyboardEpAddr,
-    .report_descriptor = &KeyboardReportDescriptor,
+    pub const empty: @This() = .{ .modifiers = 0, .keys = @splat(0) };
 };
 
-// Register both drivers
-var drivers = [_]usb.types.UsbClassDriver{driver_keyboard.driver()};
-
-// This is our device configuration
-pub var DEVICE_CONFIGURATION: usb.DeviceConfiguration = .{
-    .device_descriptor = &.{
-        .descriptor_type = usb.DescType.Device,
-        .bcd_usb = 0x0200,
-        .device_class = 0,
-        .device_subclass = 0,
-        .device_protocol = 0,
-        .max_packet_size0 = 64,
-        .vendor = 0xFAFA,
-        .product = 0x00F0,
-        .bcd_device = 0x0100,
-        // Those are indices to the descriptor strings (starting from 1)
-        // Make sure to provide enough string descriptors!
-        .manufacturer_s = 1,
-        .product_s = 2,
-        .serial_s = 3,
-        .num_configurations = 1,
-    },
-    .config_descriptor = &usb_config_descriptor,
-    .lang_descriptor = "\x04\x03\x09\x04", // length || string descriptor (0x03) || Engl (0x0409)
-    .descriptor_strings = &.{
-        &usb.utils.utf8_to_utf16_le("Stephan Moeller"),
-        &usb.utils.utf8_to_utf16_le("ZigMkay2"),
-        &usb.utils.utf8_to_utf16_le("00000001"),
-        &usb.utils.utf8_to_utf16_le("Keyboard"),
-    },
-    .drivers = &drivers,
+pub const KeyboardOutReport = packed struct(u8) {
+    num_lock: bool,
+    caps_lock: bool,
+    scroll_lock: bool,
+    padding: u5 = 0,
 };
 
-pub fn init(usb_dev: type) void {
-    // First we initialize the USB clock
-    usb_dev.init_clk();
+const Keyboard = usb.drivers.hid.InterruptDriver(.{
+    .subclass = .Boot,
+    .protocol = .Boot,
+    .report_descriptor = &.{
+        .{ .global_usage_page = .generic_desktop },
+        .local_usage_enum(.{ .generic_desktop = .keyboard }),
+        .{ .main_collection = .Application },
+        // Input: modifier key bitmap
+        .{ .data = .{
+            .usage = .{ .global_page = .keyboard },
+            .usage_range = .{ 0xE0, 0xE7 },
+            .count = 8,
+            .Child = bool,
+            .dir = .In,
+            .type = .dynamic,
+        } },
+        // Input: up to 6 pressed key codes
+        .{ .data = .{
+            .usage = .{ .global_page = .keyboard },
+            .usage_range = .{ 0x00, 0xff },
+            .count = 6,
+            .Child = u8,
+            .dir = .In,
+            .type = .selector,
+        } },
+        // Output: indicator LEDs
+        .{ .data = .{
+            .usage = .{ .global_page = .led },
+            .usage_range = .{ 1, 5 },
+            .count = 5,
+            .Child = bool,
+            .dir = .Out,
+            .type = .dynamic,
+        } },
+        // Padding
+        .{ .data_static = .{ .Out, u3 } },
+        // End
+        .main_collection_end,
+    },
+    .InReport = KeyboardInReport,
+    .OutReport = KeyboardOutReport,
+});
 
-    // Then initialize the USB device using the configuration defined above
-    usb_dev.init_device(&DEVICE_CONFIGURATION) catch unreachable;
+// Consumer Control (Media Keys)
+pub const ConsumerInReport = extern struct {
+    button: u16,
+    pub const empty: @This() = .{ .button = 0 };
+};
 
-    // Initialize endpoint for HID device
-    usb_dev.callbacks.endpoint_open(keyboardEpAddr, 512, usb.types.TransferType.Interrupt);
-    std.log.debug("USB configured", .{});
+const ConsumerControl = usb.drivers.hid.InterruptDriver(.{
+    .subclass = .Unspecified,
+    .protocol = .NoneRequired,
+    .report_descriptor = &.{
+        .{ .global_usage_page = @enumFromInt(0x0C) }, // Consumer Page
+        .{ .local_usage = 0x01 }, // Consumer Control
+        .{ .main_collection = .Application },
+        .{ .data = .{
+            .usage = .{ .global_page = @enumFromInt(0x0C) },
+            .usage_range = .{ 0x00, 0x03FF },
+            .count = 1,
+            .Child = u16,
+            .dir = .In,
+            .type = .selector,
+        } },
+        .main_collection_end,
+    },
+    .InReport = ConsumerInReport,
+    .OutReport = u8, // Dummy OutReport
+});
+
+// Mouse Implementation
+pub const MouseInReport = extern struct {
+    buttons: u8,
+    x: i8,
+    y: i8,
+    wheel: i8,
+    pan: i8,
+
+    pub const empty: @This() = .{ .buttons = 0, .x = 0, .y = 0, .wheel = 0, .pan = 0 };
+};
+
+const Mouse = usb.drivers.hid.InterruptDriver(.{
+    .subclass = .Unspecified,
+    .protocol = .NoneRequired,
+    .report_descriptor = &.{
+        .{ .global_usage_page = .generic_desktop },
+        .local_usage_enum(.{ .generic_desktop = @enumFromInt(0x02) }), // Mouse
+        .{ .main_collection = .Application },
+        .{ .local_usage = 0x01 }, // Pointer
+        .{ .main_collection = .Physical },
+        .{
+            .data = .{
+                .usage = .{ .global_page = @enumFromInt(0x09) }, // Button
+                .usage_range = .{ 1, 5 },
+                .count = 5,
+                .Child = bool,
+                .dir = .In,
+                .type = .dynamic,
+            },
+        },
+        .{ .data_static = .{ .In, u3 } }, // Padding
+        .{ .global_usage_page = .generic_desktop },
+        .{
+            .data = .{
+                .usage = .{ .global_page = .generic_desktop },
+                .usage_range = .{ 0x30, 0x31 }, // X, Y
+                .logical_range = .{ -127, 127 },
+                .count = 2,
+                .Child = i8,
+                .dir = .In,
+                .type = .dynamic,
+            },
+        },
+        .{
+            .data = .{
+                .usage = .{ .local_raw = 0x38 }, // Wheel
+                .logical_range = .{ -127, 127 },
+                .count = 1,
+                .Child = i8,
+                .dir = .In,
+                .type = .dynamic,
+            },
+        },
+        .{ .global_usage_page = @enumFromInt(0x0C) }, // Consumer
+        .{
+            .data = .{
+                .usage = .{ .local_raw = 0x0238 }, // Pan
+                .logical_range = .{ -127, 127 },
+                .count = 1,
+                .Child = i8,
+                .dir = .In,
+                .type = .dynamic,
+            },
+        },
+        .main_collection_end,
+        .main_collection_end,
+    },
+    .InReport = MouseInReport,
+    .OutReport = u8, // Dummy
+});
+
+// RAWHID Implementation (QMK Style)
+pub const RawHidReport = [32]u8;
+
+const RawHid = usb.drivers.hid.InterruptDriver(.{
+    .subclass = .Unspecified,
+    .protocol = .NoneRequired,
+    .report_descriptor = &.{
+        .{ .global_usage_page = @enumFromInt(0xFF31) }, // Vendor Page 0xFF31
+        .{ .local_usage = 0x0074 }, // Usage 0x0074
+        .{ .main_collection = .Application },
+        // Input: 32 bytes
+        .{ .data = .{
+            .usage = .{ .local_raw = 0x01 },
+            .count = 32,
+            .Child = u8,
+            .dir = .In,
+            .type = .dynamic,
+        } },
+        // Output: 32 bytes
+        .{ .data = .{
+            .usage = .{ .local_raw = 0x02 },
+            .count = 32,
+            .Child = u8,
+            .dir = .Out,
+            .type = .dynamic,
+        } },
+        .main_collection_end,
+    },
+    .InReport = RawHidReport,
+    .OutReport = RawHidReport,
+});
+
+pub var usb_device: USB_Device = undefined;
+
+pub const ControllerType = usb.DeviceController(.{
+    .bcd_usb = .v2_00,
+    .device_triple = .unspecified,
+    .vendor = .{ .id = 0xFAFA, .str = "OpenKeyboardCollective" },
+    .product = .{ .id = 0x00F0, .str = "ZigMkay" },
+    .bcd_device = .v1_00,
+    .serial = "00000001",
+    .max_supported_packet_size = USB_Device.max_supported_packet_size,
+    .configurations = &.{.{
+        .attributes = .{ .self_powered = false },
+        .max_current_ma = 500,
+        .Drivers = struct {
+            keyboard: Keyboard,
+            consumer: ConsumerControl,
+            mouse: Mouse,
+            rawhid: RawHid,
+            reset: rp2xxx.usb.ResetDriver(null, 0),
+        },
+    }},
+}, .{.{
+    .keyboard = .{ .itf_string = "Keyboard", .poll_interval = 1 },
+    .consumer = .{ .itf_string = "Consumer Control", .poll_interval = 10 },
+    .mouse = .{ .itf_string = "Mouse", .poll_interval = 1 },
+    .rawhid = .{ .itf_string = "RawHID", .poll_interval = 1 },
+    .reset = "",
+}});
+
+pub var usb_controller: ControllerType = .init;
+
+pub fn init() void {
+    usb_device = .init();
 }
 
-pub fn send_keyboard_report(usb_dev: type, keycodes: *[7]u8) void {
-    usb_dev.callbacks.usb_start_tx(keyboardEpAddr, keycodes);
+pub fn poll() void {
+    usb_device.poll(&usb_controller);
+}
+
+pub fn send_keyboard_report(report: *const KeyboardInReport) void {
+    if (usb_controller.drivers()) |drivers| {
+        _ = drivers.keyboard.send_report(report);
+    }
+}
+
+pub fn send_consumer_report(report: *const ConsumerInReport) void {
+    if (usb_controller.drivers()) |drivers| {
+        _ = drivers.consumer.send_report(report);
+    }
+}
+
+pub fn send_mouse_report(report: *const MouseInReport) void {
+    if (usb_controller.drivers()) |drivers| {
+        _ = drivers.mouse.send_report(report);
+    }
+}
+
+pub fn send_raw_report(report: *const RawHidReport) void {
+    if (usb_controller.drivers()) |drivers| {
+        _ = drivers.rawhid.send_report(report);
+    }
 }

@@ -43,6 +43,16 @@ pub fn CreateProcessorType(
             try tick_autofire(self, current_time);
         }
 
+        pub fn ProcessEncoderEvent(self: *Self, key_index: core.KeyIndex, current_time: core.TimeSinceBoot) !void {
+            const key_def = self.determine_key_def(key_index);
+            switch (key_def) {
+                .tap_only => |tap| {
+                    try self.on_tap_decided(tap, core.MatrixStateChange{ .pressed = true, .key_index = key_index, .time = current_time }, TapReleaseMode.ForceInstant);
+                },
+                else => {},
+            }
+        }
+
         fn process_next(self: *Self, data: []core.MatrixStateChange, current_time: core.TimeSinceBoot) !ProcessContinuation {
             self.current_action_id += 1;
             if (data.len == 0) {
@@ -126,13 +136,18 @@ pub fn CreateProcessorType(
                     .Release => |release_info| {
                         switch (release_info.release_action) {
                             .ReleaseTap => |tap| {
+                                on_event(self, .{ .OnTapExitBefore = .{ .tap = tap } });
+
                                 if (tap.key_press) |keycode_fire| {
                                     warn("releasing tap {}", .{keycode_fire.tap_keycode});
-                                    on_event(self, .{ .OnTapExitBefore = .{ .tap = tap } });
+                                    if (keycode_fire.tap_keycode == core.special_keycode_COMPANION) {
+                                        try self.output_usb_commands.send_raw_hid_signal(core.RAWHID_SIGNAL_COMPANION_KEY, 0);
+                                    }
                                     try self.output_usb_commands.release_key(keycode_fire);
-                                    self.release_map[head_event.key_index] = ReleaseMapEntry.None;
-                                    on_event(self, .{ .OnTapExitAfter = .{ .tap = tap } });
                                 }
+
+                                self.release_map[head_event.key_index] = ReleaseMapEntry.None;
+                                on_event(self, .{ .OnTapExitAfter = .{ .tap = tap } });
                             },
                             .ReleaseHold => |hold_def| {
                                 on_event(self, .{ .OnHoldExitBefore = .{ .hold = hold_def.hold } });
@@ -212,6 +227,14 @@ pub fn CreateProcessorType(
                 try self.output_usb_commands.print_string(numAsString);
                 return;
             }
+            if (keycode_fire.tap_keycode == core.special_keycode_COMPANION) {
+                try self.output_usb_commands.send_raw_hid_signal(core.RAWHID_SIGNAL_COMPANION_KEY, 1);
+                return;
+            }
+            if (keycode_fire.tap_keycode == core.special_keycode_SHUTDOWN_COMPANION) {
+                try self.output_usb_commands.send_raw_hid_signal(core.RAWHID_SIGNAL_SHUTDOWN_COMPANION, 1);
+                return;
+            }
         }
         fn on_tap_decided(self: *Self, tap: core.TapDef, event: core.MatrixStateChange, release_mode: TapReleaseMode) !void {
             on_event(self, .{ .OnTapEnterBefore = .{ .tap = tap } });
@@ -220,23 +243,51 @@ pub fn CreateProcessorType(
                 self.one_shot_hold_to_disable_after_next_release = self.one_shot_hold_to_enable_before_next_tap;
                 self.one_shot_hold_to_enable_before_next_tap = null;
             }
-            if (tap.key_press) |keycode_fire| {
-                try enter_tap(self, keycode_fire);
-                switch (release_mode) {
-                    .AwaitKeyReleased => {
-                        try self.output_usb_commands.press_key(keycode_fire);
-                        self.release_map[event.key_index] = .{
-                            .Release = .{
-                                .release_action = KeyReleaseAction{ .ReleaseTap = tap },
-                                .action_id_when_pressed = self.current_action_id,
-                            },
-                        };
+
+            if (tap.media_key != 0) {
+                try self.output_usb_commands.queue.enqueue(.{ .ConsumerKey = tap.media_key });
+            }
+
+            if (tap.mouse_action != .None) {
+                switch (tap.mouse_action) {
+                    .WheelUp, .WheelDown, .WheelLeft, .WheelRight => {
+                        try self.output_usb_commands.queue.enqueue(.{ .MouseCommand = .{ .action = tap.mouse_action, .pressed = true } });
                     },
-                    .ForceInstant => {
-                        try self.output_usb_commands.tap_key(keycode_fire);
-                    },
+                    else => {}, // buttons handled by release_mode
                 }
             }
+
+            if (tap.key_press) |keycode_fire| {
+                try enter_tap(self, keycode_fire);
+            }
+
+            switch (release_mode) {
+                .AwaitKeyReleased => {
+                    if (tap.key_press) |keycode_fire| {
+                        try self.output_usb_commands.press_key(keycode_fire);
+                    }
+                    if (tap.mouse_action != .None) {
+                        switch (tap.mouse_action) {
+                            .LeftClick, .RightClick, .MiddleClick, .Button4, .Button5 => {
+                                try self.output_usb_commands.queue.enqueue(.{ .MouseCommand = .{ .action = tap.mouse_action, .pressed = true } });
+                            },
+                            else => {},
+                        }
+                    }
+                    self.release_map[event.key_index] = .{
+                        .Release = .{
+                            .release_action = KeyReleaseAction{ .ReleaseTap = tap },
+                            .action_id_when_pressed = self.current_action_id,
+                        },
+                    };
+                },
+                .ForceInstant => {
+                    if (tap.key_press) |keycode_fire| {
+                        try self.output_usb_commands.tap_key(keycode_fire);
+                    }
+                },
+            }
+
             if (tap.one_shot) |one_shot_hold| {
                 self.one_shot_hold_to_enable_before_next_tap = one_shot_hold;
             }
@@ -251,7 +302,7 @@ pub fn CreateProcessorType(
                 try self.output_usb_commands.set_mods(modifiers);
             }
             if (hold.hold_layer != null) {
-                self.layers_activations.deactivate(hold.hold_layer.?);
+                self.layers_activations.deactivate(hold.hold_layer.?, self.output_usb_commands);
             }
         }
         fn hold_apply_modifiers_and_layers(self: *Self, hold: core.HoldDef) !void {
@@ -262,7 +313,7 @@ pub fn CreateProcessorType(
                 try self.output_usb_commands.set_mods(modifiers);
             }
             if (hold.hold_layer != null) {
-                self.layers_activations.activate(hold.hold_layer.?);
+                self.layers_activations.activate(hold.hold_layer.?, self.output_usb_commands);
             }
         }
 
