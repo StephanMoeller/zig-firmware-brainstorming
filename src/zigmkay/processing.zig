@@ -34,6 +34,9 @@ pub fn CreateProcessorType(
                 const data: []core.MatrixStateChange = self.input_matrix_changes.peek_all()[0..];
                 switch (try process_next(self, data, current_time)) {
                     .DequeueAndRunAgain => |dequeue_info| {
+                        for (data[0..dequeue_info.dequeue_count]) |ev| {
+                            self.dispatch_matrix_change(ev);
+                        }
                         try self.input_matrix_changes.dequeue_count(dequeue_info.dequeue_count);
                     },
                     .Stop => break,
@@ -43,7 +46,21 @@ pub fn CreateProcessorType(
             try tick_autofire(self, current_time);
         }
 
+        fn dispatch_matrix_change(self: *Self, ev: core.MatrixStateChange) void {
+            const mods = self.output_usb_commands.get_current_modifiers();
+            var condensed: u4 = 0;
+            if (mods.left_shift or mods.right_shift) condensed |= 1;
+            if (mods.left_alt or mods.right_alt) condensed |= 2;
+            if (mods.left_ctrl or mods.right_ctrl) condensed |= 4;
+            if (mods.left_gui or mods.right_gui) condensed |= 8;
+            on_event(self, .{ .OnMatrixChanged = .{ .event = ev, .layer = self.layers_activations.get_top_most_active_layer(), .modifiers = condensed } });
+        }
+
+        /// Submits an encoder event to the processing pipeline.
+        /// This synthetic matrix event simulates a quick sequence of press/release for the resolved encoder key index.
         pub fn ProcessEncoderEvent(self: *Self, key_index: core.KeyIndex, current_time: core.TimeSinceBoot) !void {
+            self.dispatch_matrix_change(core.MatrixStateChange{ .pressed = true, .key_index = key_index, .time = current_time });
+
             const key_def = self.determine_key_def(key_index);
             switch (key_def) {
                 .tap_only => |tap| {
@@ -51,6 +68,8 @@ pub fn CreateProcessorType(
                 },
                 else => {},
             }
+
+            self.dispatch_matrix_change(core.MatrixStateChange{ .pressed = false, .key_index = key_index, .time = current_time });
         }
 
         fn process_next(self: *Self, data: []core.MatrixStateChange, current_time: core.TimeSinceBoot) !ProcessContinuation {
@@ -141,7 +160,7 @@ pub fn CreateProcessorType(
                                 if (tap.key_press) |keycode_fire| {
                                     warn("releasing tap {}", .{keycode_fire.tap_keycode});
                                     if (keycode_fire.tap_keycode == core.special_keycode_COMPANION) {
-                                        try self.output_usb_commands.send_raw_hid_signal(core.RAWHID_SIGNAL_COMPANION_KEY, 0);
+                                        try self.output_usb_commands.send_raw_hid_signal(core.RAWHID_SIGNAL_COMPANION_KEY, &[_]u8{0});
                                     }
                                     try self.output_usb_commands.release_key(keycode_fire);
                                 }
@@ -228,11 +247,11 @@ pub fn CreateProcessorType(
                 return;
             }
             if (keycode_fire.tap_keycode == core.special_keycode_COMPANION) {
-                try self.output_usb_commands.send_raw_hid_signal(core.RAWHID_SIGNAL_COMPANION_KEY, 1);
+                try self.output_usb_commands.send_raw_hid_signal(core.RAWHID_SIGNAL_COMPANION_KEY, &[_]u8{1});
                 return;
             }
             if (keycode_fire.tap_keycode == core.special_keycode_SHUTDOWN_COMPANION) {
-                try self.output_usb_commands.send_raw_hid_signal(core.RAWHID_SIGNAL_SHUTDOWN_COMPANION, 1);
+                try self.output_usb_commands.send_raw_hid_signal(core.RAWHID_SIGNAL_SHUTDOWN_COMPANION, &[_]u8{1});
                 return;
             }
         }
@@ -244,10 +263,12 @@ pub fn CreateProcessorType(
                 self.one_shot_hold_to_enable_before_next_tap = null;
             }
 
+            // Queue media control actions if present in the TapDef
             if (tap.media_key != 0) {
                 try self.output_usb_commands.queue.enqueue(.{ .ConsumerKey = tap.media_key });
             }
 
+            // Queue mouse manipulation commands if present in the TapDef
             if (tap.mouse_action != .None) {
                 switch (tap.mouse_action) {
                     .WheelUp, .WheelDown, .WheelLeft, .WheelRight => {
