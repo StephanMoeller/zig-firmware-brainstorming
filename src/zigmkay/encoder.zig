@@ -1,3 +1,10 @@
+//! Quadrature Encoder Decoder Module
+//!
+//! This module implements a robust, polling-based software quadrature decoder.
+//! It maintains a state machine that reads the A and B pins of a rotary encoder
+//! to determine the direction of rotation. It is designed to evaluate specific
+//! detent state transitions (e.g., 00 and 11) to avoid multiple phantom events per click.
+
 const std = @import("std");
 const microzig = @import("microzig");
 const rp2xxx = microzig.hal;
@@ -11,11 +18,14 @@ pub const EncoderEvent = struct {
     direction: EncoderDirection,
 };
 
+/// Represents a physical rotary encoder connected to two GPIO pins.
 pub const Encoder = struct {
     pin_a: rp2xxx.gpio.Pin,
     pin_b: rp2xxx.gpio.Pin,
     state: u2 = 0,
 
+    /// Initializes a new Encoder instance, setting the given pins as input with pull-ups enabled.
+    /// Reads the initial internal state of the pins.
     pub fn init(pin_a: rp2xxx.gpio.Pin, pin_b: rp2xxx.gpio.Pin) Encoder {
         pin_a.set_function(.sio);
         pin_b.set_function(.sio);
@@ -38,6 +48,8 @@ pub const Encoder = struct {
         return (@as(u2, a) << 1) | @as(u2, b);
     }
 
+    /// Polls the current encoder state and computes any rotation events.
+    /// Should be called repeatedly within the matrix scanning loop.
     pub fn update(self: *Encoder) ?EncoderEvent {
         const new_state = self.read_state();
         if (new_state == self.state) return null;

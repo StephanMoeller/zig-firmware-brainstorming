@@ -30,6 +30,7 @@ pub const KeyboardOutReport = packed struct(u8) {
     padding: u5 = 0,
 };
 
+// HID Interrupt Driver for Standard Boot Keyboard
 const Keyboard = usb.drivers.hid.InterruptDriver(.{
     .subclass = .Boot,
     .protocol = .Boot,
@@ -79,6 +80,7 @@ pub const ConsumerInReport = extern struct {
     pub const empty: @This() = .{ .button = 0 };
 };
 
+// HID Interrupt Driver for Consumer Control endpoints
 const ConsumerControl = usb.drivers.hid.InterruptDriver(.{
     .subclass = .Unspecified,
     .protocol = .NoneRequired,
@@ -111,6 +113,7 @@ pub const MouseInReport = extern struct {
     pub const empty: @This() = .{ .buttons = 0, .x = 0, .y = 0, .wheel = 0, .pan = 0 };
 };
 
+// HID Interrupt Driver for generic Mouse functionality
 const Mouse = usb.drivers.hid.InterruptDriver(.{
     .subclass = .Unspecified,
     .protocol = .NoneRequired,
@@ -174,6 +177,7 @@ const Mouse = usb.drivers.hid.InterruptDriver(.{
 // RAWHID Implementation (QMK Style)
 pub const RawHidReport = [32]u8;
 
+// HID Interrupt Driver for the dedicated 32-byte bidirectional RAWHID channel (Companion App Telemetry)
 const RawHid = usb.drivers.hid.InterruptDriver(.{
     .subclass = .Unspecified,
     .protocol = .NoneRequired,
@@ -242,24 +246,28 @@ pub fn poll() void {
     usb_device.poll(&usb_controller);
 }
 
+/// Dispatches a keyboard report over the first HID interface
 pub fn send_keyboard_report(report: *const KeyboardInReport) void {
     if (usb_controller.drivers()) |drivers| {
         _ = drivers.keyboard.send_report(report);
     }
 }
 
+/// Dispatches a consumer layout report (Media Keys)
 pub fn send_consumer_report(report: *const ConsumerInReport) void {
     if (usb_controller.drivers()) |drivers| {
         _ = drivers.consumer.send_report(report);
     }
 }
 
+/// Dispatches a mouse payload containing movement or clicks
 pub fn send_mouse_report(report: *const MouseInReport) void {
     if (usb_controller.drivers()) |drivers| {
         _ = drivers.mouse.send_report(report);
     }
 }
 
+/// Pushes a custom 32-byte payload to the RAWHID interface for companion app signalling
 pub fn send_raw_report(report: *const RawHidReport) void {
     if (usb_controller.drivers()) |drivers| {
         _ = drivers.rawhid.send_report(report);
