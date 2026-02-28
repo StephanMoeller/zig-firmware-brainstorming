@@ -79,7 +79,7 @@ pub fn print_char(char: u8, queue: *core.OutputCommandQueue) !void {
     try queue.tap_key(.{ .tap_keycode = hid_val });
 }
 
-pub const KC_BOOT = 0x0000;
+pub const KC_BOOT = core.special_keycode_BOOT;
 pub const KC_A = 0x0004;
 pub const KC_B = 0x0005;
 pub const KC_C = 0x0006;

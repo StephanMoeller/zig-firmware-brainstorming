@@ -2,10 +2,10 @@ const generic_queue = @import("generic_queue.zig");
 const std = @import("std");
 const string_printing = @import("string_printing.zig");
 
-pub const special_keycode_BOOT: u8 = 0x001; // Special keycode that signals puts the keyboard into bootloader mode.
-pub const special_keycode_PRINT_STATS: u8 = 0x002; // Special keycode that prints stats into any text editor.
-pub const special_keycode_COMPANION: u8 = 0x003; // Special keycode that signals the companion app to toggle the overlay.
-pub const special_keycode_SHUTDOWN_COMPANION: u8 = 0x004; // Special keycode that signals the companion app to shut down entirely.
+pub const special_keycode_BOOT: u8 = 0xFC; // Special keycode that signals puts the keyboard into bootloader mode.
+pub const special_keycode_PRINT_STATS: u8 = 0xFD; // Special keycode that prints stats into any text editor.
+pub const special_keycode_COMPANION: u8 = 0xFE; // Special keycode that signals the companion app to toggle the overlay.
+pub const special_keycode_SHUTDOWN_COMPANION: u8 = 0xFF; // Special keycode that signals the companion app to shut down entirely.
 
 pub const KeymapDimensions = struct {
     key_count: KeyIndex,

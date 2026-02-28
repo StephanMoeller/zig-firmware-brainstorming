@@ -1,8 +1,8 @@
 // These keycodes are copied from the qmk project under the gpl2 license
 const core = @import("../zigmkay/zigmkay.zig").core;
 
-pub const KC_BOOT = 0x0001;
-pub const KC_PRINT_STATS = 0x0002;
+pub const KC_BOOT = core.special_keycode_BOOT;
+pub const KC_PRINT_STATS = core.special_keycode_PRINT_STATS;
 pub const KC_A = 0x0004;
 pub const KC_B = 0x0005;
 pub const KC_C = 0x0006;
