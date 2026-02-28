@@ -9,6 +9,8 @@ const microzig = @import("microzig");
 const rp2xxx = microzig.hal;
 const time = rp2xxx.time;
 
+/// Initializes and runs the primary half of the split keyboard (or a unibody keyboard).
+/// The `encoder_pins_or_null` parameter optionally defines the two GPIO pins [A, B] for a hardware rotary encoder.
 pub fn run_primary(
     comptime dimensions: core.KeymapDimensions,
     comptime pin_cols: []const rp2xxx.gpio.Pin,
@@ -45,6 +47,23 @@ pub fn run_primary(
         .output_usb_commands = &usb_command_queue,
     };
 
+    // Pre-calculate encoder indices at comptime
+    const encoder_indices = comptime blk: {
+        var cw: ?core.KeyIndex = null;
+        var ccw: ?core.KeyIndex = null;
+        for (side_definition, 0..) |side, i| {
+            if (side == .E) {
+                if (cw == null) {
+                    cw = @intCast(i);
+                } else if (ccw == null) {
+                    ccw = @intCast(i);
+                    break;
+                }
+            }
+        }
+        break :blk .{ .cw = cw, .ccw = ccw };
+    };
+
     // USB events
     const usb_command_executor = usb.CreateAndInitUsbCommandExecutor();
     while (true) {
@@ -53,26 +72,10 @@ pub fn run_primary(
         // Scan local matrix changes
         try matrix_scanner.DetectKeyboardChanges(&matrix_change_queue, current_time);
 
-        // Poll encoder
+        // Poll encoder hardware and feed rotation events into the main processing pipeline
         if (kb_encoder) |*enc| {
             if (enc.update()) |event| {
-                try usb_command_queue.send_raw_hid_signal(core.RAWHID_SIGNAL_ENCODER_ROTATE, @intFromEnum(event.direction));
-
-                // Find encoder indices in the sides definition
-                var cw_index: ?core.KeyIndex = null;
-                var ccw_index: ?core.KeyIndex = null;
-                for (side_definition, 0..) |side, i| {
-                    if (side == .E) {
-                        if (cw_index == null) {
-                            cw_index = @intCast(i);
-                        } else if (ccw_index == null) {
-                            ccw_index = @intCast(i);
-                            break;
-                        }
-                    }
-                }
-
-                const key_index = if (event.direction == .CW) cw_index else ccw_index;
+                const key_index = if (event.direction == .CW) encoder_indices.cw else encoder_indices.ccw;
                 if (key_index) |idx| {
                     try processor.ProcessEncoderEvent(idx, current_time);
                 }
