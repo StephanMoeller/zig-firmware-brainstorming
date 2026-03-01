@@ -93,15 +93,15 @@ pub const UartMessage = packed struct {
     }
 };
 
-pub const LogMessage = packed struct(u16) {
+pub const LogMessage = extern struct {
     pressed: bool,
-    key_index: u7,
-    layer: u4,
-    modifiers: u4,
-    pub fn toBytes(self: LogMessage) [2]u8 {
+    key_index: u8,
+    layer: u8,
+    modifiers: u8,
+    pub fn toBytes(self: LogMessage) [4]u8 {
         return @bitCast(self);
     }
-    pub fn fromBytes(bytes: [2]u8) LogMessage {
+    pub fn fromBytes(bytes: [4]u8) LogMessage {
         return @bitCast(bytes);
     }
 };
