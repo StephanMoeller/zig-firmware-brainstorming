@@ -121,11 +121,14 @@ pub fn CreateProcessorType(
                             for (tail[0..outer_idx]) |earlier_event| {
                                 const press_and_release_same_key_detected = earlier_event.key_index == ev.key_index and earlier_event.pressed;
                                 if (press_and_release_same_key_detected) {
-                                    const tapped_key_same_side_as_first_key = sides[earlier_event.key_index] == sides[head_event.key_index] and sides[head_event.key_index] != .X;
-                                    if (!tapped_key_same_side_as_first_key) {
+                                    const tapped_key_same_side_as_first_key = sides[earlier_event.key_index] == sides[head_event.key_index];
+                                    const is_layer_toggle = tap_and_hold.hold.hold_layer != null; // Layer toggles should bypass the same-side modifier restriction
+
+                                    if (!tapped_key_same_side_as_first_key or is_layer_toggle) {
                                         try on_hold_decided(self, tap_and_hold.hold, next_key_info.key_def, head_event);
                                         return ProcessContinuation{ .DequeueAndRunAgain = .{ .dequeue_count = next_key_info.consumed_event_count } };
                                     } else {
+                                        // Modifiers (non-layer holds) on the same side as the typed key roll into a tap (Home-Row Mods Positional Hold-Tap)
                                         try on_tap_decided(self, tap_and_hold.tap, head_event, TapReleaseMode.AwaitKeyReleased);
                                         return ProcessContinuation{ .DequeueAndRunAgain = .{ .dequeue_count = next_key_info.consumed_event_count } };
                                     }

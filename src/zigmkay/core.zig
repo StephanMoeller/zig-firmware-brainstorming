@@ -57,8 +57,8 @@ pub const KeyDef = union(enum) {
     tap_with_autofire: AutoFireDef,
 };
 
-/// Defines the physical placement of a key or component. L=Left, R=Right, X=Thumb, E=Encoder.
-pub const Side = enum { L, R, X, E };
+/// Defines the physical placement of a key or component. L=Left, R=Right, E=Encoder.
+pub const Side = enum { L, R, E };
 pub const Combo2Def = struct {
     key_indexes: [2]KeyIndex,
     timeout: TimeSpan,
