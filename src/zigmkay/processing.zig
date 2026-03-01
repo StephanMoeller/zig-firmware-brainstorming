@@ -121,10 +121,12 @@ pub fn CreateProcessorType(
                             for (tail[0..outer_idx]) |earlier_event| {
                                 const press_and_release_same_key_detected = earlier_event.key_index == ev.key_index and earlier_event.pressed;
                                 if (press_and_release_same_key_detected) {
-                                    const tapped_key_same_side_as_first_key = sides[earlier_event.key_index] == sides[head_event.key_index];
-                                    const is_layer_toggle = tap_and_hold.hold.hold_layer != null; // Layer toggles should bypass the same-side modifier restriction
+                                    // this detects if two subsequent keypresses are on the same side of the keyboard
+                                    // and if the key is not a thumb key
+                                    const tapped_key_same_side_as_first_key = sides[earlier_event.key_index] == sides[head_event.key_index] and
+                                        (sides[head_event.key_index] != .TL or sides[head_event.key_index] != .TR);
 
-                                    if (!tapped_key_same_side_as_first_key or is_layer_toggle) {
+                                    if (!tapped_key_same_side_as_first_key) {
                                         try on_hold_decided(self, tap_and_hold.hold, next_key_info.key_def, head_event);
                                         return ProcessContinuation{ .DequeueAndRunAgain = .{ .dequeue_count = next_key_info.consumed_event_count } };
                                     } else {
