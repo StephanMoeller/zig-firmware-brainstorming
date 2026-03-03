@@ -1,9 +1,15 @@
 const std = @import("std");
-const zigmkay = @import("zigmkay.zig");
+const zigmkay = @import("zigmkay");
 const core = zigmkay.core;
 
 const helpers = @import("processing.test_helpers.zig");
 const init_test = helpers.init_test;
+
+pub fn expectLayerSignal(o: anytype, expected_layer: u8) !void {
+    var expected_data: [8]u8 = [_]u8{0} ** 8;
+    expected_data[0] = expected_layer;
+    try std.testing.expectEqual(core.OutputCommand{ .RawHidSignal = .{ .signal_id = core.RAWHID_SIGNAL_LAYER_CHANGED, .data = expected_data, .len = 1 } }, try o.actions_queue.dequeue());
+}
 
 const a = 0x04;
 const b = 0x05;
@@ -121,7 +127,8 @@ test "Rolling - with sudden shift usage" {
     const _d = 3;
     const _e_with_shift = 4;
 
-    var o = init_test(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap){};
+    const sides = comptime [_]core.Side{ .L, .R, .L, .R, .R };
+    var o = helpers.init_test_with_sides(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap, sides){};
     current_time = current_time.add_us(1);
     try o.press_key(_a, current_time);
     current_time = current_time.add_us(2);
@@ -181,7 +188,8 @@ test "Rolling - with sudden permanent layer shift" {
     const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, layer_1 };
 
     // intexes
-    var o = init_test(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap){};
+    const sides = comptime [_]core.Side{ .L, .R, .L, .R, .L };
+    var o = helpers.init_test_with_sides(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap, sides){};
     current_time = current_time.add_us(1);
     try o.press_key(1, current_time);
     try o.press_key(4, current_time);
@@ -193,6 +201,7 @@ test "Rolling - with sudden permanent layer shift" {
 
     // expect B to be fired as press
     try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.actions_queue.dequeue());
+    try expectLayerSignal(&o, 1);
     try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, try o.actions_queue.dequeue());
     try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = c }, try o.actions_queue.dequeue());
     try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = c }, try o.actions_queue.dequeue());

@@ -1,5 +1,5 @@
 const std = @import("std");
-const core = @import("core.zig");
+const core = @import("zigmkay").core;
 const helpers = @import("processing.test_helpers.zig");
 test "press key" {
     var q = core.OutputCommandQueue.Create();

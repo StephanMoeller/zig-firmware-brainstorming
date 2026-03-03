@@ -1,8 +1,14 @@
 const std = @import("std");
-const zigmkay = @import("zigmkay.zig");
+const zigmkay = @import("zigmkay");
 const core = zigmkay.core;
 
 const helpers = @import("processing.test_helpers.zig");
+
+pub fn expectLayerSignal(o: anytype, expected_layer: u8) !void {
+    var expected_data: [8]u8 = [_]u8{0} ** 8;
+    expected_data[0] = expected_layer;
+    try std.testing.expectEqual(core.OutputCommand{ .RawHidSignal = .{ .signal_id = core.RAWHID_SIGNAL_LAYER_CHANGED, .data = expected_data, .len = 1 } }, try o.actions_queue.dequeue());
+}
 
 const a = 4;
 const b = 5;
@@ -298,6 +304,7 @@ test "ensure correct layers combo is chosen" {
 
     try o.process(current_time);
 
+    try expectLayerSignal(&o, 1);
     try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = e }, try o.actions_queue.dequeue());
     try std.testing.expectEqual(0, o.actions_queue.Count());
 
@@ -319,17 +326,16 @@ test "custom code activate another layer - ensure combo works" {
     const MyFunctions = struct {
         var layer3_is_active = false;
         fn on_event(event: core.ProcessorEvent, layers: *core.LayerActivations, output_queue: *core.OutputCommandQueue) void {
-            _ = output_queue;
             switch (event) {
                 .OnHoldEnterAfter => |data| {
                     _ = data;
                     layer3_is_active = layers.is_layer_active(1) and layers.is_layer_active(2);
-                    layers.set_layer_state(3, layer3_is_active);
+                    layers.set_layer_state(3, layer3_is_active, output_queue);
                 },
                 .OnHoldExitAfter => |data| {
                     _ = data;
                     layer3_is_active = layers.is_layer_active(1) and layers.is_layer_active(2);
-                    layers.set_layer_state(3, layer3_is_active);
+                    layers.set_layer_state(3, layer3_is_active, output_queue);
                 },
                 else => {},
             }
@@ -346,12 +352,16 @@ test "custom code activate another layer - ensure combo works" {
     const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, layer_1, layer_2, layer_3 };
     const combos = comptime [_]core.Combo2Def{.{ .key_indexes = .{ 0, 3 }, .layer = 3, .timeout = combo_timeout, .key_def = G }};
 
-    var o = helpers.init_test_full(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap, &combos, &custom_functions, @splat(.X)){};
+    var o = helpers.init_test_full(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap, &combos, &custom_functions, @splat(.L)){};
     try o.press_key(1, current_time);
     try o.press_key(2, current_time);
     try std.testing.expectEqual(false, MyFunctions.layer3_is_active);
 
     try o.process(current_time);
+
+    try expectLayerSignal(&o, 1);
+    try expectLayerSignal(&o, 2);
+    try expectLayerSignal(&o, 3);
 
     // Now both layers should be active, hence layer 3 should also be active
     try std.testing.expectEqual(true, MyFunctions.layer3_is_active);

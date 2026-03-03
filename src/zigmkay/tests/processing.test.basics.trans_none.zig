@@ -1,9 +1,15 @@
 const std = @import("std");
-const zigmkay = @import("zigmkay.zig");
+const zigmkay = @import("zigmkay");
 const core = zigmkay.core;
 
 const helpers = @import("processing.test_helpers.zig");
 const init_test = helpers.init_test;
+
+pub fn expectLayerSignal(o: anytype, expected_layer: u8) !void {
+    var expected_data: [8]u8 = [_]u8{0} ** 8;
+    expected_data[0] = expected_layer;
+    try std.testing.expectEqual(core.OutputCommand{ .RawHidSignal = .{ .signal_id = core.RAWHID_SIGNAL_LAYER_CHANGED, .data = expected_data, .len = 1 } }, try o.actions_queue.dequeue());
+}
 
 const a = 0x04;
 const b = 0x05;
@@ -44,9 +50,11 @@ test "TRANSPARENT case 1" {
 
     try o.process(current_time);
 
+    try expectLayerSignal(&o, 1);
+    try expectLayerSignal(&o, 3);
     // Press B expected
-    try std.testing.expectEqual(b, (try o.actions_queue.dequeue()).KeyCodePress);
-    try std.testing.expectEqual(b, (try o.actions_queue.dequeue()).KeyCodeRelease);
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = b }, try o.actions_queue.dequeue());
 
     // Expect no more actions
     try std.testing.expectEqual(0, o.matrix_change_queue.Count());
@@ -75,6 +83,8 @@ test "TRANSPARENT case 2" {
 
     try o.process(current_time);
 
+    try expectLayerSignal(&o, 1);
+    try expectLayerSignal(&o, 3);
     // Press A expected
     try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.actions_queue.dequeue());
     try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, try o.actions_queue.dequeue());
@@ -107,6 +117,8 @@ test "TRANSPARENT case 3" {
 
     try o.process(current_time);
 
+    try expectLayerSignal(&o, 1);
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, try o.actions_queue.dequeue());
     // Expect no more actions
     try std.testing.expectEqual(0, o.matrix_change_queue.Count());
 }
@@ -129,6 +141,7 @@ test "NONE key" {
 
     try o.process(current_time);
 
+    try expectLayerSignal(&o, 1);
     // Expect no more actions
     try std.testing.expectEqual(0, o.matrix_change_queue.Count());
     try std.testing.expectEqual(0, o.actions_queue.Count());

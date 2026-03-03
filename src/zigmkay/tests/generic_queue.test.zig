@@ -1,5 +1,5 @@
 const std = @import("std");
-const q = @import("generic_queue.zig");
+const q = @import("zigmkay").generic_queue;
 
 test "queue" {
     var queue = q.GenericQueue(i32, 10).Create();

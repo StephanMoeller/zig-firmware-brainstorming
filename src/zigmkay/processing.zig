@@ -124,7 +124,7 @@ pub fn CreateProcessorType(
                                     // this detects if two subsequent keypresses are on the same side of the keyboard
                                     // and if the key is not a thumb key
                                     const tapped_key_same_side_as_first_key = sides[earlier_event.key_index] == sides[head_event.key_index] and
-                                        (sides[head_event.key_index] != .TL or sides[head_event.key_index] != .TR);
+                                        sides[head_event.key_index] != .TL and sides[head_event.key_index] != .TR;
 
                                     if (!tapped_key_same_side_as_first_key) {
                                         try on_hold_decided(self, tap_and_hold.hold, next_key_info.key_def, head_event);

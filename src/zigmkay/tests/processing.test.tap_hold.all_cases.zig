@@ -1,5 +1,5 @@
 const std = @import("std");
-const zigmkay = @import("zigmkay.zig");
+const zigmkay = @import("zigmkay");
 const core = zigmkay.core;
 
 const helpers = @import("processing.test_helpers.zig");
@@ -97,7 +97,8 @@ fn run(events: []TestEvent, expect: TestExpectation) !void {
     const base_layer = comptime [_]core.KeyDef{ a_with_tap_hold, b_tap };
     const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
 
-    var o = init_test(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap){};
+    const sides = comptime [_]core.Side{ .L, .R };
+    var o = helpers.init_test_with_sides(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap, sides){};
 
     for (events) |e| {
         switch (e) {

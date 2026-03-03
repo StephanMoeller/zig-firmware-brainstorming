@@ -1,5 +1,5 @@
 const std = @import("std");
-const zigmkay = @import("zigmkay.zig");
+const zigmkay = @import("zigmkay");
 const core = zigmkay.core;
 
 const helpers = @import("processing.test_helpers.zig");
@@ -56,14 +56,17 @@ fn run_test(
 }
 
 test "Sides Permissive hold within timeout - different side situations" {
+    // Same non-thumb side evaluates as tap due to roll tap logic
     try run_test(.L, .L, .Tap);
     try run_test(.R, .R, .Tap);
 
+    // Opposite sides evaluate as hold
     try run_test(.L, .R, .Hold);
     try run_test(.R, .L, .Hold);
-    try run_test(.X, .R, .Hold);
-    try run_test(.X, .L, .Hold);
-    try run_test(.R, .X, .Hold);
-    try run_test(.L, .X, .Hold);
-    try run_test(.X, .X, .Hold);
+
+    // Thumb keys can be held with keys on the same side
+    try run_test(.TL, .L, .Hold);
+    try run_test(.TR, .R, .Hold);
+    try run_test(.L, .TL, .Hold);
+    try run_test(.R, .TR, .Hold);
 }

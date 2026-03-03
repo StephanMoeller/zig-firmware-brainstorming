@@ -1,4 +1,4 @@
-const core = @import("core.zig");
+const core = @import("zigmkay").core;
 const std = @import("std");
 test "TimeSinceBoot creation" {
     try std.testing.expectEqual(789, core.TimeSinceBoot.from_absolute_us(789).time_since_boot_us);
@@ -49,20 +49,21 @@ test "Modifiers.remove" {
 
 test "LayerActivations" {
     var layers = core.LayerActivations{};
+    var q = core.OutputCommandQueue.Create();
     try std.testing.expectEqual(true, layers.is_layer_active(0)); // base is always active
     try std.testing.expectEqual(false, layers.is_layer_active(1)); // base is always active
     try std.testing.expectEqual(false, layers.is_layer_active(6)); // base is always active
     try std.testing.expectEqual(false, layers.is_layer_active(4)); // base is always active
     try std.testing.expectEqual(false, layers.is_layer_active(7)); // base is always active
 
-    layers.activate(6);
+    layers.activate(6, &q);
 
-    layers.activate(4);
-    layers.activate(4);
+    layers.activate(4, &q);
+    layers.activate(4, &q);
 
-    layers.activate(7);
-    layers.activate(7);
-    layers.deactivate(7);
+    layers.activate(7, &q);
+    layers.activate(7, &q);
+    layers.deactivate(7, &q);
 
     try std.testing.expectEqual(true, layers.is_layer_active(0)); // base is always active
     try std.testing.expectEqual(false, layers.is_layer_active(1)); // base is always active
@@ -73,30 +74,32 @@ test "LayerActivations" {
 
 test "LayerActivations is_top_most_active_layer - test 1" {
     var layers = core.LayerActivations{};
+    var q = core.OutputCommandQueue.Create();
     try std.testing.expectEqual(0, layers.get_top_most_active_layer());
-    layers.activate(3);
+    layers.activate(3, &q);
     try std.testing.expectEqual(3, layers.get_top_most_active_layer());
-    layers.deactivate(3);
+    layers.deactivate(3, &q);
     try std.testing.expectEqual(0, layers.get_top_most_active_layer());
 }
 
 test "LayerActivations is_top_most_active_layer - test 2" {
     var layers = core.LayerActivations{};
+    var q = core.OutputCommandQueue.Create();
     try std.testing.expectEqual(0, layers.get_top_most_active_layer());
-    layers.activate(3);
-    layers.deactivate(3);
-    layers.activate(4);
-    layers.activate(5);
-    layers.activate(6);
-    layers.deactivate(5);
+    layers.activate(3, &q);
+    layers.deactivate(3, &q);
+    layers.activate(4, &q);
+    layers.activate(5, &q);
+    layers.activate(6, &q);
+    layers.deactivate(5, &q);
 
     try std.testing.expectEqual(6, layers.get_top_most_active_layer());
 
-    layers.deactivate(5);
+    layers.deactivate(5, &q);
 
     try std.testing.expectEqual(6, layers.get_top_most_active_layer());
 
-    layers.deactivate(6);
+    layers.deactivate(6, &q);
 
     try std.testing.expectEqual(4, layers.get_top_most_active_layer());
 }

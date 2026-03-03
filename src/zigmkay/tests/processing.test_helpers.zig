@@ -1,4 +1,4 @@
-const zigmkay = @import("zigmkay.zig");
+const zigmkay = @import("zigmkay");
 const core = zigmkay.core;
 
 const no_combos: [0]core.Combo2Def = [0]core.Combo2Def{};
@@ -50,13 +50,13 @@ pub fn init_test_with_combos(
     comptime keymap: *const [keymap_dimensions.layer_count][keymap_dimensions.key_count]core.KeyDef,
     comptime combos: []const core.Combo2Def,
 ) type {
-    return init_test_full(keymap_dimensions, keymap, combos, &no_functions, @splat(.X));
+    return init_test_full(keymap_dimensions, keymap, combos, &no_functions, @splat(.L));
 }
 pub fn init_test(
     comptime keymap_dimensions: core.KeymapDimensions,
     comptime keymap: *const [keymap_dimensions.layer_count][keymap_dimensions.key_count]core.KeyDef,
 ) type {
-    return init_test_full(keymap_dimensions, keymap, no_combos[0..], &no_functions, @splat(.X));
+    return init_test_full(keymap_dimensions, keymap, no_combos[0..], &no_functions, @splat(.L));
 }
 
 pub fn init_test_with_sides(
