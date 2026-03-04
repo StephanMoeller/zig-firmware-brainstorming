@@ -7,6 +7,9 @@ const MicroBuild = microzig.MicroBuild(.{
 });
 
 pub fn build(b: *std.Build) void {
+    const zigmkay_keymap_dep = b.dependency("zigmkay_keymap", .{});
+    const zigmkay_keymap_mod = zigmkay_keymap_dep.module("zigmkay_keymap");
+
     const zigmkay_mod = b.addModule("zigmkay", .{
         .root_source_file = .{
             .src_path = .{ .owner = b, .sub_path = "src/root.zig" },
@@ -14,34 +17,36 @@ pub fn build(b: *std.Build) void {
     });
 
     const zigmkay_internal_mod = b.createModule(.{
-        .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/zigmkay/zigmkay.zig" } },
+        .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/root.zig" } },
     });
+    zigmkay_internal_mod.addImport("zigmkay_keymap", zigmkay_keymap_mod);
 
     _ = zigmkay_mod;
 
     const test_files = &[_][]const u8{
-        "src/zigmkay/tests/core.test.zig",
-        "src/zigmkay/tests/generic_queue.test.zig",
-        "src/zigmkay/tests/grazkb.test.zig",
-        "src/zigmkay/tests/output_command_queue.test.zig",
-        "src/zigmkay/tests/processing.test.autofire.zig",
-        "src/zigmkay/tests/processing.test.basics.hold_only.zig",
-        "src/zigmkay/tests/processing.test.basics.multitap_same_keycode.zig",
-        "src/zigmkay/tests/processing.test.basics.tap_only.zig",
-        "src/zigmkay/tests/processing.test.basics.trans_none.zig",
-        "src/zigmkay/tests/processing.test.boot_key.zig",
-        "src/zigmkay/tests/processing.test.combos_single.zig",
-        "src/zigmkay/tests/processing.test.custom_functions.zig",
-        "src/zigmkay/tests/processing.test.known_bugs.zig",
-        "src/zigmkay/tests/processing.test.one_shot.zig",
-        "src/zigmkay/tests/processing.test.permissive_hold.zig",
-        "src/zigmkay/tests/processing.test.permissive_hold_and_combos.zig",
-        "src/zigmkay/tests/processing.test.retrotapping.zig",
-        "src/zigmkay/tests/processing.test.rolling_keys.zig",
-        "src/zigmkay/tests/processing.test.sides.zig",
-        "src/zigmkay/tests/processing.test.struct_sizes.zig",
-        "src/zigmkay/tests/processing.test.tap_hold.all_cases.zig",
-        "src/zigmkay/tests/processing.test.tap_hold.zig",
+        "src/tests/core.test.zig",
+        "src/tests/generic_queue.test.zig",
+        "src/tests/grazkb.test.zig",
+        "src/tests/output_command_queue.test.zig",
+        "src/tests/processing.test.autofire.zig",
+        "src/tests/processing.test.basics.hold_only.zig",
+        "src/tests/processing.test.basics.multitap_same_keycode.zig",
+        "src/tests/processing.test.basics.tap_only.zig",
+        "src/tests/processing.test.basics.trans_none.zig",
+        "src/tests/processing.test.boot_key.zig",
+        "src/tests/processing.test.combos_single.zig",
+        "src/tests/processing.test.custom_functions.zig",
+        "src/tests/processing.test.known_bugs.zig",
+        "src/tests/processing.test.one_shot.zig",
+        "src/tests/processing.test.permissive_hold.zig",
+        "src/tests/processing.test.permissive_hold_and_combos.zig",
+        "src/tests/processing.test.retrotapping.zig",
+        "src/tests/processing.test.rolling_keys.zig",
+        "src/tests/processing.test.sides.zig",
+        "src/tests/processing.test.struct_sizes.zig",
+        "src/tests/processing.test.tap_hold.all_cases.zig",
+        "src/tests/processing.test.tap_hold.zig",
+        "src/tests/keycodes.integration.test.zig",
     };
 
     const test_step = b.step("test", "Run unit tests");
