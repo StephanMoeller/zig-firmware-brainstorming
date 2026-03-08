@@ -7,8 +7,8 @@ const MicroBuild = microzig.MicroBuild(.{
 });
 
 pub fn build(b: *std.Build) void {
-    const zigmkay_keymap_dep = b.dependency("zigmkay_keymap", .{});
-    const zigmkay_keymap_mod = zigmkay_keymap_dep.module("zigmkay_keymap");
+    const zkeycodes_dep = b.dependency("zkeycodes", .{});
+    const zkeycodes_mod = zkeycodes_dep.module("zkeycodes");
 
     const zigmkay_mod = b.addModule("zigmkay", .{
         .root_source_file = .{
@@ -19,9 +19,9 @@ pub fn build(b: *std.Build) void {
     const zigmkay_internal_mod = b.createModule(.{
         .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/root.zig" } },
     });
-    zigmkay_internal_mod.addImport("zigmkay_keymap", zigmkay_keymap_mod);
+    zigmkay_internal_mod.addImport("zkeycodes", zkeycodes_mod);
 
-    _ = zigmkay_mod;
+    zigmkay_mod.addImport("zkeycodes", zkeycodes_mod);
 
     const test_files = &[_][]const u8{
         "src/tests/core.test.zig",
@@ -46,7 +46,6 @@ pub fn build(b: *std.Build) void {
         "src/tests/processing.test.struct_sizes.zig",
         "src/tests/processing.test.tap_hold.all_cases.zig",
         "src/tests/processing.test.tap_hold.zig",
-        "src/tests/keycodes.integration.test.zig",
     };
 
     const test_step = b.step("test", "Run unit tests");
