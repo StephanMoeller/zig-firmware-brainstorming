@@ -23,6 +23,7 @@ pub const Encoder = struct {
     pin_a: rp2xxx.gpio.Pin,
     pin_b: rp2xxx.gpio.Pin,
     state: u2 = 0,
+    accumulator: i8 = 0,
 
     /// Initializes a new Encoder instance, setting the given pins as input with pull-ups enabled.
     /// Reads the initial internal state of the pins.
@@ -50,33 +51,46 @@ pub const Encoder = struct {
 
     /// Polls the current encoder state and computes any rotation events.
     /// Should be called repeatedly within the matrix scanning loop.
+    ///
+    /// Uses a direction accumulator to suppress jitter: each quadrature transition
+    /// votes +1 (CW) or -1 (CCW). An event is only emitted when the encoder reaches
+    /// the resting detent (state 00) with an accumulated vote of ±2 or more.
+    /// The accumulator is not reset at intermediate states (e.g. 11), so a full step
+    /// (00→01→11→10→00) accumulates +4 before firing. A single jitter bounce
+    /// (e.g. 00→01→00) nets zero and is discarded.
     pub fn update(self: *Encoder) ?EncoderEvent {
+        // Transition vote table indexed by (old_state << 2 | new_state).
+        // CW sequence:  00->01->11->10->00  => +1 per step
+        // CCW sequence: 00->10->11->01->00  => -1 per step
+        // Two-bit jumps and no-change transitions: 0 (ignored)
+        const transition_table: [16]i8 = comptime .{
+            // zig fmt: off
+            //  new: 00   01   10   11
+                      0,   1,  -1,   0, // old: 00
+                     -1,   0,   0,   1, // old: 01
+                      1,   0,   0,  -1, // old: 10
+                      0,  -1,   1,   0, // old: 11
+            // zig fmt: on
+        };
+
         const new_state = self.read_state();
         if (new_state == self.state) return null;
-
-        // Basic state machine for quadrature decoding
-        // Standard table:
-        // 00 -> 01: CW
-        // 01 -> 11: CW
-        // 11 -> 10: CW
-        // 10 -> 00: CW
-        // Reverse for CCW
 
         const old_state = self.state;
         self.state = new_state;
 
-        // We only trigger events on specific transitions to avoid multiple triggers per detent
-        // Most encoders have 4 states per detent, often resting at 11 or 00.
-        // Common pattern: transition to 00 or 11 (detent positions)
+        const idx: u4 = (@as(u4, old_state) << 2) | @as(u4, new_state);
+        self.accumulator +|= transition_table[idx]; // saturating add
 
-        if (new_state == 0b00 or new_state == 0b11) {
-            // Check direction based on previous state
-            // For CW (00->01->11->10->00):
-            // If new is 00, prev was 10
-            // If new is 11, prev was 01
-            if ((old_state == 0b10 and new_state == 0b00) or (old_state == 0b01 and new_state == 0b11)) {
+        // Reset the accumulator at every detent so stale votes from one
+        // half-step never bleed into the next. Only the 00 detent emits events.
+        if (new_state == 0b11) {
+            self.accumulator = 0;
+        } else if (new_state == 0b00) {
+            defer self.accumulator = 0;
+            if (self.accumulator >= 2) {
                 return EncoderEvent{ .direction = .CCW };
-            } else if ((old_state == 0b01 and new_state == 0b00) or (old_state == 0b10 and new_state == 0b11)) {
+            } else if (self.accumulator <= -2) {
                 return EncoderEvent{ .direction = .CW };
             }
         }
