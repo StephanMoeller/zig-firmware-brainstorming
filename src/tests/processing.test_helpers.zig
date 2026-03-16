@@ -43,6 +43,39 @@ pub fn init_test_full(
                 self._inner_processor = ProcessorType{ .input_matrix_changes = &self.matrix_change_queue, .output_usb_commands = &self.actions_queue };
             try self._inner_processor.?.Process(time);
         }
+
+        /// Dequeues the next output command, automatically skipping any
+        /// RAWHID_SIGNAL_KEY_EVENT signals that are emitted unconditionally
+        /// by the processing pipeline for companion app telemetry.
+        /// Use this in tests that only care about USB key/modifier output.
+        pub fn dequeue(self: *Self) !core.OutputCommand {
+            while (true) {
+                const cmd = try self.actions_queue.dequeue();
+                switch (cmd) {
+                    .RawHidSignal => |sig| {
+                        if (sig.signal_id == core.RAWHID_SIGNAL_KEY_EVENT) continue;
+                        return cmd;
+                    },
+                    else => return cmd,
+                }
+            }
+        }
+
+        /// Returns the number of queued output commands, excluding
+        /// RAWHID_SIGNAL_KEY_EVENT telemetry signals.
+        pub fn count_non_key_events(self: *Self) usize {
+            var count: usize = 0;
+            const all = self.actions_queue.queue.peek_all();
+            for (all) |cmd| {
+                switch (cmd) {
+                    .RawHidSignal => |sig| {
+                        if (sig.signal_id != core.RAWHID_SIGNAL_KEY_EVENT) count += 1;
+                    },
+                    else => count += 1,
+                }
+            }
+            return count;
+        }
     };
 }
 pub fn init_test_with_combos(

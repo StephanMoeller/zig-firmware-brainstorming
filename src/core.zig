@@ -10,6 +10,21 @@ pub const special_keycode_BOOT: u8 = 0xFC; // Special keycode that signals puts 
 pub const special_keycode_PRINT_STATS: u8 = 0xFD; // Special keycode that prints stats into any text editor.
 pub const special_keycode_COMPANION: u8 = 0xFE; // Special keycode that signals the companion app to toggle the overlay.
 pub const special_keycode_SHUTDOWN_COMPANION: u8 = 0xFF; // Special keycode that signals the companion app to shut down entirely.
+
+/// Reserved TapDef.custom ID for SIG(): toggles companion app log visibility.
+/// Mirrors the special_keycode_* naming convention. Do not use in user keymaps.
+pub const CUSTOM_ID_COMPANION_LOG_TOGGLE: u8 = 0xFD;
+/// Reserved TapDef.custom ID for SIG(): sends a companion app shutdown command.
+/// Mirrors the special_keycode_* naming convention. Do not use in user keymaps.
+pub const CUSTOM_ID_COMPANION_SHUTDOWN: u8 = 0xFE;
+/// Reserved TapDef.custom ID for SIG(): signals the companion overlay to toggle
+/// (press=1 on key enter, release=0 on key exit). Mirrors the special_keycode_*
+/// naming convention. Do not use in user keymaps.
+///
+/// User-defined custom IDs may use any value from 1 to 252 (0x01..0xFC).
+/// Values 0xFD, 0xFE, and 0xFF are reserved by zigmkay for built-in companion
+/// signals and must not be used for keymap-specific logic.
+pub const CUSTOM_ID_COMPANION_TOGGLE: u8 = 0xFF;
 pub const KC_BOOT = KeyCodeFire{ .tap_keycode = special_keycode_BOOT };
 pub const KC_PRINT_STATS = KeyCodeFire{ .tap_keycode = special_keycode_PRINT_STATS };
 pub const KC_COMPANION = KeyCodeFire{ .tap_keycode = special_keycode_COMPANION };
@@ -292,8 +307,22 @@ pub const LayerActivations = struct {
     }
 };
 
+/// Plugin interface for injecting keymap-specific logic into the processing pipeline.
+///
+/// zigmkay handles a set of built-in behaviors automatically without requiring a
+/// custom handler (see processing.zig for the full list). Only define `on_event`
+/// when your keymap needs logic that goes beyond the built-ins — for example,
+/// activating a custom layer, chaining multiple keys, or reacting to hold events
+/// in a keyboard-specific way.
+///
+/// A keymap with no custom logic can simply use the zero value:
+///   `pub const custom_functions = core.CustomFunctions{};`
 pub const CustomFunctions = struct {
-    on_event: fn (event: ProcessorEvent, layers: *LayerActivations, output_queue: *OutputCommandQueue) void,
+    /// Optional callback invoked by the processor on every firmware event.
+    /// Receives the event, a pointer to the current layer state, and the output
+    /// command queue so that custom actions can enqueue USB output.
+    /// Set to null (the default) when no custom logic is needed.
+    on_event: ?*const fn (event: ProcessorEvent, layers: *LayerActivations, output_queue: *OutputCommandQueue) void = null,
 };
 pub const ProcessorEvent = union(enum) {
     Tick,

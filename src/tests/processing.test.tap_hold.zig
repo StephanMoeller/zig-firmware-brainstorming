@@ -39,10 +39,10 @@ test "MT tap within tapping term - process with both in queue" {
     try o.process(current_time);
 
     // expect A pressed as no layer switch is expected
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = c }, try o.actions_queue.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = c }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = c }, try o.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = c }, try o.dequeue());
     try std.testing.expectEqual(0, o.matrix_change_queue.Count());
-    try std.testing.expectEqual(0, o.actions_queue.Count());
+    try std.testing.expectEqual(0, o.count_non_key_events());
 }
 test "MT tap within tapping term - process with multiple calls" {
     var current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
@@ -65,10 +65,10 @@ test "MT tap within tapping term - process with multiple calls" {
     try o.process(current_time);
 
     // expect A pressed as no layer switch is expected
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = c }, try o.actions_queue.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = c }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = c }, try o.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = c }, try o.dequeue());
     try std.testing.expectEqual(0, o.matrix_change_queue.Count());
-    try std.testing.expectEqual(0, o.actions_queue.Count());
+    try std.testing.expectEqual(0, o.count_non_key_events());
 }
 test "MT hold case: release after tapping term => hold" {
     var current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
@@ -90,10 +90,10 @@ test "MT hold case: release after tapping term => hold" {
     try o.process(current_time);
 
     // expect A pressed as no layer switch is expected
-    try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{ .left_alt = true } }, try o.actions_queue.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{} }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{ .left_alt = true } }, try o.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{} }, try o.dequeue());
     try std.testing.expectEqual(0, o.matrix_change_queue.Count());
-    try std.testing.expectEqual(0, o.actions_queue.Count());
+    try std.testing.expectEqual(0, o.count_non_key_events());
 }
 
 test "MT hold case: timeout => hold" {
@@ -116,8 +116,8 @@ test "MT hold case: timeout => hold" {
     try o.process(current_time);
 
     // expect A pressed as no layer switch is expected
-    try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{ .left_alt = true } }, try o.actions_queue.dequeue());
-    //try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{} }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{ .left_alt = true } }, try o.dequeue());
+    //try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{} }, try o.dequeue());
     try std.testing.expectEqual(0, o.matrix_change_queue.Count());
-    try std.testing.expectEqual(0, o.actions_queue.Count());
+    try std.testing.expectEqual(0, o.count_non_key_events());
 }

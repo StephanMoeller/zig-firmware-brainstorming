@@ -8,7 +8,7 @@ const init_test = helpers.init_test;
 pub fn expectLayerSignal(o: anytype, expected_layer: u8) !void {
     var expected_data: [8]u8 = [_]u8{0} ** 8;
     expected_data[0] = expected_layer;
-    try std.testing.expectEqual(core.OutputCommand{ .RawHidSignal = .{ .signal_id = core.RAWHID_SIGNAL_LAYER_CHANGED, .data = expected_data, .len = 1 } }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .RawHidSignal = .{ .signal_id = core.RAWHID_SIGNAL_LAYER_CHANGED, .data = expected_data, .len = 1 } }, try o.dequeue());
 }
 
 const a = 0x04;
@@ -53,12 +53,12 @@ test "TRANSPARENT case 1" {
     try expectLayerSignal(&o, 1);
     try expectLayerSignal(&o, 3);
     // Press B expected
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, try o.actions_queue.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = b }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, try o.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = b }, try o.dequeue());
 
     // Expect no more actions
     try std.testing.expectEqual(0, o.matrix_change_queue.Count());
-    try std.testing.expectEqual(0, o.actions_queue.Count());
+    try std.testing.expectEqual(0, o.count_non_key_events());
 }
 test "TRANSPARENT case 2" {
     // Layers - transparent key - ensure key on lower active layers used - case B - transparent on lower layers as well, expect fallback to base layer
@@ -86,12 +86,12 @@ test "TRANSPARENT case 2" {
     try expectLayerSignal(&o, 1);
     try expectLayerSignal(&o, 3);
     // Press A expected
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.actions_queue.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, try o.dequeue());
 
     // Expect no more actions
     try std.testing.expectEqual(0, o.matrix_change_queue.Count());
-    try std.testing.expectEqual(0, o.actions_queue.Count());
+    try std.testing.expectEqual(0, o.count_non_key_events());
 }
 
 test "TRANSPARENT case 3" {
@@ -118,7 +118,7 @@ test "TRANSPARENT case 3" {
     try o.process(current_time);
 
     try expectLayerSignal(&o, 1);
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, try o.dequeue());
     // Expect no more actions
     try std.testing.expectEqual(0, o.matrix_change_queue.Count());
 }
@@ -144,5 +144,5 @@ test "NONE key" {
     try expectLayerSignal(&o, 1);
     // Expect no more actions
     try std.testing.expectEqual(0, o.matrix_change_queue.Count());
-    try std.testing.expectEqual(0, o.actions_queue.Count());
+    try std.testing.expectEqual(0, o.count_non_key_events());
 }

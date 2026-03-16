@@ -1,6 +1,7 @@
 const std = @import("std");
 const core = @import("core.zig");
 const stats_collector = @import("stats_collector.zig");
+const zkeycodes = @import("zkeycodes");
 
 pub fn CreateProcessorType(
     comptime keymap_dimensions: core.KeymapDimensions,
@@ -53,6 +54,17 @@ pub fn CreateProcessorType(
             if (mods.left_alt or mods.right_alt) condensed |= 2;
             if (mods.left_ctrl or mods.right_ctrl) condensed |= 4;
             if (mods.left_gui or mods.right_gui) condensed |= 8;
+
+            // Send key event telemetry to the companion app over Raw HID.
+            // This is done unconditionally so the companion always receives matrix events.
+            const log_msg = core.LogMessage{
+                .pressed = ev.pressed,
+                .key_index = ev.key_index,
+                .layer = @intCast(self.layers_activations.get_top_most_active_layer()),
+                .modifiers = condensed,
+            };
+            self.output_usb_commands.send_raw_hid_signal(core.RAWHID_SIGNAL_KEY_EVENT, &log_msg.toBytes()) catch {};
+
             on_event(self, .{ .OnMatrixChanged = .{ .event = ev, .layer = self.layers_activations.get_top_most_active_layer(), .modifiers = condensed } });
         }
 
@@ -168,6 +180,19 @@ pub fn CreateProcessorType(
                                         try self.output_usb_commands.send_raw_hid_signal(core.RAWHID_SIGNAL_COMPANION_KEY, &[_]u8{0});
                                     }
                                     try self.output_usb_commands.release_key(keycode_fire);
+
+                                    // Dead key completion: after releasing a dead key (e.g. ´ or ¨),
+                                    // tap SPACE so the character is emitted as a standalone glyph
+                                    // rather than waiting to compose with the next keystroke.
+                                    if (keycode_fire.dead) {
+                                        try self.output_usb_commands.tap_key(zkeycodes.layouts.keycodes.kcf.SPC);
+                                    }
+                                }
+
+                                // Built-in release signal for CUSTOM_ID_COMPANION_TOGGLE (SIG key).
+                                // Sends press=0 to inform the companion overlay that the key was released.
+                                if (tap.custom == core.CUSTOM_ID_COMPANION_TOGGLE) {
+                                    try self.output_usb_commands.send_raw_hid_signal(core.RAWHID_SIGNAL_COMPANION_KEY, &[_]u8{0});
                                 }
 
                                 self.release_map[head_event.key_index] = ReleaseMapEntry.None;
@@ -186,6 +211,13 @@ pub fn CreateProcessorType(
 
                                 self.release_map[head_event.key_index] = ReleaseMapEntry.None;
                                 on_event(self, .{ .OnHoldExitAfter = .{ .hold = hold_def.hold } });
+
+                                // Built-in custom keycode dispatch for HoldDef.custom on hold exit.
+                                // Mirrors the tap fired in on_hold_decided so the custom keycode
+                                // is also fired when the hold key is released.
+                                if (hold_def.hold.custom) |keycode| {
+                                    try self.output_usb_commands.tap_key(core.KeyCodeFire{ .tap_keycode = keycode, .tap_modifiers = hold_def.hold.hold_modifiers });
+                                }
                             },
                         }
                     },
@@ -262,6 +294,25 @@ pub fn CreateProcessorType(
         }
         fn on_tap_decided(self: *Self, tap: core.TapDef, event: core.MatrixStateChange, release_mode: TapReleaseMode) !void {
             on_event(self, .{ .OnTapEnterBefore = .{ .tap = tap } });
+
+            // Built-in companion signal dispatch for reserved SIG() custom IDs.
+            // These IDs (0xFD–0xFF) are reserved by zigmkay; keymap authors must not
+            // use them for custom logic and do not need to handle them in on_event.
+            switch (tap.custom) {
+                core.CUSTOM_ID_COMPANION_TOGGLE => {
+                    // Signal the companion overlay to open (press=1). The paired release
+                    // signal (press=0) is sent automatically in the ReleaseTap path.
+                    try self.output_usb_commands.send_raw_hid_signal(core.RAWHID_SIGNAL_COMPANION_KEY, &[_]u8{1});
+                },
+                core.CUSTOM_ID_COMPANION_SHUTDOWN => {
+                    try self.output_usb_commands.send_raw_hid_signal(core.RAWHID_SIGNAL_SHUTDOWN_COMPANION, &[_]u8{1});
+                },
+                core.CUSTOM_ID_COMPANION_LOG_TOGGLE => {
+                    try self.output_usb_commands.send_raw_hid_signal(core.RAWHID_SIGNAL_COMPANION_LOG_TOGGLE, &[_]u8{1});
+                },
+                else => {},
+            }
+
             if (self.one_shot_hold_to_enable_before_next_tap) |hold| {
                 try hold_apply_modifiers_and_layers(self, hold);
                 self.one_shot_hold_to_disable_after_next_release = self.one_shot_hold_to_enable_before_next_tap;
@@ -363,6 +414,14 @@ pub fn CreateProcessorType(
                 },
             };
             on_event(self, .{ .OnHoldEnterAfter = .{ .hold = hold } });
+
+            // Built-in custom keycode dispatch for HoldDef.custom.
+            // If a hold definition carries a custom keycode (set via the HoldDef.custom field),
+            // that keycode is tapped automatically on hold enter. Keymap authors do not need
+            // to handle this in on_event. The matching tap on hold exit is in the ReleaseHold path.
+            if (hold.custom) |keycode| {
+                try self.output_usb_commands.tap_key(core.KeyCodeFire{ .tap_keycode = keycode, .tap_modifiers = hold.hold_modifiers });
+            }
         }
 
         fn determine_key_def(self: *Self, key_index: usize) core.KeyDef {
@@ -406,8 +465,11 @@ pub fn CreateProcessorType(
         }
         // AUTOFIRE END
 
+        /// Dispatches a processor event to the user-supplied custom handler, if one is set.
         fn on_event(self: *Self, event: core.ProcessorEvent) void {
-            custom.on_event(event, &self.layers_activations, self.output_usb_commands);
+            if (custom.on_event) |handler| {
+                handler(event, &self.layers_activations, self.output_usb_commands);
+            }
         }
 
         fn warn(comptime msg: []const u8, args: anytype) void {
