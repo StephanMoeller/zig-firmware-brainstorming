@@ -8,3 +8,4 @@ pub const macros = @import("macros.zig");
 pub const combo = @import("combo.zig");
 pub const keycodes = @import("zkeycodes").layouts;
 pub const loops = @import("loops.zig");
+pub const microzig = @import("microzig");

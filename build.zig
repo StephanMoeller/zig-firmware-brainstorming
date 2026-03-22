@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const microzig = @import("microzig");
+pub const microzig = @import("microzig");
 
 const MicroBuild = microzig.MicroBuild(.{
     .rp2xxx = true,
