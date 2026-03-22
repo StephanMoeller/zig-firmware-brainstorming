@@ -326,7 +326,7 @@ pub const CustomFunctions = struct {
 };
 pub const ProcessorEvent = union(enum) {
     Tick,
-    OnMatrixChanged: struct { event: MatrixStateChange, layer: LayerIndex, modifiers: u4 },
+    OnMatrixChanged: struct { event: MatrixStateChange, layer: LayerIndex, modifiers: u8 },
     OnTapEnterBefore: struct { tap: TapDef },
     OnTapEnterAfter: struct { tap: TapDef },
     OnTapExitBefore: struct { tap: TapDef },

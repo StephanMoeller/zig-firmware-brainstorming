@@ -49,11 +49,9 @@ pub fn CreateProcessorType(
 
         fn dispatch_matrix_change(self: *Self, ev: core.MatrixStateChange) void {
             const mods = self.output_usb_commands.get_current_modifiers();
-            var condensed: u4 = 0;
-            if (mods.left_shift or mods.right_shift) condensed |= 1;
-            if (mods.left_alt or mods.right_alt) condensed |= 2;
-            if (mods.left_ctrl or mods.right_ctrl) condensed |= 4;
-            if (mods.left_gui or mods.right_gui) condensed |= 8;
+
+            // Send full 8-bit modifier byte using toByte() - preserves left/right modifier distinction.
+            const modifier_byte = mods.toByte();
 
             // Send key event telemetry to the companion app over Raw HID.
             // This is done unconditionally so the companion always receives matrix events.
@@ -61,11 +59,11 @@ pub fn CreateProcessorType(
                 .pressed = ev.pressed,
                 .key_index = ev.key_index,
                 .layer = @intCast(self.layers_activations.get_top_most_active_layer()),
-                .modifiers = condensed,
+                .modifiers = modifier_byte,
             };
             self.output_usb_commands.send_raw_hid_signal(core.RAWHID_SIGNAL_KEY_EVENT, &log_msg.toBytes()) catch {};
 
-            on_event(self, .{ .OnMatrixChanged = .{ .event = ev, .layer = self.layers_activations.get_top_most_active_layer(), .modifiers = condensed } });
+            on_event(self, .{ .OnMatrixChanged = .{ .event = ev, .layer = self.layers_activations.get_top_most_active_layer(), .modifiers = modifier_byte } });
         }
 
         /// Submits an encoder event to the processing pipeline.
