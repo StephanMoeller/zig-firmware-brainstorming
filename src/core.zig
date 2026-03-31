@@ -116,7 +116,7 @@ pub const LogMessage = extern struct {
     pressed: bool,
     key_index: u8,
     layer: u8,
-    modifiers: u8,
+    modifiers: Modifiers,
     pub fn toBytes(self: LogMessage) [4]u8 {
         return @bitCast(self);
     }
@@ -326,7 +326,7 @@ pub const CustomFunctions = struct {
 };
 pub const ProcessorEvent = union(enum) {
     Tick,
-    OnMatrixChanged: struct { event: MatrixStateChange, layer: LayerIndex, modifiers: u8 },
+    OnMatrixChanged: struct { event: MatrixStateChange, layer: LayerIndex, modifiers: Modifiers },
     OnTapEnterBefore: struct { tap: TapDef },
     OnTapEnterAfter: struct { tap: TapDef },
     OnTapExitBefore: struct { tap: TapDef },

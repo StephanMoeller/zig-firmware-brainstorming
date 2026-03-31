@@ -50,20 +50,17 @@ pub fn CreateProcessorType(
         fn dispatch_matrix_change(self: *Self, ev: core.MatrixStateChange) void {
             const mods = self.output_usb_commands.get_current_modifiers();
 
-            // Send full 8-bit modifier byte using toByte() - preserves left/right modifier distinction.
-            const modifier_byte = mods.toByte();
-
             // Send key event telemetry to the companion app over Raw HID.
             // This is done unconditionally so the companion always receives matrix events.
             const log_msg = core.LogMessage{
                 .pressed = ev.pressed,
                 .key_index = ev.key_index,
                 .layer = @intCast(self.layers_activations.get_top_most_active_layer()),
-                .modifiers = modifier_byte,
+                .modifiers = mods,
             };
             self.output_usb_commands.send_raw_hid_signal(core.RAWHID_SIGNAL_KEY_EVENT, &log_msg.toBytes()) catch {};
 
-            on_event(self, .{ .OnMatrixChanged = .{ .event = ev, .layer = self.layers_activations.get_top_most_active_layer(), .modifiers = modifier_byte } });
+            on_event(self, .{ .OnMatrixChanged = .{ .event = ev, .layer = self.layers_activations.get_top_most_active_layer(), .modifiers = mods } });
         }
 
         /// Submits an encoder event to the processing pipeline.
