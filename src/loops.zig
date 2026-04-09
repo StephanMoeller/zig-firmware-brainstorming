@@ -102,9 +102,6 @@ pub fn run_primary(
 
         // Execute actions: send usb commands to the host
         try usb_command_executor.HouseKeepAndProcessCommands(&usb_command_queue, current_time);
-
-        // todo: put this logic inside usb command executor and make a keycode to trigger it
-
     }
 }
 

@@ -2,6 +2,7 @@ const generic_queue = @import("generic_queue.zig");
 const std = @import("std");
 const string_printing = @import("string_printing.zig");
 pub const zkeycodes = @import("zkeycodes").core;
+const kc = @import("zkeycodes").layouts.keycodes.kc;
 pub const KeyCodeFire = zkeycodes.KeyCodeFire;
 pub const Modifiers = zkeycodes.Modifiers;
 

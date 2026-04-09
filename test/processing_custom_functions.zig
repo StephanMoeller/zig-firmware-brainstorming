@@ -2,7 +2,7 @@ const std = @import("std");
 const zigmkay = @import("zigmkay");
 const core = zigmkay.core;
 const generic_queue = @import("zigmkay").generic_queue;
-const helpers = @import("processing.test_helpers.zig");
+const helpers = @import("processing_test_helpers.zig");
 
 const a = 0x04;
 const b = 0x05;

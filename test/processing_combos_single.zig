@@ -2,7 +2,7 @@ const std = @import("std");
 const zigmkay = @import("zigmkay");
 const core = zigmkay.core;
 
-const helpers = @import("processing.test_helpers.zig");
+const helpers = @import("processing_test_helpers.zig");
 
 pub fn expectLayerSignal(o: anytype, expected_layer: u8) !void {
     var expected_data: [8]u8 = [_]u8{0} ** 8;
