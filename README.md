@@ -49,6 +49,8 @@ A KeyDef can be any of the following kinds:
 A TapDef contains:
 - a keycode, which is the code that will be fired when zigmkay decides that a tap has happened
 - an optional Modifiers value - if set, this will be applied to the keycode 
+- an optional media_key value - if set, this will fire a Consumer Control HID report (e.g., volume, play/pause, mute)
+- an optional mouse_action value - if set, this will fire a Mouse HID report (e.g., clicks, wheel movements)
 If a tap has a modifiers, the current held modifiers will be cancelled, the tap will be fired with its own modifiers and then any previous modifiers will be re-applied.
 This behaviour allows for various features, eg. a layer activates shift, but a single key should not be shifted. In this case, the optional modifier could be set to empty (instead of null).
 
@@ -71,6 +73,18 @@ Retrotapping is an opt in on the tap_hold type. When set to true, the key will f
 
 ## Permissive hold
 Permissive hold is always on. In qmk you can enable permissive hold and pressing tap/hold key 1, then press and release key 2 and then releasing key 1 - all withing the tapping term will still make zigmkay choose the hold over the tap allowing for fast use of shift while typing fast. Permissive hold is not only the default but the only way in zigmkay.
+
+## Encoders
+ZigMKay supports quadrature rotary encoders. An encoder is defined with two key indexes representing clockwise (CW) and counter-clockwise (CCW) rotation. When the encoder is rotated, it simulates key press/release events for these indexes, allowing the same KeyDef logic (tap, hold, layer, etc.) to apply to encoder movements.
+
+## HID Channels
+ZigMKay supports multiple HID channels beyond standard keyboard:
+- **Keyboard**: Standard 6-key rollover with modifier keys and LED indicator feedback
+- **Consumer Control**: Media keys (volume, play/pause, mute, next/prev track)
+- **Mouse**: 5-button mouse with X/Y movement, wheel, and pan support
+- **Raw HID**: 32-byte bidirectional channel for companion app communication and key logging
+
+This allows keymaps to define keys that control media playback, move the mouse cursor, or send custom data to a companion application.
 
 ## Custom code
 You can hook into events and manipulate modifiers, layer settings and manually fire key presses and releases. By providing this pattern, zigmkay gives you full flexibility without making you opt out intirely from all tap/hold decision logic. 
@@ -112,15 +126,18 @@ pub fn main() !void {
     }
 }
 ```
-# KeyDef examples 
-(TODO)
+# KeyDef examples
 - tap_only
 - tap_only tap-with-mod
+- tap_only with media key: KC.MEDIA_VOLUME_UP
+- tap_only with mouse action: MS().WheelUp
+- tap_only with mouse action: MS().WheelDown
+- tap_only with mouse action: MS().LeftClick
 - hold mod
 - hold layer
 - tap/hold with layer hold
 - tap/hold with mod hold
-- tap/hold with both layer and mod hold 
+- tap/hold with both layer and mod hold
 - tap/hold with retro tapping enabled
 - autofire
 - combo
@@ -154,7 +171,6 @@ I was curious to what it would take to do this and then there was some things th
 
 # TODOs
 - 3 key combos (maybe)
-- make it a module
 - make documentation
 - split support
 - import keycodes from qmk
@@ -165,4 +181,7 @@ I was curious to what it would take to do this and then there was some things th
 # License 
 This project is licensed under GPL2
  
-
+# AI-Assisted Development
+Parts of this firmware were developed with AI assistance. All AI-generated code, features, and changes were reviewed and tested by human developers before inclusion.
+ 
+ 
