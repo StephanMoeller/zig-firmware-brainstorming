@@ -1,0 +1,122 @@
+const core = @import("core.zig");
+const std = @import("std");
+
+pub fn print_string(msg: []const u8, self: *core.OutputCommandQueue) !void {
+    for (msg) |char| {
+        try print_char(char, self);
+    }
+}
+pub fn print_char(char: u8, queue: *core.OutputCommandQueue) !void {
+    const hid_val: u8 = switch (char) {
+        'a' => KC_A,
+        'b' => KC_B,
+        'c' => KC_C,
+        'd' => KC_D,
+        'e' => KC_E,
+        'f' => KC_F,
+        'g' => KC_G,
+        'h' => KC_H,
+        'i' => KC_I,
+        'j' => KC_J,
+        'k' => KC_K,
+        'l' => KC_L,
+        'm' => KC_M,
+        'n' => KC_N,
+        'o' => KC_O,
+        'p' => KC_P,
+        'q' => KC_Q,
+        'r' => KC_R,
+        's' => KC_S,
+        't' => KC_T,
+        'u' => KC_U,
+        'v' => KC_V,
+        'w' => KC_W,
+        'x' => KC_X,
+        'y' => KC_Y,
+        'z' => KC_Z,
+        'A' => KC_A,
+        'B' => KC_B,
+        'C' => KC_C,
+        'D' => KC_D,
+        'E' => KC_E,
+        'F' => KC_F,
+        'G' => KC_G,
+        'H' => KC_H,
+        'I' => KC_I,
+        'J' => KC_J,
+        'K' => KC_K,
+        'L' => KC_L,
+        'M' => KC_M,
+        'N' => KC_N,
+        'O' => KC_O,
+        'P' => KC_P,
+        'Q' => KC_Q,
+        'R' => KC_R,
+        'S' => KC_S,
+        'T' => KC_T,
+        'U' => KC_U,
+        'V' => KC_V,
+        'W' => KC_W,
+        'X' => KC_X,
+        'Y' => KC_Y,
+        'Z' => KC_Z,
+        '1' => KC_1,
+        '2' => KC_2,
+        '3' => KC_3,
+        '4' => KC_4,
+        '5' => KC_5,
+        '6' => KC_6,
+        '7' => KC_7,
+        '8' => KC_8,
+        '9' => KC_9,
+        '0' => KC_0,
+        ' ' => KC_SPACE,
+        '.' => KC_DOT,
+        '\n' => KC_ENTER,
+        else => KC_DOT,
+    };
+
+    try queue.tap_key(.{ .tap_keycode = hid_val });
+}
+
+pub const KC_BOOT = core.special_keycode_BOOT;
+pub const KC_A = 0x0004;
+pub const KC_B = 0x0005;
+pub const KC_C = 0x0006;
+pub const KC_D = 0x0007;
+pub const KC_E = 0x0008;
+pub const KC_F = 0x0009;
+pub const KC_G = 0x000A;
+pub const KC_H = 0x000B;
+pub const KC_I = 0x000C;
+pub const KC_J = 0x000D;
+pub const KC_K = 0x000E;
+pub const KC_L = 0x000F;
+pub const KC_M = 0x0010;
+pub const KC_N = 0x0011;
+pub const KC_O = 0x0012;
+pub const KC_P = 0x0013;
+pub const KC_Q = 0x0014;
+pub const KC_R = 0x0015;
+pub const KC_S = 0x0016;
+pub const KC_T = 0x0017;
+pub const KC_U = 0x0018;
+pub const KC_V = 0x0019;
+pub const KC_W = 0x001A;
+pub const KC_X = 0x001B;
+pub const KC_Y = 0x001C;
+pub const KC_Z = 0x001D;
+pub const KC_1 = 0x001E;
+pub const KC_2 = 0x001F;
+pub const KC_3 = 0x0020;
+pub const KC_4 = 0x0021;
+pub const KC_5 = 0x0022;
+pub const KC_6 = 0x0023;
+pub const KC_7 = 0x0024;
+pub const KC_8 = 0x0025;
+pub const KC_9 = 0x0026;
+pub const KC_0 = 0x0027;
+pub const KC_ENTER = 0x0028;
+pub const KC_SPACE = 0x002C;
+pub const KC_DOT = 0x0037;
+pub const KC_BACKSLASH = 0x0031;

@@ -1,11 +1,11 @@
-pub const keycodes = struct {
-    pub const us = @import("keycodes/us.zig");
-    pub const dk = @import("keycodes/dk.zig");
-    pub const us_intl= @import("keycodes/us_intl.zig");
-};
-
+pub const generic_queue = @import("generic_queue.zig");
+pub const core = @import("core.zig");
+pub const matrix_scanning = @import("matrix_scanning.zig");
+pub const processing = @import("processing.zig");
+pub const usb = @import("usb_command_executor.zig");
+pub const encoder = @import("encoder.zig");
+pub const macros = @import("macros.zig");
+pub const combo = @import("combo.zig");
+pub const keycodes = @import("zkeycodes").layouts;
+pub const loops = @import("loops.zig");
 pub const microzig = @import("microzig");
-pub const rp2xxx = microzig.hal;
-pub const time = rp2xxx.time;
-
-pub const zigmkay = @import("zigmkay/zigmkay.zig");
