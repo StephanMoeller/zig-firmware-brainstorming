@@ -64,10 +64,9 @@ pub fn build(b: *std.Build) void {
         test_file_module.addImport("zigmkay", zigmkay_internal_mod);
 
         const test_exe = b.addTest(.{ .root_module = test_file_module });
-        const test_compile = b.addTest(.{ .root_module = test_file_module });
 
         const test_run = b.addRunArtifact(test_exe);
         test_run_step.dependOn(&test_run.step);
-        test_compile_step.dependOn(&test_compile.step);
+        test_compile_step.dependOn(&test_exe.step);
     }
 }
