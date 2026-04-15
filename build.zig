@@ -48,7 +48,11 @@ pub fn build(b: *std.Build) void {
         "test/processing_tap_hold.zig",
     };
 
-    const test_step = b.step("test", "Run unit tests");
+    // compile tests only: zig build test_compile
+    // compile and run tests: zig build test_compile_run
+    const test_compile_step = b.step("test_compile", "Compile unit tests");
+    const test_run_step = b.step("test_compile_run", "Run unit tests");
+
     const target = b.standardTargetOptions(.{});
     for (test_files) |path| {
         const test_file_module = b.createModule(.{
@@ -58,8 +62,12 @@ pub fn build(b: *std.Build) void {
             .target = target,
         });
         test_file_module.addImport("zigmkay", zigmkay_internal_mod);
+
         const test_exe = b.addTest(.{ .root_module = test_file_module });
-        const run = b.addRunArtifact(test_exe);
-        test_step.dependOn(&run.step);
+        const test_compile = b.addTest(.{ .root_module = test_file_module });
+
+        const test_run = b.addRunArtifact(test_exe);
+        test_run_step.dependOn(&test_run.step);
+        test_compile_step.dependOn(&test_compile.step);
     }
 }
