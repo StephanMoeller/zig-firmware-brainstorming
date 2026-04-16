@@ -23,31 +23,54 @@ const E = helpers.TAP(e);
 const F = helpers.TAP(f);
 const G = helpers.TAP(g);
 // test stuff
-test "Mouse actions - left mouse press" {
-    const key_tap = core.KeyDef{ .tap_only = .{ .key_press = .{ .tap_keycode = a, .dead = true } } };
-    const mouse_left_click = core.KeyDef{ .tap_only = .{ .mouse_action = .LeftClick } };
-
-    const current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
-    const base_layer = comptime [_]core.KeyDef{ key_tap, mouse_left_click };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
-    var o = init_test(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap){};
-
-    try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = true, .key_index = 1 }); // press mouse down
-
-    try o.process(current_time);
-
-    // expect B to be fired as press
-    try std.testing.expectEqual(1, o.count_non_key_events());
-    try std.testing.expectEqual(core.OutputCommand{ .MouseCommand = .{ .action = .LeftClick, .pressed = true } }, try o.dequeue());
-
-    // expect event removed from input_events
-    try std.testing.expectEqual(0, o.count_non_key_events());
-    try std.testing.expectEqual(0, o.matrix_change_queue.Count());
+test "Mouse actions - left buttom click" {
+    try run_mouse_action_test_internal(core.MouseAction.LeftClick, false);
+    try run_mouse_action_test_internal(core.MouseAction.LeftClick, true);
 }
 
-test "Mouse actions - left mouse press and release" {
+test "Mouse actions - right button click" {
+    try run_mouse_action_test_internal(core.MouseAction.RightClick, false);
+    try run_mouse_action_test_internal(core.MouseAction.RightClick, true);
+}
+
+test "Mouse actions - middle button click" {
+    try run_mouse_action_test_internal(core.MouseAction.MiddleClick, false);
+    try run_mouse_action_test_internal(core.MouseAction.MiddleClick, true);
+}
+
+test "Mouse actions - buttom4 click" {
+    try run_mouse_action_test_internal(core.MouseAction.Button4, false);
+    try run_mouse_action_test_internal(core.MouseAction.Button4, true);
+}
+
+test "Mouse actions - buttom5 click" {
+    try run_mouse_action_test_internal(core.MouseAction.Button5, false);
+    try run_mouse_action_test_internal(core.MouseAction.Button5, true);
+}
+
+test "Mouse actions - WheelUp tick" {
+    try run_mouse_action_test_internal(core.MouseAction.WheelUp, false);
+    try run_mouse_action_test_internal(core.MouseAction.WheelUp, true);
+}
+
+test "Mouse actions - WheelDown tick" {
+    try run_mouse_action_test_internal(core.MouseAction.WheelDown, false);
+    try run_mouse_action_test_internal(core.MouseAction.WheelDown, true);
+}
+
+test "Mouse actions - WheelLeft tick" {
+    try run_mouse_action_test_internal(core.MouseAction.WheelLeft, false);
+    try run_mouse_action_test_internal(core.MouseAction.WheelLeft, true);
+}
+
+test "Mouse actions - WheelRight tick" {
+    try run_mouse_action_test_internal(core.MouseAction.WheelRight, false);
+    try run_mouse_action_test_internal(core.MouseAction.WheelRight, true);
+}
+
+fn run_mouse_action_test_internal(comptime action: core.MouseAction, comptime include_release: bool) !void {
     const key_tap = core.KeyDef{ .tap_only = .{ .key_press = .{ .tap_keycode = a, .dead = true } } };
-    const mouse_left_click = core.KeyDef{ .tap_only = .{ .mouse_action = .LeftClick } };
+    const mouse_left_click = core.KeyDef{ .tap_only = .{ .mouse_action = action } };
 
     const current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
     const base_layer = comptime [_]core.KeyDef{ key_tap, mouse_left_click };
@@ -55,14 +78,21 @@ test "Mouse actions - left mouse press and release" {
     var o = init_test(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap){};
 
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = true, .key_index = 1 }); // press mouse down
-    try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = false, .key_index = 1 }); // press mouse down
+    if (include_release) {
+        try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = false, .key_index = 1 }); // press mouse down
+    }
 
     try o.process(current_time);
 
     // expect B to be fired as press
-    try std.testing.expectEqual(2, o.count_non_key_events());
-    try std.testing.expectEqual(core.OutputCommand{ .MouseCommand = .{ .action = .LeftClick, .pressed = true } }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .MouseCommand = .{ .action = .LeftClick, .pressed = false } }, try o.dequeue());
+    if (include_release) {
+        try std.testing.expectEqual(2, o.count_non_key_events());
+        try std.testing.expectEqual(core.OutputCommand{ .MouseCommand = .{ .action = action, .pressed = true } }, try o.dequeue());
+        try std.testing.expectEqual(core.OutputCommand{ .MouseCommand = .{ .action = action, .pressed = false } }, try o.dequeue());
+    } else {
+        try std.testing.expectEqual(1, o.count_non_key_events());
+        try std.testing.expectEqual(core.OutputCommand{ .MouseCommand = .{ .action = action, .pressed = true } }, try o.dequeue());
+    }
 
     // expect event removed from input_events
     try std.testing.expectEqual(0, o.count_non_key_events());
