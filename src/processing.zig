@@ -245,6 +245,10 @@ pub fn CreateProcessorType(
             if (tap.key_press) |keycode_fire| {
                 on_event(self, .{ .OnTapExitBefore = .{ .tap = tap } });
                 try self.output_usb_commands.release_key(keycode_fire);
+                if (keycode_fire.dead) {
+                    const space = core.KeyCodeFire{ .tap_keycode = 0x2C };
+                    try self.output_usb_commands.tap_key(space);
+                }
                 on_event(self, .{ .OnTapExitAfter = .{ .tap = tap } });
             }
         }
