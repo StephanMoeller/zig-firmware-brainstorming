@@ -1,6 +1,6 @@
 const std = @import("std");
 const core = @import("zigmkay").core;
-const helpers = @import("processing_test_helpers.zig");
+const helpers = @import("test_processing_helpers.zig");
 test "press key" {
     var q = core.OutputCommandQueue.Create();
     try q.press_key(.{ .tap_keycode = 0x04 });
