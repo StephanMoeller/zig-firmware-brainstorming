@@ -22,8 +22,8 @@ pub fn build(b: *std.Build) void {
 }
 
 pub fn add_test_steps(b: *std.Build, zigmkay_module: *std.Build.Module) void {
-    const global_test_compile_step = b.step("test_compile", "Compile unit tests");
-    const global_test_run_step = b.step("test_compile_run", "Run unit tests");
+    const global_test_compile_step = b.step("test_compile_only", "Compile unit tests");
+    const global_test_run_step = b.step("test", "Run unit tests");
     const target = b.standardTargetOptions(.{});
 
     // START: Create test file iterator
