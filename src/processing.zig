@@ -128,10 +128,8 @@ pub fn CreateProcessorType(
                             .ReleaseTap => |tap| {
                                 if (tap.key_press) |keycode_fire| {
                                     warn("releasing tap {}", .{keycode_fire.tap_keycode});
-                                    on_event(self, .{ .OnTapExitBefore = .{ .tap = tap } });
-                                    try self.output_usb_commands.release_key(keycode_fire);
+                                    try execute_tap_release(self, tap);
                                     self.release_map[head_event.key_index] = ReleaseMapEntry.None;
-                                    on_event(self, .{ .OnTapExitAfter = .{ .tap = tap } });
                                 }
                             },
                             .ReleaseHold => |hold_def| {
@@ -233,7 +231,7 @@ pub fn CreateProcessorType(
                         };
                     },
                     .ForceInstant => {
-                        try self.output_usb_commands.release_key(keycode_fire);
+                        try execute_tap_release(self, tap);
                     },
                 }
             }
@@ -241,6 +239,14 @@ pub fn CreateProcessorType(
                 self.one_shot_hold_to_enable_before_next_tap = one_shot_hold;
             }
             on_event(self, .{ .OnTapEnterAfter = .{ .tap = tap } });
+        }
+
+        fn execute_tap_release(self: *Self, tap: core.TapDef) !void {
+            if (tap.key_press) |keycode_fire| {
+                on_event(self, .{ .OnTapExitBefore = .{ .tap = tap } });
+                try self.output_usb_commands.release_key(keycode_fire);
+                on_event(self, .{ .OnTapExitAfter = .{ .tap = tap } });
+            }
         }
 
         fn hold_remove_modifiers_and_layers(self: *Self, hold: core.HoldDef) !void {
