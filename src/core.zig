@@ -69,7 +69,6 @@ pub const KeymapDimensions = struct {
 
 /// Defines an action representing mouse movement, wheel scrolling, or a mouse button click.
 pub const MouseAction = enum(u8) {
-    None = 0,
     LeftClick,
     RightClick,
     MiddleClick,
@@ -83,9 +82,9 @@ pub const MouseAction = enum(u8) {
 pub const TapDef = struct {
     key_press: ?KeyCodeFire = null,
     one_shot: ?HoldDef = null,
-    custom: u8 = 0,
-    media_key: u16 = 0, // Optional media keycode for consumer control (e.g., volume, play/pause).
-    mouse_action: MouseAction = .None, // Optional mouse action to be executed on tap.
+    custom: ?u8 = null,
+    media_key: ?u16 = null, // Optional media keycode for consumer control (e.g., volume, play/pause).
+    mouse_action: ?MouseAction = null, // Optional mouse action to be executed on tap.
 };
 pub const HoldDef = struct {
     hold_modifiers: ?Modifiers = null,
