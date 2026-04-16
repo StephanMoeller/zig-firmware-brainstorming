@@ -174,7 +174,8 @@ pub const OutputCommand = union(enum) {
     ActivateBootMode,
     RawHidSignal: struct { signal_id: u8, data: [8]u8, len: u8 },
     ConsumerKey: u16,
-    MouseCommand: struct { action: MouseAction, pressed: bool },
+    MouseCommandPressed: MouseAction,
+    MouseCommandReleased: MouseAction,
 };
 pub const OutputCommandQueue = struct {
     const QueueType = generic_queue.GenericQueue(OutputCommand, queue_capacities);

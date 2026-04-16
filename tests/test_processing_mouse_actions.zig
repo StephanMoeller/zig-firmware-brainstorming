@@ -112,11 +112,11 @@ fn run_mouse_action_test_internal(comptime action: core.MouseAction, comptime in
     // expect B to be fired as press
     if (include_release) {
         try std.testing.expectEqual(2, o.actions_queue.Count());
-        try std.testing.expectEqual(core.OutputCommand{ .MouseCommand = .{ .action = action, .pressed = true } }, try o.actions_queue.dequeue());
-        try std.testing.expectEqual(core.OutputCommand{ .MouseCommand = .{ .action = action, .pressed = false } }, try o.actions_queue.dequeue());
+        try std.testing.expectEqual(core.OutputCommand{ .MouseCommandPressed = action }, try o.actions_queue.dequeue());
+        try std.testing.expectEqual(core.OutputCommand{ .MouseCommandReleased = action }, try o.actions_queue.dequeue());
     } else {
         try std.testing.expectEqual(1, o.actions_queue.Count());
-        try std.testing.expectEqual(core.OutputCommand{ .MouseCommand = .{ .action = action, .pressed = true } }, try o.actions_queue.dequeue());
+        try std.testing.expectEqual(core.OutputCommand{ .MouseCommandPressed = action }, try o.actions_queue.dequeue());
     }
 
     // expect event removed from input_events
@@ -150,14 +150,14 @@ test "Mouse actions - in combination with key press and modifier" {
     try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.actions_queue.dequeue());
     try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, try o.actions_queue.dequeue());
     try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{} }, try o.actions_queue.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .MouseCommand = .{ .action = .Button5, .pressed = true } }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .MouseCommandPressed = .Button5 }, try o.actions_queue.dequeue());
 
     current_time = current_time.add_ms(100);
     try o.release_key(0, current_time);
     try o.process(current_time);
 
     try std.testing.expectEqual(1, o.actions_queue.Count());
-    try std.testing.expectEqual(core.OutputCommand{ .MouseCommand = .{ .action = .Button5, .pressed = false } }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .MouseCommandReleased = .Button5 }, try o.actions_queue.dequeue());
 }
 
 test "Mouse actions - in combination with key press with dead key" {
@@ -180,7 +180,7 @@ test "Mouse actions - in combination with key press with dead key" {
     // Expect everything to be fired instantly as there is a modifier on the tap
     try std.testing.expectEqual(2, o.actions_queue.Count());
     try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.actions_queue.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .MouseCommand = .{ .action = .Button5, .pressed = true } }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .MouseCommandPressed = .Button5 }, try o.actions_queue.dequeue());
 
     current_time = current_time.add_ms(100);
     try o.release_key(0, current_time);
@@ -190,5 +190,5 @@ test "Mouse actions - in combination with key press with dead key" {
     try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, try o.actions_queue.dequeue());
     try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = KC_SPACE }, try o.actions_queue.dequeue());
     try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = KC_SPACE }, try o.actions_queue.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .MouseCommand = .{ .action = .Button5, .pressed = false } }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .MouseCommandReleased = .Button5 }, try o.actions_queue.dequeue());
 }
