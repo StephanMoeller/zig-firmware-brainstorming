@@ -1,7 +1,6 @@
 const std = @import("std");
 const core = @import("core.zig");
 const stats_collector = @import("stats_collector.zig");
-const zkeycodes = @import("zkeycodes");
 
 pub fn CreateProcessorType(
     comptime keymap_dimensions: core.KeymapDimensions,
@@ -35,9 +34,6 @@ pub fn CreateProcessorType(
                 const data: []core.MatrixStateChange = self.input_matrix_changes.peek_all()[0..];
                 switch (try process_next(self, data, current_time)) {
                     .DequeueAndRunAgain => |dequeue_info| {
-                        for (data[0..dequeue_info.dequeue_count]) |ev| {
-                            self.dispatch_matrix_change(ev);
-                        }
                         try self.input_matrix_changes.dequeue_count(dequeue_info.dequeue_count);
                     },
                     .Stop => break,
@@ -45,38 +41,6 @@ pub fn CreateProcessorType(
             }
 
             try tick_autofire(self, current_time);
-        }
-
-        fn dispatch_matrix_change(self: *Self, ev: core.MatrixStateChange) void {
-            const mods = self.output_usb_commands.get_current_modifiers();
-
-            // Send key event telemetry to the companion app over Raw HID.
-            // This is done unconditionally so the companion always receives matrix events.
-            const log_msg = core.LogMessage{
-                .pressed = ev.pressed,
-                .key_index = ev.key_index,
-                .layer = @intCast(self.layers_activations.get_top_most_active_layer()),
-                .modifiers = mods,
-            };
-            self.output_usb_commands.send_raw_hid_signal(core.RAWHID_SIGNAL_KEY_EVENT, &log_msg.toBytes()) catch {};
-
-            on_event(self, .{ .OnMatrixChanged = .{ .event = ev, .layer = self.layers_activations.get_top_most_active_layer(), .modifiers = mods } });
-        }
-
-        /// Submits an encoder event to the processing pipeline.
-        /// This synthetic matrix event simulates a quick sequence of press/release for the resolved encoder key index.
-        pub fn ProcessEncoderEvent(self: *Self, key_index: core.KeyIndex, current_time: core.TimeSinceBoot) !void {
-            self.dispatch_matrix_change(core.MatrixStateChange{ .pressed = true, .key_index = key_index, .time = current_time });
-
-            const key_def = self.determine_key_def(key_index);
-            switch (key_def) {
-                .tap_only => |tap| {
-                    try self.on_tap_decided(tap, core.MatrixStateChange{ .pressed = true, .key_index = key_index, .time = current_time }, TapReleaseMode.ForceInstant);
-                },
-                else => {},
-            }
-
-            self.dispatch_matrix_change(core.MatrixStateChange{ .pressed = false, .key_index = key_index, .time = current_time });
         }
 
         fn process_next(self: *Self, data: []core.MatrixStateChange, current_time: core.TimeSinceBoot) !ProcessContinuation {
@@ -128,16 +92,11 @@ pub fn CreateProcessorType(
                             for (tail[0..outer_idx]) |earlier_event| {
                                 const press_and_release_same_key_detected = earlier_event.key_index == ev.key_index and earlier_event.pressed;
                                 if (press_and_release_same_key_detected) {
-                                    // this detects if two subsequent keypresses are on the same side of the keyboard
-                                    // and if the key is not a thumb key
-                                    const tapped_key_same_side_as_first_key = sides[earlier_event.key_index] == sides[head_event.key_index] and
-                                        sides[head_event.key_index] != .TL and sides[head_event.key_index] != .TR;
-
+                                    const tapped_key_same_side_as_first_key = sides[earlier_event.key_index] == sides[head_event.key_index] and sides[head_event.key_index] != .X;
                                     if (!tapped_key_same_side_as_first_key) {
                                         try on_hold_decided(self, tap_and_hold.hold, next_key_info.key_def, head_event);
                                         return ProcessContinuation{ .DequeueAndRunAgain = .{ .dequeue_count = next_key_info.consumed_event_count } };
                                     } else {
-                                        // Modifiers (non-layer holds) on the same side as the typed key roll into a tap (Home-Row Mods Positional Hold-Tap)
                                         try on_tap_decided(self, tap_and_hold.tap, head_event, TapReleaseMode.AwaitKeyReleased);
                                         return ProcessContinuation{ .DequeueAndRunAgain = .{ .dequeue_count = next_key_info.consumed_event_count } };
                                     }
@@ -167,31 +126,13 @@ pub fn CreateProcessorType(
                     .Release => |release_info| {
                         switch (release_info.release_action) {
                             .ReleaseTap => |tap| {
-                                on_event(self, .{ .OnTapExitBefore = .{ .tap = tap } });
-
                                 if (tap.key_press) |keycode_fire| {
                                     warn("releasing tap {}", .{keycode_fire.tap_keycode});
-                                    if (keycode_fire.tap_keycode == core.special_keycode_COMPANION) {
-                                        try self.output_usb_commands.send_raw_hid_signal(core.RAWHID_SIGNAL_COMPANION_KEY, &[_]u8{0});
-                                    }
+                                    on_event(self, .{ .OnTapExitBefore = .{ .tap = tap } });
                                     try self.output_usb_commands.release_key(keycode_fire);
-
-                                    // Dead key completion: after releasing a dead key (e.g. ´ or ¨),
-                                    // tap SPACE so the character is emitted as a standalone glyph
-                                    // rather than waiting to compose with the next keystroke.
-                                    if (keycode_fire.dead) {
-                                        try self.output_usb_commands.tap_key(zkeycodes.layouts.keycodes.kcf.SPC);
-                                    }
+                                    self.release_map[head_event.key_index] = ReleaseMapEntry.None;
+                                    on_event(self, .{ .OnTapExitAfter = .{ .tap = tap } });
                                 }
-
-                                // Built-in release signal for CUSTOM_ID_COMPANION_TOGGLE (SIG key).
-                                // Sends press=0 to inform the companion overlay that the key was released.
-                                if (tap.custom == core.CUSTOM_ID_COMPANION_TOGGLE) {
-                                    try self.output_usb_commands.send_raw_hid_signal(core.RAWHID_SIGNAL_COMPANION_KEY, &[_]u8{0});
-                                }
-
-                                self.release_map[head_event.key_index] = ReleaseMapEntry.None;
-                                on_event(self, .{ .OnTapExitAfter = .{ .tap = tap } });
                             },
                             .ReleaseHold => |hold_def| {
                                 on_event(self, .{ .OnHoldExitBefore = .{ .hold = hold_def.hold } });
@@ -206,13 +147,6 @@ pub fn CreateProcessorType(
 
                                 self.release_map[head_event.key_index] = ReleaseMapEntry.None;
                                 on_event(self, .{ .OnHoldExitAfter = .{ .hold = hold_def.hold } });
-
-                                // Built-in custom keycode dispatch for HoldDef.custom on hold exit.
-                                // Mirrors the tap fired in on_hold_decided so the custom keycode
-                                // is also fired when the hold key is released.
-                                if (hold_def.hold.custom) |keycode| {
-                                    try self.output_usb_commands.tap_key(core.KeyCodeFire{ .tap_keycode = keycode, .tap_modifiers = hold_def.hold.hold_modifiers });
-                                }
                             },
                         }
                     },
@@ -278,88 +212,31 @@ pub fn CreateProcessorType(
                 try self.output_usb_commands.print_string(numAsString);
                 return;
             }
-            if (keycode_fire.tap_keycode == core.special_keycode_COMPANION) {
-                try self.output_usb_commands.send_raw_hid_signal(core.RAWHID_SIGNAL_COMPANION_KEY, &[_]u8{1});
-                return;
-            }
-            if (keycode_fire.tap_keycode == core.special_keycode_SHUTDOWN_COMPANION) {
-                try self.output_usb_commands.send_raw_hid_signal(core.RAWHID_SIGNAL_SHUTDOWN_COMPANION, &[_]u8{1});
-                return;
-            }
         }
         fn on_tap_decided(self: *Self, tap: core.TapDef, event: core.MatrixStateChange, release_mode: TapReleaseMode) !void {
             on_event(self, .{ .OnTapEnterBefore = .{ .tap = tap } });
-
-            // Built-in companion signal dispatch for reserved SIG() custom IDs.
-            // These IDs (0xFD–0xFF) are reserved by zigmkay; keymap authors must not
-            // use them for custom logic and do not need to handle them in on_event.
-            switch (tap.custom) {
-                core.CUSTOM_ID_COMPANION_TOGGLE => {
-                    // Signal the companion overlay to open (press=1). The paired release
-                    // signal (press=0) is sent automatically in the ReleaseTap path.
-                    try self.output_usb_commands.send_raw_hid_signal(core.RAWHID_SIGNAL_COMPANION_KEY, &[_]u8{1});
-                },
-                core.CUSTOM_ID_COMPANION_SHUTDOWN => {
-                    try self.output_usb_commands.send_raw_hid_signal(core.RAWHID_SIGNAL_SHUTDOWN_COMPANION, &[_]u8{1});
-                },
-                core.CUSTOM_ID_COMPANION_LOG_TOGGLE => {
-                    try self.output_usb_commands.send_raw_hid_signal(core.RAWHID_SIGNAL_COMPANION_LOG_TOGGLE, &[_]u8{1});
-                },
-                else => {},
-            }
-
             if (self.one_shot_hold_to_enable_before_next_tap) |hold| {
                 try hold_apply_modifiers_and_layers(self, hold);
                 self.one_shot_hold_to_disable_after_next_release = self.one_shot_hold_to_enable_before_next_tap;
                 self.one_shot_hold_to_enable_before_next_tap = null;
             }
-
-            // Queue media control actions if present in the TapDef
-            if (tap.media_key != 0) {
-                try self.output_usb_commands.queue.enqueue(.{ .ConsumerKey = tap.media_key });
-            }
-
-            // Queue mouse manipulation commands if present in the TapDef
-            if (tap.mouse_action != .None) {
-                switch (tap.mouse_action) {
-                    .WheelUp, .WheelDown, .WheelLeft, .WheelRight => {
-                        try self.output_usb_commands.queue.enqueue(.{ .MouseCommand = .{ .action = tap.mouse_action, .pressed = true } });
-                    },
-                    else => {}, // buttons handled by release_mode
-                }
-            }
-
             if (tap.key_press) |keycode_fire| {
                 try enter_tap(self, keycode_fire);
-            }
-
-            switch (release_mode) {
-                .AwaitKeyReleased => {
-                    if (tap.key_press) |keycode_fire| {
+                switch (release_mode) {
+                    .AwaitKeyReleased => {
                         try self.output_usb_commands.press_key(keycode_fire);
-                    }
-                    if (tap.mouse_action != .None) {
-                        switch (tap.mouse_action) {
-                            .LeftClick, .RightClick, .MiddleClick, .Button4, .Button5 => {
-                                try self.output_usb_commands.queue.enqueue(.{ .MouseCommand = .{ .action = tap.mouse_action, .pressed = true } });
+                        self.release_map[event.key_index] = .{
+                            .Release = .{
+                                .release_action = KeyReleaseAction{ .ReleaseTap = tap },
+                                .action_id_when_pressed = self.current_action_id,
                             },
-                            else => {},
-                        }
-                    }
-                    self.release_map[event.key_index] = .{
-                        .Release = .{
-                            .release_action = KeyReleaseAction{ .ReleaseTap = tap },
-                            .action_id_when_pressed = self.current_action_id,
-                        },
-                    };
-                },
-                .ForceInstant => {
-                    if (tap.key_press) |keycode_fire| {
+                        };
+                    },
+                    .ForceInstant => {
                         try self.output_usb_commands.tap_key(keycode_fire);
-                    }
-                },
+                    },
+                }
             }
-
             if (tap.one_shot) |one_shot_hold| {
                 self.one_shot_hold_to_enable_before_next_tap = one_shot_hold;
             }
@@ -374,7 +251,7 @@ pub fn CreateProcessorType(
                 try self.output_usb_commands.set_mods(modifiers);
             }
             if (hold.hold_layer != null) {
-                self.layers_activations.deactivate(hold.hold_layer.?, self.output_usb_commands);
+                self.layers_activations.deactivate(hold.hold_layer.?);
             }
         }
         fn hold_apply_modifiers_and_layers(self: *Self, hold: core.HoldDef) !void {
@@ -385,7 +262,7 @@ pub fn CreateProcessorType(
                 try self.output_usb_commands.set_mods(modifiers);
             }
             if (hold.hold_layer != null) {
-                self.layers_activations.activate(hold.hold_layer.?, self.output_usb_commands);
+                self.layers_activations.activate(hold.hold_layer.?);
             }
         }
 
@@ -409,14 +286,6 @@ pub fn CreateProcessorType(
                 },
             };
             on_event(self, .{ .OnHoldEnterAfter = .{ .hold = hold } });
-
-            // Built-in custom keycode dispatch for HoldDef.custom.
-            // If a hold definition carries a custom keycode (set via the HoldDef.custom field),
-            // that keycode is tapped automatically on hold enter. Keymap authors do not need
-            // to handle this in on_event. The matching tap on hold exit is in the ReleaseHold path.
-            if (hold.custom) |keycode| {
-                try self.output_usb_commands.tap_key(core.KeyCodeFire{ .tap_keycode = keycode, .tap_modifiers = hold.hold_modifiers });
-            }
         }
 
         fn determine_key_def(self: *Self, key_index: usize) core.KeyDef {
@@ -458,12 +327,11 @@ pub fn CreateProcessorType(
                 self.current_autofire = null;
             }
         }
-        // AUTOFIRE END
 
-        /// Dispatches a processor event to the user-supplied custom handler, if one is set.
+        // AUTOFIRE END
         fn on_event(self: *Self, event: core.ProcessorEvent) void {
-            if (custom.on_event) |handler| {
-                handler(event, &self.layers_activations, self.output_usb_commands);
+            if (custom.on_event) |ev| {
+                ev(event, &self.layers_activations, self.output_usb_commands);
             }
         }
 

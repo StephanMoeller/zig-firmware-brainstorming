@@ -4,12 +4,6 @@ const core = zigmkay.core;
 
 const helpers = @import("test_processing_helpers.zig");
 
-pub fn expectLayerSignal(o: anytype, expected_layer: u8) !void {
-    var expected_data: [8]u8 = [_]u8{0} ** 8;
-    expected_data[0] = expected_layer;
-    try std.testing.expectEqual(core.OutputCommand{ .RawHidSignal = .{ .signal_id = core.RAWHID_SIGNAL_LAYER_CHANGED, .data = expected_data, .len = 1 } }, try o.dequeue());
-}
-
 const a = 4;
 const b = 5;
 const c = 6;
@@ -304,7 +298,6 @@ test "ensure correct layers combo is chosen" {
 
     try o.process(current_time);
 
-    try expectLayerSignal(&o, 1);
     try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = e }, try o.dequeue());
     try std.testing.expectEqual(0, o.count_non_key_events());
 
@@ -358,10 +351,6 @@ test "custom code activate another layer - ensure combo works" {
     try std.testing.expectEqual(false, MyFunctions.layer3_is_active);
 
     try o.process(current_time);
-
-    try expectLayerSignal(&o, 1);
-    try expectLayerSignal(&o, 2);
-    try expectLayerSignal(&o, 3);
 
     // Now both layers should be active, hence layer 3 should also be active
     try std.testing.expectEqual(true, MyFunctions.layer3_is_active);

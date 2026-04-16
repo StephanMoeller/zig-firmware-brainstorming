@@ -78,7 +78,7 @@ pub const KeyDef = union(enum) {
 };
 
 /// Defines the physical placement of a key or component. L=Left, R=Right, TL=Thumb Left, TR=Thumb Right, E=Encoder.
-pub const Side = enum { L, R, TL, TR, E };
+pub const Side = enum { L, R, X };
 pub const Combo2Def = struct {
     key_indexes: [2]KeyIndex,
     timeout: TimeSpan,
@@ -127,13 +127,6 @@ pub const LogMessage = extern struct {
 };
 pub const MatrixStateChange = struct { pressed: bool, key_index: KeyIndex, time: TimeSinceBoot };
 pub const MatrixStateChangeQueue = generic_queue.GenericQueue(MatrixStateChange, queue_capacities);
-
-// RAWHID Signal IDs used for bidirectional telemetry
-pub const RAWHID_SIGNAL_LAYER_CHANGED: u8 = 0x01; // Signals a change in the highest active layer. Payload: [layer_index].
-pub const RAWHID_SIGNAL_COMPANION_KEY: u8 = 0x02; // Signals a companion key event (press/release). Payload: [pressed].
-pub const RAWHID_SIGNAL_KEY_EVENT: u8 = 0x03; // Signals a general key event, including encoder rotations. Payload: see UartMessage format.
-pub const RAWHID_SIGNAL_SHUTDOWN_COMPANION: u8 = 0x04; // Signals a shutdown command intended for the companion app. Payload: none.
-pub const RAWHID_SIGNAL_COMPANION_LOG_TOGGLE: u8 = 0x05; // Signals a request to toggle the companion app's log visibility. Payload: none.
 
 // Media Key Codes (Consumer Page)
 pub const MEDIA_VOLUME_UP: u16 = 0xE9;
@@ -264,17 +257,16 @@ pub const LayerActivations = struct {
     layers: [32]bool = [_]bool{false} ** 32,
     top_most_active_layer: LayerIndex = 0,
     const Self = @This();
-    pub fn activate(self: *Self, layer_index: LayerIndex, output_queue: *OutputCommandQueue) void {
+    pub fn activate(self: *Self, layer_index: LayerIndex) void {
         if (layer_index == 0)
             return;
         self.layers[layer_index] = true;
         if (layer_index > self.top_most_active_layer) {
             self.top_most_active_layer = layer_index;
-            output_queue.send_raw_hid_signal(RAWHID_SIGNAL_LAYER_CHANGED, &[_]u8{self.top_most_active_layer}) catch {};
         }
     }
 
-    pub fn deactivate(self: *Self, layer_index: LayerIndex, output_queue: *OutputCommandQueue) void {
+    pub fn deactivate(self: *Self, layer_index: LayerIndex) void {
         if (layer_index == 0)
             return;
         self.layers[layer_index] = false;
@@ -286,7 +278,6 @@ pub const LayerActivations = struct {
             }
             if (self.top_most_active_layer != counter) {
                 self.top_most_active_layer = counter;
-                output_queue.send_raw_hid_signal(RAWHID_SIGNAL_LAYER_CHANGED, &[_]u8{self.top_most_active_layer}) catch {};
             }
         }
     }

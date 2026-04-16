@@ -1,5 +1,7 @@
+const zigmkay = @import("zigmkay");
+const core = zigmkay.core;
 const std = @import("std");
-const q = @import("zigmkay").generic_queue;
+const q = zigmkay.generic_queue;
 
 test "queue" {
     var queue = q.GenericQueue(i32, 10).Create();
@@ -159,3 +161,4 @@ test "peek" {
     try std.testing.expectEqual(2, queue.Count());
     try std.testing.expectEqual(3, queue.peek());
 }
+

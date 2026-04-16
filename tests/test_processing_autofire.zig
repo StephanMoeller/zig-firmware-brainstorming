@@ -2,7 +2,7 @@ const std = @import("std");
 const zigmkay = @import("zigmkay");
 const core = zigmkay.core;
 
-const helpers = @import("test_processing_helpers.zig");
+const helpers = @import("processing.test_helpers.zig");
 const init_test = helpers.init_test;
 
 const a = 0x04;
@@ -49,18 +49,18 @@ test "Autofire - case A" {
 
     try o.process(current_time);
 
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, try o.dequeue());
-    try std.testing.expectEqual(0, o.count_non_key_events());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(0, o.actions_queue.Count());
     current_time = current_time.add_us(50);
     try o.process(current_time);
-    try std.testing.expectEqual(0, o.count_non_key_events());
+    try std.testing.expectEqual(0, o.actions_queue.Count());
     current_time = current_time.add_ms(1);
     try o.process(current_time);
-    try std.testing.expectEqual(0, o.count_non_key_events());
+    try std.testing.expectEqual(0, o.actions_queue.Count());
     current_time = current_time.add_ms(998);
     try o.process(current_time);
-    try std.testing.expectEqual(0, o.count_non_key_events());
+    try std.testing.expectEqual(0, o.actions_queue.Count());
     current_time = current_time.add_ms(999);
     // Now release the key - and expect no autofire
     try o.release_key(key_a_idx, current_time);
@@ -70,7 +70,7 @@ test "Autofire - case A" {
     try o.process(current_time);
 
     // expect event removed from input_events
-    try std.testing.expectEqual(0, o.count_non_key_events());
+    try std.testing.expectEqual(0, o.actions_queue.Count());
     try std.testing.expectEqual(0, o.matrix_change_queue.Count());
 }
 
@@ -96,26 +96,26 @@ test "Autofire - case B" {
 
     try o.press_key(key_a_idx, current_time);
     try o.process(current_time);
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, try o.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, try o.actions_queue.dequeue());
     current_time = current_time.add_ms(1);
     try o.process(current_time);
     current_time = current_time.add_ms(999);
     try o.process(current_time);
-    try std.testing.expectEqual(0, o.count_non_key_events());
+    try std.testing.expectEqual(0, o.actions_queue.Count());
     current_time = current_time.add_ms(2);
     try o.process(current_time);
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, try o.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, try o.actions_queue.dequeue());
     current_time = current_time.add_ms(450);
 
     try o.process(current_time);
-    try std.testing.expectEqual(0, o.count_non_key_events());
+    try std.testing.expectEqual(0, o.actions_queue.Count());
     current_time = current_time.add_ms(100);
 
     try o.process(current_time);
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, try o.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, try o.actions_queue.dequeue());
     current_time = current_time.add_ms(1800);
 
     try o.release_key(key_a_idx, current_time);
@@ -128,7 +128,7 @@ test "Autofire - case B" {
     current_time = current_time.add_ms(5000);
 
     try o.process(current_time);
-    try std.testing.expectEqual(0, o.count_non_key_events());
+    try std.testing.expectEqual(0, o.actions_queue.Count());
 }
 
 test "Autofire - case C" {
@@ -154,35 +154,35 @@ test "Autofire - case C" {
 
     try o.press_key(key_a_idx, current_time);
     try o.process(current_time);
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, try o.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, try o.actions_queue.dequeue());
 
     current_time = current_time.add_ms(1);
     try o.process(current_time);
     current_time = current_time.add_ms(999);
     try o.process(current_time);
-    try std.testing.expectEqual(0, o.count_non_key_events());
+    try std.testing.expectEqual(0, o.actions_queue.Count());
     current_time = current_time.add_ms(2);
     try o.process(current_time);
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, try o.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, try o.actions_queue.dequeue());
     current_time = current_time.add_us(1950);
     try o.press_key(key_b_idx, current_time);
 
     current_time = current_time.add_ms(100);
     try o.process(current_time);
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = b }, try o.dequeue());
-    try std.testing.expectEqual(0, o.count_non_key_events());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = b }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(0, o.actions_queue.Count());
 
     current_time = current_time.add_ms(1000);
     try o.process(current_time);
-    try std.testing.expectEqual(0, o.count_non_key_events());
+    try std.testing.expectEqual(0, o.actions_queue.Count());
 
     current_time = current_time.add_ms(3202);
     try o.process(current_time);
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = b }, try o.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = b }, try o.actions_queue.dequeue());
     current_time = current_time.add_ms(1800);
     try o.release_key(key_b_idx, current_time);
 
@@ -192,7 +192,7 @@ test "Autofire - case C" {
     current_time = current_time.add_ms(5000);
     try o.process(current_time);
 
-    try std.testing.expectEqual(0, o.count_non_key_events());
+    try std.testing.expectEqual(0, o.actions_queue.Count());
 }
 
 test "Autofire - case D" {
@@ -221,47 +221,47 @@ test "Autofire - case D" {
     // press A
     try o.press_key(key_a_idx, current_time);
     try o.process(current_time);
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, try o.dequeue());
-    try std.testing.expectEqual(0, o.count_non_key_events());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(0, o.actions_queue.Count());
 
     // ensure a is aurofiring
     current_time = current_time.add_ms(1001);
     try o.process(current_time);
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, try o.dequeue());
-    try std.testing.expectEqual(0, o.count_non_key_events());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(0, o.actions_queue.Count());
 
     // press b
     try o.press_key(key_b_idx, current_time);
     try o.process(current_time);
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = b }, try o.dequeue());
-    try std.testing.expectEqual(0, o.count_non_key_events());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = b }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(0, o.actions_queue.Count());
     current_time = current_time.add_ms(1001);
 
     // ensure b is autofiring
     try o.process(current_time);
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = b }, try o.dequeue());
-    try std.testing.expectEqual(0, o.count_non_key_events());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = b }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(0, o.actions_queue.Count());
 
     // release a
     try o.release_key(key_a_idx, current_time);
     try o.process(current_time);
-    try std.testing.expectEqual(0, o.count_non_key_events());
+    try std.testing.expectEqual(0, o.actions_queue.Count());
 
     // ensure b is still autofiring
     current_time = current_time.add_ms(1001);
     try o.process(current_time);
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = b }, try o.dequeue());
-    try std.testing.expectEqual(0, o.count_non_key_events());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = b }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(0, o.actions_queue.Count());
 
     // release b
     try o.release_key(key_b_idx, current_time);
 
     // ensure no autofiring
     try o.process(current_time);
-    try std.testing.expectEqual(0, o.count_non_key_events());
+    try std.testing.expectEqual(0, o.actions_queue.Count());
 }
