@@ -88,25 +88,21 @@ test "Dead keys - with retrotapping" {
     const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
     var o = init_test(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap){};
 
+    try o.press_key(0, current_time);
+    current_time = current_time.add_ms(1000);
+    try o.release_key(0, current_time);
+
     // press keys
     // wait for tapping term to expire
     // ensure layer has actually switched
-    try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = true, .key_index = 0 }); // press
-    current_time = current_time.add_ms(1000);
     try o.process(current_time);
 
-    try std.testing.expectEqual(1, o.actions_queue.Count());
+    try std.testing.expectEqual(6, o.actions_queue.Count());
     try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{ .left_alt = true } }, try o.actions_queue.dequeue());
-
-    // release key again
-    try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = false, .key_index = 0 }); // release
-    current_time = current_time.add_ms(10);
-    try o.process(current_time);
     try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{} }, try o.actions_queue.dequeue());
-
-    try std.testing.expectEqual(4, o.actions_queue.Count());
     try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.actions_queue.dequeue());
     try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, try o.actions_queue.dequeue());
+
     try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = KC_SPACE }, try o.actions_queue.dequeue());
     try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = KC_SPACE }, try o.actions_queue.dequeue());
 }
