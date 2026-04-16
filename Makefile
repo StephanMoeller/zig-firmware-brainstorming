@@ -1,4 +1,4 @@
-.PHONY: build run test
+.PHONY: build test
 
 build:
 	@zig build test_compile_only
