@@ -212,7 +212,6 @@ pub fn CreateProcessorType(
             }
         }
         fn decide_tap_press(self: *Self, tap: core.TapDef, event: core.MatrixStateChange, release_mode: TapReleaseMode) !void {
-            on_event(self, .{ .OnTapEnterBefore = .{ .tap = tap } });
             if (self.one_shot_hold_to_enable_before_next_tap) |hold| {
                 try hold_apply_modifiers_and_layers(self, hold);
                 self.one_shot_hold_to_disable_after_next_release = self.one_shot_hold_to_enable_before_next_tap;
@@ -236,10 +235,10 @@ pub fn CreateProcessorType(
             if (tap.one_shot) |one_shot_hold| {
                 self.one_shot_hold_to_enable_before_next_tap = one_shot_hold;
             }
-            on_event(self, .{ .OnTapEnterAfter = .{ .tap = tap } });
         }
 
         fn execute_tap_press(self: *Self, tap: core.TapDef) !void {
+            on_event(self, .{ .OnTapEnterBefore = .{ .tap = tap } });
             if (tap.key_press) |keycode_fire| {
                 try handle_boot_and_print(self, keycode_fire);
                 try self.output_usb_commands.press_key(keycode_fire);
@@ -247,22 +246,23 @@ pub fn CreateProcessorType(
             if (tap.mouse_action) |mouse_action| {
                 try self.output_usb_commands.queue.enqueue(.{ .MouseCommand = .{ .action = mouse_action, .pressed = true } });
             }
+            on_event(self, .{ .OnTapEnterAfter = .{ .tap = tap } });
         }
 
         fn execute_tap_release(self: *Self, tap: core.TapDef) !void {
+            on_event(self, .{ .OnTapExitBefore = .{ .tap = tap } });
             if (tap.key_press) |keycode_fire| {
-                on_event(self, .{ .OnTapExitBefore = .{ .tap = tap } });
                 try self.output_usb_commands.release_key(keycode_fire);
                 if (keycode_fire.dead) {
                     const space = core.KeyCodeFire{ .tap_keycode = 0x2C };
                     try self.output_usb_commands.tap_key(space);
                 }
-                on_event(self, .{ .OnTapExitAfter = .{ .tap = tap } });
             }
 
             if (tap.mouse_action) |mouse_action| {
                 try self.output_usb_commands.queue.enqueue(.{ .MouseCommand = .{ .action = mouse_action, .pressed = false } });
             }
+            on_event(self, .{ .OnTapExitAfter = .{ .tap = tap } });
         }
 
         fn hold_remove_modifiers_and_layers(self: *Self, hold: core.HoldDef) !void {
