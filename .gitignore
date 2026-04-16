@@ -2,3 +2,4 @@
 zig-out/
 /.idea/
 .zbscanhelper.zig
+.claude/
