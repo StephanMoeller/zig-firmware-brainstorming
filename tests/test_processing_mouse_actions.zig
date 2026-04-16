@@ -142,45 +142,22 @@ test "Mouse actions - in combination with key press and modifier" {
 
     try o.press_key(0, current_time);
     current_time = current_time.add_ms(100);
+    try o.process(current_time);
 
     // expect everything to be fired instantly as there is a modifier on the tap
+    try std.testing.expectEqual(5, o.actions_queue.Count());
     try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{ .left_ctrl = true } }, try o.actions_queue.dequeue());
     try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.actions_queue.dequeue());
     try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, try o.actions_queue.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .MouseCommand = .{ .action = .Button5, .pressed = true } }, try o.actions_queue.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .MouseCommand = .{ .action = .Button5, .pressed = false } }, try o.actions_queue.dequeue());
     try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{} }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .MouseCommand = .{ .action = .Button5, .pressed = true } }, try o.actions_queue.dequeue());
 
-    try std.testing.expectEqual(0, o.actions_queue.Count());
-}
-
-test "Mouse actions - in combination with modifier" {
-    const mouse_left_click = core.KeyDef{
-        .tap_only = .{
-            .mouse_action = .Button5,
-            .key_press = .{
-                .tap_modifiers = .{ .left_ctrl = true },
-            },
-        },
-    };
-
-    var current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
-    const base_layer = comptime [_]core.KeyDef{mouse_left_click};
-    const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
-    var o = init_test(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap){};
-
-    try o.press_key(0, current_time);
     current_time = current_time.add_ms(100);
+    try o.release_key(0, current_time);
+    try o.process(current_time);
 
-    // expect everything to be fired instantly as there is a modifier on the tap
-    try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{ .left_ctrl = true } }, try o.actions_queue.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.actions_queue.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, try o.actions_queue.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .MouseCommand = .{ .action = .Button5, .pressed = true } }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(1, o.actions_queue.Count());
     try std.testing.expectEqual(core.OutputCommand{ .MouseCommand = .{ .action = .Button5, .pressed = false } }, try o.actions_queue.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{} }, try o.actions_queue.dequeue());
-
-    try std.testing.expectEqual(0, o.actions_queue.Count());
 }
 
 test "Mouse actions - in combination with key press with dead key" {
@@ -200,8 +177,7 @@ test "Mouse actions - in combination with key press with dead key" {
     current_time = current_time.add_ms(100);
     try o.process(current_time);
 
-    // expect everything to be fired instantly as there is a modifier on the tap
-
+    // Expect everything to be fired instantly as there is a modifier on the tap
     try std.testing.expectEqual(2, o.actions_queue.Count());
     try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.actions_queue.dequeue());
     try std.testing.expectEqual(core.OutputCommand{ .MouseCommand = .{ .action = .Button5, .pressed = true } }, try o.actions_queue.dequeue());
