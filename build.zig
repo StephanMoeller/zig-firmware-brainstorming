@@ -16,50 +16,43 @@ pub fn build(b: *std.Build) void {
         },
     });
 
-    const zigmkay_internal_mod = b.createModule(.{
-        .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/root.zig" } },
-    });
-    zigmkay_internal_mod.addImport("zkeycodes", zkeycodes_mod);
-
     zigmkay_mod.addImport("zkeycodes", zkeycodes_mod);
 
-    const test_files = &[_][]const u8{
-        "test/core.zig",
-        "test/generic_queue.zig",
-        "test/grazkb.zig",
-        "test/output_command_queue.zig",
-        "test/processing_autofire.zig",
-        "test/processing_basics_hold_only.zig",
-        "test/processing_basics_multitap_same_keycode.zig",
-        "test/processing_basics_tap_only.zig",
-        "test/processing_basics_trans_none.zig",
-        "test/processing_boot_key.zig",
-        "test/processing_combos_single.zig",
-        "test/processing_custom_functions.zig",
-        "test/processing_known_bugs.zig",
-        "test/processing_one_shot.zig",
-        "test/processing_permissive_hold.zig",
-        "test/processing_permissive_hold_and_combos.zig",
-        "test/processing_retrotapping.zig",
-        "test/processing_rolling_keys.zig",
-        "test/processing_sides.zig",
-        "test/processing_struct_sizes.zig",
-        "test/processing_tap_hold.all_cases.zig",
-        "test/processing_tap_hold.zig",
-    };
+    add_test_steps(b, zigmkay_mod);
+}
 
-    const test_step = b.step("test", "Run unit tests");
+pub fn add_test_steps(b: *std.Build, zigmkay_module: *std.Build.Module) void {
+    const global_test_compile_step = b.step("test_compile_only", "Compile unit tests");
+    const global_test_run_step = b.step("test", "Run unit tests");
     const target = b.standardTargetOptions(.{});
-    for (test_files) |path| {
-        const test_file_module = b.createModule(.{
-            .root_source_file = .{
-                .src_path = .{ .owner = b, .sub_path = path },
-            },
-            .target = target,
-        });
-        test_file_module.addImport("zigmkay", zigmkay_internal_mod);
-        const test_exe = b.addTest(.{ .root_module = test_file_module });
-        const run = b.addRunArtifact(test_exe);
-        test_step.dependOn(&run.step);
+
+    // START: Create test file iterator
+    const test_dir = "test";
+    var src_dir = b.build_root.handle.openDir(test_dir, .{ .iterate = true }) catch |err|
+        std.debug.panic("Failed to open '{s}': {}", .{ test_dir, err });
+    defer src_dir.close();
+
+    var walker = src_dir.walk(b.allocator) catch |err|
+        std.debug.panic("Failed to walk '{s}': {}", .{ test_dir, err });
+    defer walker.deinit();
+    // END: Create test file iterator
+
+    while (walker.next() catch |err| std.debug.panic("Failed to iterate '{s}': {}", .{ test_dir, err })) |entry| {
+        if (entry.kind == .file and std.mem.indexOf(u8, entry.basename, ".zig") != null) {
+            const current_test_file_path = std.fmt.allocPrint(b.allocator, "{s}/{s}", .{ test_dir, entry.path }) catch unreachable;
+            std.debug.print("{s}\n", .{current_test_file_path});
+
+            const current_test_file_module = b.createModule(.{
+                .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = current_test_file_path } },
+                .target = target,
+            });
+            current_test_file_module.addImport("zigmkay", zigmkay_module);
+
+            const current_test_exe = b.addTest(.{ .root_module = current_test_file_module });
+            global_test_compile_step.dependOn(&current_test_exe.step);
+
+            const current_test_run = b.addRunArtifact(current_test_exe);
+            global_test_run_step.dependOn(&current_test_run.step);
+        }
     }
 }
