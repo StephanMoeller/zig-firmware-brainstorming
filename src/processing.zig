@@ -218,27 +218,35 @@ pub fn CreateProcessorType(
                 self.one_shot_hold_to_disable_after_next_release = self.one_shot_hold_to_enable_before_next_tap;
                 self.one_shot_hold_to_enable_before_next_tap = null;
             }
-            if (tap.key_press) |keycode_fire| {
-                try handle_boot_and_print(self, keycode_fire);
-                try self.output_usb_commands.press_key(keycode_fire);
-                switch (release_mode) {
-                    .AwaitKeyReleased => {
-                        self.release_map[event.key_index] = .{
-                            .Release = .{
-                                .release_action = KeyReleaseAction{ .ReleaseTap = tap },
-                                .action_id_when_pressed = self.current_action_id,
-                            },
-                        };
-                    },
-                    .ForceInstant => {
-                        try execute_tap_release(self, tap);
-                    },
-                }
+            try execute_tap_press(self, tap);
+            switch (release_mode) {
+                .AwaitKeyReleased => {
+                    self.release_map[event.key_index] = .{
+                        .Release = .{
+                            .release_action = KeyReleaseAction{ .ReleaseTap = tap },
+                            .action_id_when_pressed = self.current_action_id,
+                        },
+                    };
+                },
+                .ForceInstant => {
+                    try execute_tap_release(self, tap);
+                },
             }
+
             if (tap.one_shot) |one_shot_hold| {
                 self.one_shot_hold_to_enable_before_next_tap = one_shot_hold;
             }
             on_event(self, .{ .OnTapEnterAfter = .{ .tap = tap } });
+        }
+
+        fn execute_tap_press(self: *Self, tap: core.TapDef) !void {
+            if (tap.key_press) |keycode_fire| {
+                try handle_boot_and_print(self, keycode_fire);
+                try self.output_usb_commands.press_key(keycode_fire);
+            }
+            //if (tap.mouse_action) |mouse_action| {
+            //try self.output_usb_commands.press_key(keycode_fire);
+            //}
         }
 
         fn execute_tap_release(self: *Self, tap: core.TapDef) !void {
