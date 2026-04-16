@@ -69,9 +69,9 @@ pub const KeymapDimensions = struct {
 
 /// Defines an action representing mouse movement, wheel scrolling, or a mouse button click.
 pub const MouseAction = enum(u8) {
-    LeftClick,
-    RightClick,
-    MiddleClick,
+    LeftButton,
+    RightButton,
+    MiddleButton,
     Button4,
     Button5,
     WheelUp,

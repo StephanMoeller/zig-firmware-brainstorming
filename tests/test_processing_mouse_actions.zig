@@ -24,27 +24,27 @@ const F = helpers.TAP(f);
 const G = helpers.TAP(g);
 // test stuff
 test "Mouse actions - left button - only press" {
-    try run_mouse_action_test_internal(core.MouseAction.LeftClick, false);
+    try run_mouse_action_test_internal(core.MouseAction.LeftButton, false);
 }
 
 test "Mouse actions - left button - both press and release" {
-    try run_mouse_action_test_internal(core.MouseAction.LeftClick, true);
+    try run_mouse_action_test_internal(core.MouseAction.LeftButton, true);
 }
 
 test "Mouse actions - right button - only press" {
-    try run_mouse_action_test_internal(core.MouseAction.RightClick, false);
+    try run_mouse_action_test_internal(core.MouseAction.RightButton, false);
 }
 
 test "Mouse actions - right button - both press and release" {
-    try run_mouse_action_test_internal(core.MouseAction.RightClick, true);
+    try run_mouse_action_test_internal(core.MouseAction.RightButton, true);
 }
 
 test "Mouse actions - middle button - only press" {
-    try run_mouse_action_test_internal(core.MouseAction.MiddleClick, false);
+    try run_mouse_action_test_internal(core.MouseAction.MiddleButton, false);
 }
 
 test "Mouse actions - middle button - both press and release" {
-    try run_mouse_action_test_internal(core.MouseAction.MiddleClick, true);
+    try run_mouse_action_test_internal(core.MouseAction.MiddleButton, true);
 }
 
 test "Mouse actions - button4 - only press" {
