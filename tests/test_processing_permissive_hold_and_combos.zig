@@ -41,12 +41,12 @@ test "combo hold, single key press" {
 
     try o.process(current_time);
 
-    try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{ .left_shift = true } }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = c }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = c }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{} }, try o.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{ .left_shift = true } }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = c }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = c }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{} }, try o.actions_queue.dequeue());
 
-    try std.testing.expectEqual(0, o.count_non_key_events());
+    try std.testing.expectEqual(0, o.actions_queue.Count());
 }
 
 test "single key hold, combo key press" {
@@ -70,12 +70,12 @@ test "single key hold, combo key press" {
 
     try o.process(current_time);
 
-    try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{ .left_shift = true } }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = e }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = e }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{} }, try o.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{ .left_shift = true } }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = e }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = e }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{} }, try o.actions_queue.dequeue());
 
-    try std.testing.expectEqual(0, o.count_non_key_events());
+    try std.testing.expectEqual(0, o.actions_queue.Count());
 }
 test "combo hold, combo key press" {
     const current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
@@ -100,10 +100,11 @@ test "combo hold, combo key press" {
 
     try o.process(current_time);
 
-    try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{ .left_shift = true } }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = e }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = e }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{} }, try o.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{ .left_shift = true } }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = e }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = e }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{} }, try o.actions_queue.dequeue());
 
-    try std.testing.expectEqual(0, o.count_non_key_events());
+    try std.testing.expectEqual(0, o.actions_queue.Count());
 }
+

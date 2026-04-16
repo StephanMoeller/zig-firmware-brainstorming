@@ -38,14 +38,14 @@ test "Dead keys - ensure space added IFF dead is true - single true case" {
     try o.process(current_time);
 
     // expect B to be fired as press
-    try std.testing.expectEqual(4, o.count_non_key_events());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = KC_SPACE }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = KC_SPACE }, try o.dequeue());
+    try std.testing.expectEqual(4, o.actions_queue.Count());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = KC_SPACE }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = KC_SPACE }, try o.actions_queue.dequeue());
 
     // expect event removed from input_events
-    try std.testing.expectEqual(0, o.count_non_key_events());
+    try std.testing.expectEqual(0, o.actions_queue.Count());
     try std.testing.expectEqual(0, o.matrix_change_queue.Count());
 }
 
@@ -64,11 +64,45 @@ test "Dead keys - ensure space added IFF dead is true - single false case" {
     try o.process(current_time);
 
     // expect B to be fired as press
-    try std.testing.expectEqual(2, o.count_non_key_events());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = b }, try o.dequeue());
+    try std.testing.expectEqual(2, o.actions_queue.Count());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = b }, try o.actions_queue.dequeue());
 
     // expect event removed from input_events
-    try std.testing.expectEqual(0, o.count_non_key_events());
+    try std.testing.expectEqual(0, o.actions_queue.Count());
     try std.testing.expectEqual(0, o.matrix_change_queue.Count());
+}
+
+test "Dead keys - with retrotapping" {
+    const dead_with_retro_tapping = core.KeyDef{
+        .tap_hold = .{
+            .tap = .{ .key_press = .{ .tap_keycode = a, .dead = true } },
+            .hold = .{ .hold_modifiers = .{ .left_alt = true } },
+            .retro_tapping = true,
+            .tapping_term = .{ .ms = 250 },
+        },
+    };
+
+    var current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
+    const base_layer = comptime [_]core.KeyDef{dead_with_retro_tapping};
+    const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
+    var o = init_test(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap){};
+
+    try o.press_key(0, current_time);
+    current_time = current_time.add_ms(1000);
+    try o.release_key(0, current_time);
+
+    // press keys
+    // wait for tapping term to expire
+    // ensure layer has actually switched
+    try o.process(current_time);
+
+    try std.testing.expectEqual(6, o.actions_queue.Count());
+    try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{ .left_alt = true } }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{} }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, try o.actions_queue.dequeue());
+
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = KC_SPACE }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = KC_SPACE }, try o.actions_queue.dequeue());
 }

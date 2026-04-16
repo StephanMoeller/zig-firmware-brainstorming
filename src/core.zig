@@ -1,10 +1,6 @@
 const generic_queue = @import("generic_queue.zig");
 const std = @import("std");
 const string_printing = @import("string_printing.zig");
-pub const zkeycodes = @import("zkeycodes").core;
-const kc = @import("zkeycodes").layouts.keycodes.kc;
-pub const KeyCodeFire = zkeycodes.KeyCodeFire;
-pub const Modifiers = zkeycodes.Modifiers;
 
 // TODO: move to keycodes
 pub const special_keycode_BOOT: u8 = 0xFC; // Special keycode that signals puts the keyboard into bootloader mode.
@@ -31,6 +27,41 @@ pub const KC_PRINT_STATS = KeyCodeFire{ .tap_keycode = special_keycode_PRINT_STA
 pub const KC_COMPANION = KeyCodeFire{ .tap_keycode = special_keycode_COMPANION };
 pub const KC_SHUTDOWN_COMPANION = KeyCodeFire{ .tap_keycode = special_keycode_SHUTDOWN_COMPANION };
 
+pub const KeyCodeFire = struct {
+    tap_keycode: u8 = 0,
+    tap_modifiers: ?Modifiers = null,
+    dead: bool = false,
+};
+
+pub const Modifiers = packed struct {
+    left_ctrl: bool = false,
+    left_shift: bool = false,
+    left_alt: bool = false,
+    left_gui: bool = false,
+    right_ctrl: bool = false,
+    right_shift: bool = false,
+    right_alt: bool = false,
+    right_gui: bool = false,
+
+    pub fn add(self: *const Modifiers, other: Modifiers) Modifiers {
+        const self_bytes = self.toByte();
+        const other_bytes = other.toByte();
+        return Modifiers.fromByte(self_bytes | other_bytes);
+    }
+
+    pub fn remove(self: *const Modifiers, other: Modifiers) Modifiers {
+        const self_bytes = self.toByte();
+        const other_bytes = other.toByte();
+        return Modifiers.fromByte(self_bytes & ~other_bytes);
+    }
+    pub fn toByte(self: Modifiers) u8 {
+        return @bitCast(self);
+    }
+    pub fn fromByte(byte_val: u8) Modifiers {
+        return @bitCast(byte_val);
+    }
+};
+
 pub const KeymapDimensions = struct {
     key_count: KeyIndex,
     layer_count: LayerIndex,
@@ -38,10 +69,9 @@ pub const KeymapDimensions = struct {
 
 /// Defines an action representing mouse movement, wheel scrolling, or a mouse button click.
 pub const MouseAction = enum(u8) {
-    None = 0,
-    LeftClick,
-    RightClick,
-    MiddleClick,
+    LeftButton,
+    RightButton,
+    MiddleButton,
     Button4,
     Button5,
     WheelUp,
@@ -52,9 +82,9 @@ pub const MouseAction = enum(u8) {
 pub const TapDef = struct {
     key_press: ?KeyCodeFire = null,
     one_shot: ?HoldDef = null,
-    custom: u8 = 0,
-    media_key: u16 = 0, // Optional media keycode for consumer control (e.g., volume, play/pause).
-    mouse_action: MouseAction = .None, // Optional mouse action to be executed on tap.
+    custom: ?u8 = null,
+    media_key: ?u16 = null, // Optional media keycode for consumer control (e.g., volume, play/pause).
+    mouse_action: ?MouseAction = null, // Optional mouse action to be executed on tap.
 };
 pub const HoldDef = struct {
     hold_modifiers: ?Modifiers = null,
@@ -78,7 +108,7 @@ pub const KeyDef = union(enum) {
 };
 
 /// Defines the physical placement of a key or component. L=Left, R=Right, TL=Thumb Left, TR=Thumb Right, E=Encoder.
-pub const Side = enum { L, R, TL, TR, E };
+pub const Side = enum { L, R, X };
 pub const Combo2Def = struct {
     key_indexes: [2]KeyIndex,
     timeout: TimeSpan,
@@ -127,13 +157,6 @@ pub const LogMessage = extern struct {
 };
 pub const MatrixStateChange = struct { pressed: bool, key_index: KeyIndex, time: TimeSinceBoot };
 pub const MatrixStateChangeQueue = generic_queue.GenericQueue(MatrixStateChange, queue_capacities);
-
-// RAWHID Signal IDs used for bidirectional telemetry
-pub const RAWHID_SIGNAL_LAYER_CHANGED: u8 = 0x01; // Signals a change in the highest active layer. Payload: [layer_index].
-pub const RAWHID_SIGNAL_COMPANION_KEY: u8 = 0x02; // Signals a companion key event (press/release). Payload: [pressed].
-pub const RAWHID_SIGNAL_KEY_EVENT: u8 = 0x03; // Signals a general key event, including encoder rotations. Payload: see UartMessage format.
-pub const RAWHID_SIGNAL_SHUTDOWN_COMPANION: u8 = 0x04; // Signals a shutdown command intended for the companion app. Payload: none.
-pub const RAWHID_SIGNAL_COMPANION_LOG_TOGGLE: u8 = 0x05; // Signals a request to toggle the companion app's log visibility. Payload: none.
 
 // Media Key Codes (Consumer Page)
 pub const MEDIA_VOLUME_UP: u16 = 0xE9;
@@ -264,17 +287,16 @@ pub const LayerActivations = struct {
     layers: [32]bool = [_]bool{false} ** 32,
     top_most_active_layer: LayerIndex = 0,
     const Self = @This();
-    pub fn activate(self: *Self, layer_index: LayerIndex, output_queue: *OutputCommandQueue) void {
+    pub fn activate(self: *Self, layer_index: LayerIndex) void {
         if (layer_index == 0)
             return;
         self.layers[layer_index] = true;
         if (layer_index > self.top_most_active_layer) {
             self.top_most_active_layer = layer_index;
-            output_queue.send_raw_hid_signal(RAWHID_SIGNAL_LAYER_CHANGED, &[_]u8{self.top_most_active_layer}) catch {};
         }
     }
 
-    pub fn deactivate(self: *Self, layer_index: LayerIndex, output_queue: *OutputCommandQueue) void {
+    pub fn deactivate(self: *Self, layer_index: LayerIndex) void {
         if (layer_index == 0)
             return;
         self.layers[layer_index] = false;
@@ -286,15 +308,14 @@ pub const LayerActivations = struct {
             }
             if (self.top_most_active_layer != counter) {
                 self.top_most_active_layer = counter;
-                output_queue.send_raw_hid_signal(RAWHID_SIGNAL_LAYER_CHANGED, &[_]u8{self.top_most_active_layer}) catch {};
             }
         }
     }
 
-    pub fn set_layer_state(self: *Self, layer_index: LayerIndex, state: bool, output_queue: *OutputCommandQueue) void {
+    pub fn set_layer_state(self: *Self, layer_index: LayerIndex, state: bool) void {
         switch (state) {
-            true => activate(self, layer_index, output_queue),
-            false => deactivate(self, layer_index, output_queue),
+            true => activate(self, layer_index),
+            false => deactivate(self, layer_index),
         }
     }
 

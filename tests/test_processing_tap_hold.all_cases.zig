@@ -1,5 +1,6 @@
 const std = @import("std");
 const zigmkay = @import("zigmkay");
+
 const core = zigmkay.core;
 
 const helpers = @import("test_processing_helpers.zig");
@@ -97,8 +98,7 @@ fn run(events: []TestEvent, expect: TestExpectation) !void {
     const base_layer = comptime [_]core.KeyDef{ a_with_tap_hold, b_tap };
     const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
 
-    const sides = comptime [_]core.Side{ .L, .R };
-    var o = helpers.init_test_with_sides(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap, sides){};
+    var o = init_test(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap){};
 
     for (events) |e| {
         switch (e) {
@@ -116,13 +116,14 @@ fn run(events: []TestEvent, expect: TestExpectation) !void {
     try o.process(current_time);
     switch (expect) {
         .undecided => {
-            try std.testing.expectEqual(0, o.count_non_key_events());
+            try std.testing.expectEqual(0, o.actions_queue.Count());
         },
         .tap => {
-            try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = KC_A }, try o.dequeue());
+            try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = KC_A }, try o.actions_queue.dequeue());
         },
         .hold => {
-            try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{ .left_shift = true } }, try o.dequeue());
+            try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{ .left_shift = true } }, try o.actions_queue.dequeue());
         },
     }
 }
+

@@ -84,13 +84,13 @@ pub const UsbCommandExecutor = struct {
                     },
                     .MouseCommand => |cmd| {
                         switch (cmd.action) {
-                            .LeftClick => {
+                            .LeftButton => {
                                 if (cmd.pressed) mouse_report.buttons |= 0x01 else mouse_report.buttons &= ~@as(u8, 0x01);
                             },
-                            .RightClick => {
+                            .RightButton => {
                                 if (cmd.pressed) mouse_report.buttons |= 0x02 else mouse_report.buttons &= ~@as(u8, 0x02);
                             },
-                            .MiddleClick => {
+                            .MiddleButton => {
                                 if (cmd.pressed) mouse_report.buttons |= 0x04 else mouse_report.buttons &= ~@as(u8, 0x04);
                             },
                             .Button4 => {

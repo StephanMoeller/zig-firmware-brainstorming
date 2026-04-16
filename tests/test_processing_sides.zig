@@ -40,33 +40,30 @@ fn run_test(
 
     // expect A pressed as no layer switch is expected
     if (expected == .Hold) {
-        try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{ .left_shift = true } }, try o.dequeue());
-        try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, try o.dequeue());
-        try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = b }, try o.dequeue());
-        try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{} }, try o.dequeue());
+        try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{ .left_shift = true } }, try o.actions_queue.dequeue());
+        try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, try o.actions_queue.dequeue());
+        try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = b }, try o.actions_queue.dequeue());
+        try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{} }, try o.actions_queue.dequeue());
     } else {
-        try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.dequeue());
-        try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, try o.dequeue());
-        try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = b }, try o.dequeue());
-        try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, try o.dequeue());
+        try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.actions_queue.dequeue());
+        try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, try o.actions_queue.dequeue());
+        try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = b }, try o.actions_queue.dequeue());
+        try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, try o.actions_queue.dequeue());
     }
 
     try std.testing.expectEqual(0, o.matrix_change_queue.Count());
-    try std.testing.expectEqual(0, o.count_non_key_events());
+    try std.testing.expectEqual(0, o.actions_queue.Count());
 }
 
 test "Sides Permissive hold within timeout - different side situations" {
-    // Same non-thumb side evaluates as tap due to roll tap logic
     try run_test(.L, .L, .Tap);
     try run_test(.R, .R, .Tap);
 
-    // Opposite sides evaluate as hold
     try run_test(.L, .R, .Hold);
     try run_test(.R, .L, .Hold);
-
-    // Thumb keys can be held with keys on the same side
-    try run_test(.TL, .L, .Hold);
-    try run_test(.TR, .R, .Hold);
-    try run_test(.L, .TL, .Hold);
-    try run_test(.R, .TR, .Hold);
+    try run_test(.X, .R, .Hold);
+    try run_test(.X, .L, .Hold);
+    try run_test(.R, .X, .Hold);
+    try run_test(.L, .X, .Hold);
+    try run_test(.X, .X, .Hold);
 }

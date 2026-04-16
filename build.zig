@@ -7,16 +7,11 @@ const MicroBuild = microzig.MicroBuild(.{
 });
 
 pub fn build(b: *std.Build) void {
-    const zkeycodes_dep = b.dependency("zkeycodes", .{});
-    const zkeycodes_mod = zkeycodes_dep.module("zkeycodes");
-
     const zigmkay_mod = b.addModule("zigmkay", .{
         .root_source_file = .{
             .src_path = .{ .owner = b, .sub_path = "src/root.zig" },
         },
     });
-
-    zigmkay_mod.addImport("zkeycodes", zkeycodes_mod);
 
     add_test_steps(b, zigmkay_mod);
 }
@@ -38,7 +33,7 @@ pub fn add_test_steps(b: *std.Build, zigmkay_module: *std.Build.Module) void {
     // END: Create test file iterator
 
     while (walker.next() catch |err| std.debug.panic("Failed to iterate '{s}': {}", .{ test_dir, err })) |entry| {
-        if (entry.kind == .file and std.mem.indexOf(u8, entry.basename, ".zig") != null) {
+        if (entry.kind == .file and std.mem.indexOf(u8, entry.basename, "test_") != null) {
             const current_test_file_path = std.fmt.allocPrint(b.allocator, "{s}/{s}", .{ test_dir, entry.path }) catch unreachable;
 
             // to ensure your test file is actually being loaded, remove the comments on the following line:
