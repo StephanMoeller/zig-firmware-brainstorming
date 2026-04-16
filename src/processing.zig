@@ -244,9 +244,9 @@ pub fn CreateProcessorType(
                 try handle_boot_and_print(self, keycode_fire);
                 try self.output_usb_commands.press_key(keycode_fire);
             }
-            //if (tap.mouse_action) |mouse_action| {
-            //try self.output_usb_commands.queue.enqueue(.{ .MouseCommand = .{ .action = mouse_action, .pressed = true } });
-            //}
+            if (tap.mouse_action) |mouse_action| {
+                try self.output_usb_commands.queue.enqueue(.{ .MouseCommand = .{ .action = mouse_action, .pressed = true } });
+            }
         }
 
         fn execute_tap_release(self: *Self, tap: core.TapDef) !void {
@@ -258,6 +258,10 @@ pub fn CreateProcessorType(
                     try self.output_usb_commands.tap_key(space);
                 }
                 on_event(self, .{ .OnTapExitAfter = .{ .tap = tap } });
+            }
+
+            if (tap.mouse_action) |mouse_action| {
+                try self.output_usb_commands.queue.enqueue(.{ .MouseCommand = .{ .action = mouse_action, .pressed = false } });
             }
         }
 

@@ -23,48 +23,72 @@ const E = helpers.TAP(e);
 const F = helpers.TAP(f);
 const G = helpers.TAP(g);
 // test stuff
-test "Mouse actions - left buttom click" {
+test "Mouse actions - left button - only press" {
     try run_mouse_action_test_internal(core.MouseAction.LeftClick, false);
+}
+
+test "Mouse actions - left button - both press and release" {
     try run_mouse_action_test_internal(core.MouseAction.LeftClick, true);
 }
 
-test "Mouse actions - right button click" {
+test "Mouse actions - right button - only press" {
     try run_mouse_action_test_internal(core.MouseAction.RightClick, false);
+}
+
+test "Mouse actions - right button - both press and release" {
     try run_mouse_action_test_internal(core.MouseAction.RightClick, true);
 }
 
-test "Mouse actions - middle button click" {
+test "Mouse actions - middle button - only press" {
     try run_mouse_action_test_internal(core.MouseAction.MiddleClick, false);
+}
+
+test "Mouse actions - middle button - both press and release" {
     try run_mouse_action_test_internal(core.MouseAction.MiddleClick, true);
 }
 
-test "Mouse actions - buttom4 click" {
+test "Mouse actions - button4 - only press" {
     try run_mouse_action_test_internal(core.MouseAction.Button4, false);
+}
+
+test "Mouse actions - button4 - both press and release" {
     try run_mouse_action_test_internal(core.MouseAction.Button4, true);
 }
 
-test "Mouse actions - buttom5 click" {
+test "Mouse actions - button5 - only press" {
     try run_mouse_action_test_internal(core.MouseAction.Button5, false);
+}
+
+test "Mouse actions - button5 - both press and release" {
     try run_mouse_action_test_internal(core.MouseAction.Button5, true);
 }
 
-test "Mouse actions - WheelUp tick" {
+test "Mouse actions - WheelUp tick - only press" {
     try run_mouse_action_test_internal(core.MouseAction.WheelUp, false);
+}
+
+test "Mouse actions - WheelUp tick - both press and release" {
     try run_mouse_action_test_internal(core.MouseAction.WheelUp, true);
 }
 
-test "Mouse actions - WheelDown tick" {
+test "Mouse actions - WheelDown tick - only press" {
     try run_mouse_action_test_internal(core.MouseAction.WheelDown, false);
+}
+test "Mouse actions - WheelDown tick - both press and release" {
     try run_mouse_action_test_internal(core.MouseAction.WheelDown, true);
 }
 
-test "Mouse actions - WheelLeft tick" {
+test "Mouse actions - WheelLeft tick - only press" {
     try run_mouse_action_test_internal(core.MouseAction.WheelLeft, false);
+}
+test "Mouse actions - WheelLeft tick - both press and release" {
     try run_mouse_action_test_internal(core.MouseAction.WheelLeft, true);
 }
 
-test "Mouse actions - WheelRight tick" {
+test "Mouse actions - WheelRight tick - only press" {
     try run_mouse_action_test_internal(core.MouseAction.WheelRight, false);
+}
+test "Mouse actions - WheelRight tick - both press and release" {
     try run_mouse_action_test_internal(core.MouseAction.WheelRight, true);
 }
 
