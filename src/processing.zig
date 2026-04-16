@@ -126,11 +126,8 @@ pub fn CreateProcessorType(
                     .Release => |release_info| {
                         switch (release_info.release_action) {
                             .ReleaseTap => |tap| {
-                                if (tap.key_press) |keycode_fire| {
-                                    warn("releasing tap {}", .{keycode_fire.tap_keycode});
-                                    try execute_tap_release(self, tap);
-                                    self.release_map[head_event.key_index] = ReleaseMapEntry.None;
-                                }
+                                try execute_tap_release(self, tap);
+                                self.release_map[head_event.key_index] = ReleaseMapEntry.None;
                             },
                             .ReleaseHold => |hold_def| {
                                 on_event(self, .{ .OnHoldExitBefore = .{ .hold = hold_def.hold } });
