@@ -60,11 +60,11 @@ pub fn CreateProcessorType(
                     .transparent => return ProcessContinuation{ .DequeueAndRunAgain = .{ .dequeue_count = next_key_info.consumed_event_count } }, // only happening if the base layer has a transparent key
                     .none => return ProcessContinuation{ .DequeueAndRunAgain = .{ .dequeue_count = next_key_info.consumed_event_count } },
                     .tap_only => |tap| {
-                        try on_tap_press(self, tap, head_event, TapReleaseMode.AwaitKeyReleased);
+                        try execute_tap_press(self, tap, head_event, TapReleaseMode.AwaitKeyReleased);
                         return ProcessContinuation{ .DequeueAndRunAgain = .{ .dequeue_count = next_key_info.consumed_event_count } };
                     },
                     .tap_with_autofire => |tap_with_autofire| {
-                        try on_tap_press(self, tap_with_autofire.tap, head_event, TapReleaseMode.ForceInstant);
+                        try execute_tap_press(self, tap_with_autofire.tap, head_event, TapReleaseMode.ForceInstant);
                         activate_autofire(self, tap_with_autofire, head_event, current_time);
                         return ProcessContinuation{ .DequeueAndRunAgain = .{ .dequeue_count = next_key_info.consumed_event_count } };
                     },
@@ -97,7 +97,7 @@ pub fn CreateProcessorType(
                                         try on_hold_decided(self, tap_and_hold.hold, next_key_info.key_def, head_event);
                                         return ProcessContinuation{ .DequeueAndRunAgain = .{ .dequeue_count = next_key_info.consumed_event_count } };
                                     } else {
-                                        try on_tap_press(self, tap_and_hold.tap, head_event, TapReleaseMode.AwaitKeyReleased);
+                                        try execute_tap_press(self, tap_and_hold.tap, head_event, TapReleaseMode.AwaitKeyReleased);
                                         return ProcessContinuation{ .DequeueAndRunAgain = .{ .dequeue_count = next_key_info.consumed_event_count } };
                                     }
                                 }
@@ -105,7 +105,7 @@ pub fn CreateProcessorType(
 
                             // Same key released within tapping term?
                             if (ev.key_index == head_event.key_index) {
-                                try on_tap_press(self, tap_and_hold.tap, head_event, TapReleaseMode.AwaitKeyReleased);
+                                try execute_tap_press(self, tap_and_hold.tap, head_event, TapReleaseMode.AwaitKeyReleased);
                                 return ProcessContinuation{ .DequeueAndRunAgain = .{ .dequeue_count = next_key_info.consumed_event_count } };
                             }
                         }
@@ -141,7 +141,7 @@ pub fn CreateProcessorType(
 
                                 if (release_info.action_id_when_pressed == self.current_action_id - 1) {
                                     if (hold_def.retro_tap) |tap| {
-                                        try on_tap_press(self, tap, head_event, TapReleaseMode.ForceInstant);
+                                        try execute_tap_press(self, tap, head_event, TapReleaseMode.ForceInstant);
                                     }
                                 }
 
@@ -213,7 +213,7 @@ pub fn CreateProcessorType(
                 return;
             }
         }
-        fn on_tap_press(self: *Self, tap: core.TapDef, event: core.MatrixStateChange, release_mode: TapReleaseMode) !void {
+        fn execute_tap_press(self: *Self, tap: core.TapDef, event: core.MatrixStateChange, release_mode: TapReleaseMode) !void {
             on_event(self, .{ .OnTapEnterBefore = .{ .tap = tap } });
             if (self.one_shot_hold_to_enable_before_next_tap) |hold| {
                 try hold_apply_modifiers_and_layers(self, hold);
@@ -222,9 +222,9 @@ pub fn CreateProcessorType(
             }
             if (tap.key_press) |keycode_fire| {
                 try handle_boot_and_print(self, keycode_fire);
+                try self.output_usb_commands.press_key(keycode_fire);
                 switch (release_mode) {
                     .AwaitKeyReleased => {
-                        try self.output_usb_commands.press_key(keycode_fire);
                         self.release_map[event.key_index] = .{
                             .Release = .{
                                 .release_action = KeyReleaseAction{ .ReleaseTap = tap },
@@ -233,7 +233,7 @@ pub fn CreateProcessorType(
                         };
                     },
                     .ForceInstant => {
-                        try self.output_usb_commands.tap_key(keycode_fire);
+                        try self.output_usb_commands.release_key(keycode_fire);
                     },
                 }
             }
@@ -315,7 +315,7 @@ pub fn CreateProcessorType(
             if (self.current_autofire) |autofire| {
                 if (self.next_autofire_trigger_time.time_since_boot_us < current_time.time_since_boot_us) {
                     const unused_event = core.MatrixStateChange{ .pressed = false, .time = current_time, .key_index = 0 };
-                    try on_tap_press(self, autofire.tap, unused_event, TapReleaseMode.ForceInstant);
+                    try execute_tap_press(self, autofire.tap, unused_event, TapReleaseMode.ForceInstant);
                     self.next_autofire_trigger_time = self.next_autofire_trigger_time.add(autofire.repeat_interval);
                 }
             }
