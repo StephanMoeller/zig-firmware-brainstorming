@@ -65,32 +65,32 @@ fn run_retrotest_test(comptime config: RetroTestParameters) !void {
     // expect A pressed as no layer switch is expected
     switch (config.expectation) {
         .Tap => {
-            try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = c }, try o.dequeue());
+            try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = c }, try o.actions_queue.dequeue());
             if (config.press_other_before_release) {
-                try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, try o.dequeue());
+                try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, try o.actions_queue.dequeue());
             }
-            try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = c }, try o.dequeue());
+            try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = c }, try o.actions_queue.dequeue());
         },
         .Hold => {
-            try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{ .left_shift = true } }, try o.dequeue());
+            try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{ .left_shift = true } }, try o.actions_queue.dequeue());
             // if hold is expected, any expected tap is a retro tap and must
             if (config.press_other_before_release) {
-                try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, try o.dequeue());
+                try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, try o.actions_queue.dequeue());
             }
-            try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{} }, try o.dequeue());
+            try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{} }, try o.actions_queue.dequeue());
         },
         .Hold_and_retro_tap => {
-            try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{ .left_shift = true } }, try o.dequeue());
-            try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{} }, try o.dequeue());
-            try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = c }, try o.dequeue());
-            try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = c }, try o.dequeue());
+            try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{ .left_shift = true } }, try o.actions_queue.dequeue());
+            try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{} }, try o.actions_queue.dequeue());
+            try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = c }, try o.actions_queue.dequeue());
+            try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = c }, try o.actions_queue.dequeue());
             if (config.press_other_before_release) {
                 unreachable; // it makes no sense to expect retro tapping and also instructing other keys to be pressed
             }
         },
     }
     try std.testing.expectEqual(0, o.matrix_change_queue.Count());
-    try std.testing.expectEqual(0, o.count_non_key_events());
+    try std.testing.expectEqual(0, o.actions_queue.Count());
 }
 test "MT retrotapping - press/release case A" {
     // retro disabled, released within tt, expect tap only
@@ -136,3 +136,4 @@ test "MT retrotapping - press/other/release case D" {
     try run_retrotest_test(.{ .retro_enabled = true, .tapping_term_ms = 250, .release_delta_time_ms = 251, .press_other_before_release = true, .expectation = Expectation.Hold });
     try run_retrotest_test(.{ .retro_enabled = true, .tapping_term_ms = 250, .release_delta_time_ms = 350, .press_other_before_release = true, .expectation = Expectation.Hold });
 }
+

@@ -38,14 +38,14 @@ test "Dead keys - ensure space added IFF dead is true - single true case" {
     try o.process(current_time);
 
     // expect B to be fired as press
-    try std.testing.expectEqual(4, o.count_non_key_events());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = KC_SPACE }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = KC_SPACE }, try o.dequeue());
+    try std.testing.expectEqual(4, o.actions_queue.Count());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = KC_SPACE }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = KC_SPACE }, try o.actions_queue.dequeue());
 
     // expect event removed from input_events
-    try std.testing.expectEqual(0, o.count_non_key_events());
+    try std.testing.expectEqual(0, o.actions_queue.Count());
     try std.testing.expectEqual(0, o.matrix_change_queue.Count());
 }
 
@@ -64,11 +64,11 @@ test "Dead keys - ensure space added IFF dead is true - single false case" {
     try o.process(current_time);
 
     // expect B to be fired as press
-    try std.testing.expectEqual(2, o.count_non_key_events());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = b }, try o.dequeue());
+    try std.testing.expectEqual(2, o.actions_queue.Count());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = b }, try o.actions_queue.dequeue());
 
     // expect event removed from input_events
-    try std.testing.expectEqual(0, o.count_non_key_events());
+    try std.testing.expectEqual(0, o.actions_queue.Count());
     try std.testing.expectEqual(0, o.matrix_change_queue.Count());
 }

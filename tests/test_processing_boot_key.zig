@@ -34,7 +34,7 @@ test "boot key test" {
     try o.process(current_time);
 
     // expect B to be fired as press
-    try std.testing.expectEqual(core.OutputCommand.ActivateBootMode, try o.dequeue());
+    try std.testing.expectEqual(core.OutputCommand.ActivateBootMode, try o.actions_queue.dequeue());
 
     // Doesnt matter what comes after in the usb command queue when boot mode is entered
 }
@@ -58,7 +58,7 @@ test "boot key as a combo test" {
     try o.process(current_time);
 
     // expect B to be fired as press
-    try std.testing.expectEqual(core.OutputCommand.ActivateBootMode, try o.dequeue());
+    try std.testing.expectEqual(core.OutputCommand.ActivateBootMode, try o.actions_queue.dequeue());
 
     // Doesnt matter what comes after in the usb command queue when boot mode is entered
 }

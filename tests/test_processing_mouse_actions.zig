@@ -86,15 +86,15 @@ fn run_mouse_action_test_internal(comptime action: core.MouseAction, comptime in
 
     // expect B to be fired as press
     if (include_release) {
-        try std.testing.expectEqual(2, o.count_non_key_events());
-        try std.testing.expectEqual(core.OutputCommand{ .MouseCommand = .{ .action = action, .pressed = true } }, try o.dequeue());
-        try std.testing.expectEqual(core.OutputCommand{ .MouseCommand = .{ .action = action, .pressed = false } }, try o.dequeue());
+        try std.testing.expectEqual(2, o.actions_queue.Count());
+        try std.testing.expectEqual(core.OutputCommand{ .MouseCommand = .{ .action = action, .pressed = true } }, try o.actions_queue.dequeue());
+        try std.testing.expectEqual(core.OutputCommand{ .MouseCommand = .{ .action = action, .pressed = false } }, try o.actions_queue.dequeue());
     } else {
-        try std.testing.expectEqual(1, o.count_non_key_events());
-        try std.testing.expectEqual(core.OutputCommand{ .MouseCommand = .{ .action = action, .pressed = true } }, try o.dequeue());
+        try std.testing.expectEqual(1, o.actions_queue.Count());
+        try std.testing.expectEqual(core.OutputCommand{ .MouseCommand = .{ .action = action, .pressed = true } }, try o.actions_queue.dequeue());
     }
 
     // expect event removed from input_events
-    try std.testing.expectEqual(0, o.count_non_key_events());
+    try std.testing.expectEqual(0, o.actions_queue.Count());
     try std.testing.expectEqual(0, o.matrix_change_queue.Count());
 }

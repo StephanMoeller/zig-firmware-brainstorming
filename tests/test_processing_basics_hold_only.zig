@@ -2,7 +2,7 @@ const std = @import("std");
 const zigmkay = @import("zigmkay");
 const core = zigmkay.core;
 
-const helpers = @import("processing.test_helpers.zig");
+const helpers = @import("test_processing_helpers.zig");
 const init_test = helpers.init_test;
 
 const a = 0x04;

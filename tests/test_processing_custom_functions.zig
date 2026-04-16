@@ -1,7 +1,7 @@
 const std = @import("std");
 const zigmkay = @import("zigmkay");
 const core = zigmkay.core;
-const generic_queue = @import("zigmkay").generic_queue;
+const generic_queue = zigmkay.generic_queue;
 const helpers = @import("test_processing_helpers.zig");
 
 const a = 0x04;
@@ -21,16 +21,16 @@ const F = helpers.TAP(f);
 const G = helpers.TAP(g);
 
 const no_combos: [0]core.Combo2Def = [0]core.Combo2Def{};
+const no_functions: core.CustomFunctions = .{ .on_hold_exit = null, .on_hold_enter = null };
 
 test "custom code - tap events" {
     const MyFunctions = struct {
         var events_received: generic_queue.GenericQueue(core.ProcessorEvent, 100) = .Create();
         pub fn on_event(event: core.ProcessorEvent, layers: *core.LayerActivations, output_queue: *core.OutputCommandQueue) void {
             _ = layers;
-            if (event != .OnMatrixChanged) events_received.enqueue(event) catch @panic("error should not happen here");
+            events_received.enqueue(event) catch @panic("error should not happen here");
             switch (event) {
                 .Tick => {},
-                .OnMatrixChanged => {},
                 .OnTapEnterBefore => |data| {
                     // ensure c press will happen before the a
                     output_queue.press_key(core.KeyCodeFire{ .tap_keycode = b }) catch @panic("error should not happen here");
@@ -52,7 +52,7 @@ test "custom code - tap events" {
                     _ = data;
                 },
                 else => {
-                    if (event != .OnMatrixChanged) @panic("did not expect this event here");
+                    @panic("did not expect this event here");
                 },
             }
         }
@@ -81,7 +81,7 @@ test "custom code - tap events" {
         &keymap,
         &[_]core.Combo2Def{},
         &custom_functions,
-        @splat(.L),
+        @splat(.X),
     ){};
 
     // press B in the matrix
@@ -90,25 +90,24 @@ test "custom code - tap events" {
 
     try o.process(current_time);
 
-    // ensure all events are fired and in the correct order
+    // ensure all 4 tap events are fired and in the correct order
     try std.testing.expectEqual(5, MyFunctions.get_event_count());
 
     try std.testing.expectEqual(core.ProcessorEvent.Tick, MyFunctions.dequeue_next_event());
-
     try std.testing.expectEqual(core.ProcessorEvent{ .OnTapEnterBefore = .{ .tap = .{ .key_press = .{ .tap_keycode = a } } } }, MyFunctions.dequeue_next_event());
     try std.testing.expectEqual(core.ProcessorEvent{ .OnTapEnterAfter = .{ .tap = .{ .key_press = .{ .tap_keycode = a } } } }, MyFunctions.dequeue_next_event());
     try std.testing.expectEqual(core.ProcessorEvent{ .OnTapExitBefore = .{ .tap = .{ .key_press = .{ .tap_keycode = a } } } }, MyFunctions.dequeue_next_event());
     try std.testing.expectEqual(core.ProcessorEvent{ .OnTapExitAfter = .{ .tap = .{ .key_press = .{ .tap_keycode = a } } } }, MyFunctions.dequeue_next_event());
 
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = c }, try o.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = c }, try o.actions_queue.dequeue());
 
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = d }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = e }, try o.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = d }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = e }, try o.actions_queue.dequeue());
 
-    try std.testing.expectEqual(0, o.count_non_key_events());
+    try std.testing.expectEqual(0, o.actions_queue.Count());
 }
 
 test "custom code - hold events" {
@@ -116,10 +115,9 @@ test "custom code - hold events" {
         var events_received: generic_queue.GenericQueue(core.ProcessorEvent, 100) = .Create();
         pub fn on_event(event: core.ProcessorEvent, layers: *core.LayerActivations, output_queue: *core.OutputCommandQueue) void {
             _ = layers;
-            if (event != .OnMatrixChanged) events_received.enqueue(event) catch @panic("error should not happen here");
+            events_received.enqueue(event) catch @panic("error should not happen here");
             switch (event) {
                 .Tick => {},
-                .OnMatrixChanged => {},
                 .OnHoldEnterBefore => |data| {
                     // ensure c press will happen before the a
                     output_queue.press_key(core.KeyCodeFire{ .tap_keycode = b }) catch @panic("error should not happen here");
@@ -170,7 +168,7 @@ test "custom code - hold events" {
         &keymap,
         &[_]core.Combo2Def{},
         &custom_functions,
-        @splat(.L),
+        @splat(.X),
     ){};
 
     // press B in the matrix
@@ -179,25 +177,24 @@ test "custom code - hold events" {
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = false, .key_index = 0 });
     try o.process(current_time);
 
-    // ensure all events are fired and in the correct order
+    // ensure all 4 tap events are fired and in the correct order
     try std.testing.expectEqual(5, MyFunctions.get_event_count());
 
     try std.testing.expectEqual(core.ProcessorEvent.Tick, MyFunctions.dequeue_next_event());
-
     try std.testing.expectEqual(core.ProcessorEvent{ .OnHoldEnterBefore = .{ .hold = .{ .hold_modifiers = .{ .left_shift = true } } } }, MyFunctions.dequeue_next_event());
     try std.testing.expectEqual(core.ProcessorEvent{ .OnHoldEnterAfter = .{ .hold = .{ .hold_modifiers = .{ .left_shift = true } } } }, MyFunctions.dequeue_next_event());
     try std.testing.expectEqual(core.ProcessorEvent{ .OnHoldExitBefore = .{ .hold = .{ .hold_modifiers = .{ .left_shift = true } } } }, MyFunctions.dequeue_next_event());
     try std.testing.expectEqual(core.ProcessorEvent{ .OnHoldExitAfter = .{ .hold = .{ .hold_modifiers = .{ .left_shift = true } } } }, MyFunctions.dequeue_next_event());
 
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{ .left_shift = true } }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = c }, try o.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{ .left_shift = true } }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = c }, try o.actions_queue.dequeue());
 
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = d }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{} }, try o.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = e }, try o.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = d }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{} }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = e }, try o.actions_queue.dequeue());
 
-    try std.testing.expectEqual(0, o.count_non_key_events());
+    try std.testing.expectEqual(0, o.actions_queue.Count());
 }
 
 test "custom code - ensure tick event" {
@@ -206,10 +203,9 @@ test "custom code - ensure tick event" {
         pub fn on_event(event: core.ProcessorEvent, layers: *core.LayerActivations, output_queue: *core.OutputCommandQueue) void {
             _ = output_queue;
             _ = layers;
-            if (event != .OnMatrixChanged) events_received.enqueue(event) catch @panic("error should not happen here");
+            events_received.enqueue(event) catch @panic("error should not happen here");
             switch (event) {
                 .Tick => {},
-                .OnMatrixChanged => {},
                 else => {
                     @panic("did not expect this event here");
                 },
@@ -240,7 +236,7 @@ test "custom code - ensure tick event" {
         &keymap,
         &[_]core.Combo2Def{},
         &custom_functions,
-        @splat(.L),
+        @splat(.X),
     ){};
     try o.process(current_time);
 
@@ -248,5 +244,5 @@ test "custom code - ensure tick event" {
     try std.testing.expectEqual(1, MyFunctions.get_event_count());
 
     try std.testing.expectEqual(core.ProcessorEvent.Tick, MyFunctions.dequeue_next_event());
-    try std.testing.expectEqual(0, o.count_non_key_events());
+    try std.testing.expectEqual(0, o.actions_queue.Count());
 }

@@ -2,7 +2,7 @@ const std = @import("std");
 const zigmkay = @import("zigmkay");
 const core = zigmkay.core;
 
-const helpers = @import("processing.test_helpers.zig");
+const helpers = @import("test_processing_helpers.zig");
 const init_test = helpers.init_test;
 
 const a = 0x04;
@@ -265,3 +265,4 @@ test "Autofire - case D" {
     try o.process(current_time);
     try std.testing.expectEqual(0, o.actions_queue.Count());
 }
+

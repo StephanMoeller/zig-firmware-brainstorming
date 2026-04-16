@@ -282,10 +282,10 @@ pub const LayerActivations = struct {
         }
     }
 
-    pub fn set_layer_state(self: *Self, layer_index: LayerIndex, state: bool, output_queue: *OutputCommandQueue) void {
+    pub fn set_layer_state(self: *Self, layer_index: LayerIndex, state: bool) void {
         switch (state) {
-            true => activate(self, layer_index, output_queue),
-            false => deactivate(self, layer_index, output_queue),
+            true => activate(self, layer_index),
+            false => deactivate(self, layer_index),
         }
     }
 

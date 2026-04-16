@@ -161,4 +161,3 @@ test "peek" {
     try std.testing.expectEqual(2, queue.Count());
     try std.testing.expectEqual(3, queue.peek());
 }
-
