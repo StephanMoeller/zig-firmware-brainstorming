@@ -265,4 +265,3 @@ test "Autofire - case D" {
     try o.process(current_time);
     try std.testing.expectEqual(0, o.actions_queue.Count());
 }
-

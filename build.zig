@@ -7,16 +7,11 @@ const MicroBuild = microzig.MicroBuild(.{
 });
 
 pub fn build(b: *std.Build) void {
-    const zkeycodes_dep = b.dependency("zkeycodes", .{});
-    const zkeycodes_mod = zkeycodes_dep.module("zkeycodes");
-
     const zigmkay_mod = b.addModule("zigmkay", .{
         .root_source_file = .{
             .src_path = .{ .owner = b, .sub_path = "src/root.zig" },
         },
     });
-
-    zigmkay_mod.addImport("zkeycodes", zkeycodes_mod);
 
     add_test_steps(b, zigmkay_mod);
 }

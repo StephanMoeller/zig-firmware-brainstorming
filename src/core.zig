@@ -1,10 +1,6 @@
 const generic_queue = @import("generic_queue.zig");
 const std = @import("std");
 const string_printing = @import("string_printing.zig");
-pub const zkeycodes = @import("zkeycodes").core;
-const kc = @import("zkeycodes").layouts.keycodes.kc;
-pub const KeyCodeFire = zkeycodes.KeyCodeFire;
-pub const Modifiers = zkeycodes.Modifiers;
 
 // TODO: move to keycodes
 pub const special_keycode_BOOT: u8 = 0xFC; // Special keycode that signals puts the keyboard into bootloader mode.
@@ -30,6 +26,41 @@ pub const KC_BOOT = KeyCodeFire{ .tap_keycode = special_keycode_BOOT };
 pub const KC_PRINT_STATS = KeyCodeFire{ .tap_keycode = special_keycode_PRINT_STATS };
 pub const KC_COMPANION = KeyCodeFire{ .tap_keycode = special_keycode_COMPANION };
 pub const KC_SHUTDOWN_COMPANION = KeyCodeFire{ .tap_keycode = special_keycode_SHUTDOWN_COMPANION };
+
+pub const KeyCodeFire = struct {
+    tap_keycode: u8 = 0,
+    tap_modifiers: ?Modifiers = null,
+    dead: bool = false,
+};
+
+pub const Modifiers = packed struct {
+    left_ctrl: bool = false,
+    left_shift: bool = false,
+    left_alt: bool = false,
+    left_gui: bool = false,
+    right_ctrl: bool = false,
+    right_shift: bool = false,
+    right_alt: bool = false,
+    right_gui: bool = false,
+
+    pub fn add(self: *const Modifiers, other: Modifiers) Modifiers {
+        const self_bytes = self.toByte();
+        const other_bytes = other.toByte();
+        return Modifiers.fromByte(self_bytes | other_bytes);
+    }
+
+    pub fn remove(self: *const Modifiers, other: Modifiers) Modifiers {
+        const self_bytes = self.toByte();
+        const other_bytes = other.toByte();
+        return Modifiers.fromByte(self_bytes & ~other_bytes);
+    }
+    pub fn toByte(self: Modifiers) u8 {
+        return @bitCast(self);
+    }
+    pub fn fromByte(byte_val: u8) Modifiers {
+        return @bitCast(byte_val);
+    }
+};
 
 pub const KeymapDimensions = struct {
     key_count: KeyIndex,

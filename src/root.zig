@@ -6,6 +6,5 @@ pub const usb = @import("usb_command_executor.zig");
 pub const encoder = @import("encoder.zig");
 pub const macros = @import("macros.zig");
 pub const combo = @import("combo.zig");
-pub const keycodes = @import("zkeycodes").layouts;
 pub const loops = @import("loops.zig");
 pub const microzig = @import("microzig");
