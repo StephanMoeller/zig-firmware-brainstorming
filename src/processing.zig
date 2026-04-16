@@ -245,7 +245,7 @@ pub fn CreateProcessorType(
                 try self.output_usb_commands.press_key(keycode_fire);
             }
             //if (tap.mouse_action) |mouse_action| {
-            //try self.output_usb_commands.press_key(keycode_fire);
+            //try self.output_usb_commands.queue.enqueue(.{ .MouseCommand = .{ .action = mouse_action, .pressed = true } });
             //}
         }
 
