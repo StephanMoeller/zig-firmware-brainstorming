@@ -72,3 +72,41 @@ test "Dead keys - ensure space added IFF dead is true - single false case" {
     try std.testing.expectEqual(0, o.actions_queue.Count());
     try std.testing.expectEqual(0, o.matrix_change_queue.Count());
 }
+
+test "Dead keys - with retrotapping" {
+    const dead_with_retro_tapping = core.KeyDef{
+        .tap_hold = .{
+            .tap = .{ .key_press = .{ .tap_keycode = a, .dead = true } },
+            .hold = .{ .hold_modifiers = .{ .left_alt = true } },
+            .retro_tapping = true,
+            .tapping_term = .{ .ms = 250 },
+        },
+    };
+
+    var current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
+    const base_layer = comptime [_]core.KeyDef{dead_with_retro_tapping};
+    const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
+    var o = init_test(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap){};
+
+    // press keys
+    // wait for tapping term to expire
+    // ensure layer has actually switched
+    try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = true, .key_index = 0 }); // press
+    current_time = current_time.add_ms(1000);
+    try o.process(current_time);
+
+    try std.testing.expectEqual(1, o.actions_queue.Count());
+    try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{ .left_alt = true } }, try o.actions_queue.dequeue());
+
+    // release key again
+    try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = false, .key_index = 0 }); // release
+    current_time = current_time.add_ms(10);
+    try o.process(current_time);
+    try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{} }, try o.actions_queue.dequeue());
+
+    try std.testing.expectEqual(4, o.actions_queue.Count());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = KC_SPACE }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = KC_SPACE }, try o.actions_queue.dequeue());
+}
