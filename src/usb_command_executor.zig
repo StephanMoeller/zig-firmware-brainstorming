@@ -82,38 +82,17 @@ pub const UsbCommandExecutor = struct {
                         var empty_report = usb_if.ConsumerInReport{ .button = 0 };
                         usb_if.send_consumer_report(&empty_report);
                     },
-                    .MouseCommand => |cmd| {
-                        switch (cmd.action) {
-                            .LeftButton => {
-                                if (cmd.pressed) mouse_report.buttons |= 0x01 else mouse_report.buttons &= ~@as(u8, 0x01);
-                            },
-                            .RightButton => {
-                                if (cmd.pressed) mouse_report.buttons |= 0x02 else mouse_report.buttons &= ~@as(u8, 0x02);
-                            },
-                            .MiddleButton => {
-                                if (cmd.pressed) mouse_report.buttons |= 0x04 else mouse_report.buttons &= ~@as(u8, 0x04);
-                            },
-                            .Button4 => {
-                                if (cmd.pressed) mouse_report.buttons |= 0x08 else mouse_report.buttons &= ~@as(u8, 0x08);
-                            },
-                            .Button5 => {
-                                if (cmd.pressed) mouse_report.buttons |= 0x10 else mouse_report.buttons &= ~@as(u8, 0x10);
-                            },
-                            .WheelUp => {
-                                if (cmd.pressed) mouse_report.wheel = 1;
-                            },
-                            .WheelDown => {
-                                if (cmd.pressed) mouse_report.wheel = -1;
-                            },
-                            .WheelLeft => {
-                                if (cmd.pressed) mouse_report.pan = -1;
-                            },
-                            .WheelRight => {
-                                if (cmd.pressed) mouse_report.pan = 1;
-                            },
-                            .None => {},
-                        }
+                    .MouseCommandPressed => |action| {
+                        update_report(action, true, &mouse_report);
                         usb_if.send_mouse_report(&mouse_report);
+                        // Clear relative movements after sending
+                        mouse_report.wheel = 0;
+                        mouse_report.pan = 0;
+                    },
+                    .MouseCommandReleased => |action| {
+                        update_report(action, false, &mouse_report);
+                        usb_if.send_mouse_report(&mouse_report);
+
                         // Clear relative movements after sending
                         mouse_report.wheel = 0;
                         mouse_report.pan = 0;
@@ -127,3 +106,35 @@ pub const UsbCommandExecutor = struct {
         }
     }
 };
+
+fn update_report(mouse_action: core.MouseAction, pressed: bool, mouse_report: *usb_if.MouseInReport) void {
+    switch (mouse_action) {
+        .LeftButton => {
+            if (pressed) mouse_report.buttons |= 0x01 else mouse_report.buttons &= ~@as(u8, 0x01);
+        },
+        .RightButton => {
+            if (pressed) mouse_report.buttons |= 0x02 else mouse_report.buttons &= ~@as(u8, 0x02);
+        },
+        .MiddleButton => {
+            if (pressed) mouse_report.buttons |= 0x04 else mouse_report.buttons &= ~@as(u8, 0x04);
+        },
+        .Button4 => {
+            if (pressed) mouse_report.buttons |= 0x08 else mouse_report.buttons &= ~@as(u8, 0x08);
+        },
+        .Button5 => {
+            if (pressed) mouse_report.buttons |= 0x10 else mouse_report.buttons &= ~@as(u8, 0x10);
+        },
+        .WheelUp => {
+            if (pressed) mouse_report.wheel = 1;
+        },
+        .WheelDown => {
+            if (pressed) mouse_report.wheel = -1;
+        },
+        .WheelLeft => {
+            if (pressed) mouse_report.pan = -1;
+        },
+        .WheelRight => {
+            if (pressed) mouse_report.pan = 1;
+        },
+    }
+}

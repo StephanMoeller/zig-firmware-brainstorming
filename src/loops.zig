@@ -23,7 +23,6 @@ pub fn run_primary(
     comptime keymap: *const [dimensions.layer_count][dimensions.key_count]core.KeyDef,
     comptime side_definition: [dimensions.key_count]core.Side,
     uart_or_null: ?rp2xxx.uart.UART,
-    encoder_pins_or_null: ?[2]rp2xxx.gpio.Pin,
 ) !void {
     // Data queues
     var matrix_change_queue = core.MatrixStateChangeQueue.Create();
@@ -31,9 +30,6 @@ pub fn run_primary(
 
     // Matrix scanning
     const matrix_scanner = matrix_scanning.CreateMatrixScannerType(dimensions, pin_cols, pin_rows, pin_mappings, scanner_settings){};
-
-    // Encoder
-    var kb_encoder: ?encoder.Encoder = if (encoder_pins_or_null) |pins| encoder.Encoder.init(pins[0], pins[1]) else null;
 
     // PRIMARY HALF
     // Processing
@@ -48,23 +44,6 @@ pub fn run_primary(
         .output_usb_commands = &usb_command_queue,
     };
 
-    // Pre-calculate encoder indices at comptime
-    const encoder_indices = comptime blk: {
-        var cw: ?core.KeyIndex = null;
-        var ccw: ?core.KeyIndex = null;
-        for (side_definition, 0..) |side, i| {
-            if (side == .E) {
-                if (cw == null) {
-                    cw = @intCast(i);
-                } else if (ccw == null) {
-                    ccw = @intCast(i);
-                    break;
-                }
-            }
-        }
-        break :blk .{ .cw = cw, .ccw = ccw };
-    };
-
     // USB events
     const usb_command_executor = usb.CreateAndInitUsbCommandExecutor();
     while (true) {
@@ -72,16 +51,6 @@ pub fn run_primary(
 
         // Scan local matrix changes
         try matrix_scanner.DetectKeyboardChanges(&matrix_change_queue, current_time);
-
-        // Poll encoder hardware and feed rotation events into the main processing pipeline
-        if (kb_encoder) |*enc| {
-            if (enc.update()) |event| {
-                const key_index = if (event.direction == .CW) encoder_indices.cw else encoder_indices.ccw;
-                if (key_index) |idx| {
-                    try processor.ProcessEncoderEvent(idx, current_time);
-                }
-            }
-        }
 
         // if uart specified, we are dealing with a primary half of a split keyboard
         if (uart_or_null) |uart| {
