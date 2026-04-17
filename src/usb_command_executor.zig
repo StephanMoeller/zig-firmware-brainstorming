@@ -17,8 +17,7 @@ pub const UsbCommandExecutor = struct {
     var prev_action_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(0);
 
     // Time to wait between USB polls in microseconds.
-    // Increased frequency (1000us = 1ms) for lower latency on mouse and encoder events.
-    const next_tick_delay: u64 = 1000;
+    const next_tick_delay: u64 = 10000;
     pub fn HouseKeepAndProcessCommands(self: *const UsbCommandExecutor, output_command_queue: *core.OutputCommandQueue, current_time: core.TimeSinceBoot) !void {
         _ = self;
 
