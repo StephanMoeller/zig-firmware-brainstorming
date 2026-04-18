@@ -19,7 +19,7 @@ pub fn build(b: *std.Build) void {
     const zigmkay_mod = zigmkay_dep.module("zigmkay");
 
     std.debug.print("building keyboard '{s}'\n", .{keyboard});
-    const root_source_file = std.fmt.allocPrint(b.allocator, "keyboards/{s}", .{keyboard}) catch @panic("Keyboard folder not found");
+    const root_source_file = std.fmt.allocPrint(b.allocator, "{s}", .{keyboard}) catch @panic("Keyboard folder not found");
     const firmware = mb.add_firmware(.{
         .name = "zigmkay",
         .target = &target,
