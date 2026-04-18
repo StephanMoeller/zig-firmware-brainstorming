@@ -146,27 +146,19 @@ const Mouse = usb.drivers.hid.InterruptDriver(.{
                 .type = .dynamic,
             },
         },
-        .{
-            .data = .{
-                .usage = .{ .local_raw = 0x38 }, // Wheel
-                .logical_range = .{ -127, 127 },
-                .count = 1,
-                .Child = i8,
-                .dir = .In,
-                .type = .dynamic,
-            },
-        },
+        // Wheel — must be Relative so the OS maps it to REL_WHEEL, not ABS_WHEEL
+        .{ .local_usage = 0x38 },
+        .{ .global_logical_range = .{ -127, 127 } },
+        .{ .global_report_count = 1 },
+        .{ .global_report_size = 8 },
+        .{ .main_input = .{ .variable = true, .relative = true } },
+        // Pan — same: Relative maps to REL_HWHEEL
         .{ .global_usage_page = @enumFromInt(0x0C) }, // Consumer
-        .{
-            .data = .{
-                .usage = .{ .local_raw = 0x0238 }, // Pan
-                .logical_range = .{ -127, 127 },
-                .count = 1,
-                .Child = i8,
-                .dir = .In,
-                .type = .dynamic,
-            },
-        },
+        .{ .local_usage = 0x0238 },
+        .{ .global_logical_range = .{ -127, 127 } },
+        .{ .global_report_count = 1 },
+        .{ .global_report_size = 8 },
+        .{ .main_input = .{ .variable = true, .relative = true } },
         .main_collection_end,
         .main_collection_end,
     },
