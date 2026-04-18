@@ -7,6 +7,9 @@
         .zigmkay = .{
             .path = "../zigmkay",
         },
+        .zkeycodes = .{
+            .path = "../zkeycodes",
+        },
 
         .microzig = .{
             .url = "git+https://github.com/ZigEmbeddedGroup/microzig.git#bd650e87a808385d3f05d365d128c58956b91bfe",

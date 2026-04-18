@@ -18,6 +18,9 @@ pub fn build(b: *std.Build) void {
     const zigmkay_dep = b.dependency("zigmkay", .{});
     const zigmkay_mod = zigmkay_dep.module("zigmkay");
 
+    const zkeycodes_dep = b.dependency("zkeycodes", .{});
+    const zkeycodes_mod = zkeycodes_dep.module("zkeycodes");
+
     std.debug.print("building keyboard '{s}'\n", .{keyboard});
     const root_source_file = std.fmt.allocPrint(b.allocator, "{s}", .{keyboard}) catch @panic("Keyboard folder not found");
     const firmware = mb.add_firmware(.{
@@ -28,5 +31,6 @@ pub fn build(b: *std.Build) void {
     });
 
     firmware.add_app_import("zigmkay", zigmkay_mod, .{ .depend_on_microzig = true });
+    firmware.add_app_import("zkeycodes", zkeycodes_mod, .{ .depend_on_microzig = true });
     mb.install_firmware(firmware, .{});
 }
