@@ -29,7 +29,7 @@ pub fn run_primary(
     var usb_command_queue = core.OutputCommandQueue.Create();
 
     // Matrix scanning
-    const matrix_scanner = matrix_scanning.CreateMatrixScannerType(dimensions, pin_cols, pin_rows, pin_mappings, scanner_settings){};
+    const matrix_scanner = comptime matrix_scanning.CreateMatrixScannerType(dimensions, pin_cols, pin_rows, pin_mappings, scanner_settings){};
 
     // PRIMARY HALF
     // Processing

@@ -23,13 +23,21 @@ pub fn CreateMatrixScannerType(
     comptime settings: ScannerSettings,
 ) type {
     comptime var row_col_to_keyindex: [pin_cols.len][pin_rows.len]?core.KeyIndex = @splat(@splat(null));
-    for (pins_to_keys_mapping, 0..) |pins_or_null, key_index| {
+    comptime for (pins_to_keys_mapping, 0..) |pins_or_null, key_index| {
         if (pins_or_null) |pins| {
             const col_idx = pins[0];
             const row_idx = pins[1];
+
+            if (col_idx >= pin_cols.len) {
+                @compileError(std.fmt.comptimePrint("A col index {d} exceeds the total number of pin_cols provided ({d}).", .{ col_idx, pin_cols.len }));
+            }
+            if (row_idx >= pin_rows.len) {
+                @compileError(std.fmt.comptimePrint("A row index {d} exceeds the total number of pin_rows provided ({d}).", .{ row_idx, pin_rows.len }));
+            }
+
             row_col_to_keyindex[col_idx][row_idx] = key_index;
         }
-    }
+    };
     return struct {
         // current_states should be a packed struct
         var current_states: [pins_to_keys_mapping.len]bool = [1]bool{false} ** (pins_to_keys_mapping.len);
