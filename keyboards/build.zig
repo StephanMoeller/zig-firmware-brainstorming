@@ -7,7 +7,7 @@ const MicroBuild = microzig.MicroBuild(.{
 });
 
 pub fn build(b: *std.Build) void {
-    const keyboard = b.option([]const u8, "keyboard", "Keyboard name (e.g. clackychan)") orelse @panic("Please specify a -Dkeyboard parameter, eg zig build -Dkeyboard=my_keyboard_name where 'my_keyboard_name' is the name of the folder container the main.zig for the keyboard configuration");
+    const keyboard = b.option([]const u8, "keyboard", "Keyboard name (e.g. clackychan)") orelse "rollercole/clackychan.zig";
 
     const mz_dep = b.dependency("microzig", .{});
     const mb = MicroBuild.init(b, mz_dep) orelse return;
@@ -28,8 +28,5 @@ pub fn build(b: *std.Build) void {
     });
 
     firmware.add_app_import("zigmkay", zigmkay_mod, .{ .depend_on_microzig = true });
-
-    // We call this twice to demonstrate that the default binary output for
-    // RP2040 is UF2, but we can also output other formats easily
     mb.install_firmware(firmware, .{});
 }
