@@ -6,9 +6,7 @@ const time = rp2xxx.time;
 const gpio = rp2xxx.gpio;
 const rollercole_shared_keymap = @import("shared_keymap.zig");
 const zigmkay = @import("zigmkay");
-const dk = zigmkay.keycodes.dk;
-const core = zigmkay.core;
-const us = zigmkay.keycodes.us;
+const zkeycodes = @import("zkeycodes");
 
 // uart
 const uart_tx_pin = gpio.num(0);

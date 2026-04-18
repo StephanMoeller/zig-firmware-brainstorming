@@ -3,9 +3,9 @@ const std = @import("std");
 const zigmkay = @import("zigmkay");
 const core = zigmkay.core;
 const _______ = core.KeyDef.none;
-const keycodes = @import("keycodes/root.zig");
-const dk = keycodes.danish;
-const us = keycodes.kcf;
+const keycodes = @import("zkeycodes");
+const dk = keycodes.layouts.danish;
+const us = keycodes.layouts.keycodes.kcf;
 
 pub const key_count = 30;
 
