@@ -1,15 +1,14 @@
-# What is ZigMKay
-ZigMkay is a keyboard firmware made with zig. 
+# Welcome
+ZigMkay is a keyboard firmware made in zig. You also configure your own keymaps in zig. 
 
-
-# Getting started
+## Getting started
 1. Install zig on your machine. Ensure you can run "zig version" and that it spits out 0.15.2. These is a shell.nix which will show all needed dependencies over time.
 
 2. Clone this repo
 
-3. Navigate into the my_keyboards folder and build with this command: zig build -Dkeyboard=path_to/my_main.zig
+3. TODO: Describe how to copy an example and built it to the keyboard. 
 
-# Only modify files in my_keyboards/
+## Only modify files in my_keyboards/
 
 Do only modify things inside my_keyboards. If you stick to this rule, future git fetches should be painless most of the time as we will keep changes inside the my_keyboards to an absolute minimum.
 
