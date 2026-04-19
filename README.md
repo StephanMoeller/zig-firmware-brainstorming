@@ -19,6 +19,15 @@ Feel free to join our discord server: https://discord.gg/jWY6UPgu
 
 
 <br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
 
 
 # OLD AND OUTDATED INFORMATION THAT NEEDS REWRITING:
