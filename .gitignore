@@ -1,5 +1,4 @@
-.zig-cache
-zig-out/
-/.idea/
-.zbscanhelper.zig
-.claude/
+**/.zig-cache/
+**/zig-out/
+**/.idea/
+**/.claude/
