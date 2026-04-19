@@ -1,0 +1,125 @@
+{
+    "keycodes": {
+        "0x000F": {
+            "group": "basic",
+            "key": "KC_L",
+            "label": "L"
+        },
+        "0x001D": {
+            "group": "basic",
+            "key": "KC_Z",
+            "label": "Z"
+        },
+        "0x001E": {
+            "group": "basic",
+            "key": "KC_1",
+            "label": "1"
+        },
+        "0x0027": {
+            "group": "basic",
+            "key": "KC_0",
+            "label": "0"
+        },
+        "0x002D": {
+            "group": "basic",
+            "key": "KC_MINUS",
+            "label": "-",
+            "aliases": [
+                "KC_MINS"
+            ]
+        },
+        "0x002E": {
+            "group": "basic",
+            "key": "KC_EQUAL",
+            "label": "=",
+            "aliases": [
+                "KC_EQL"
+            ]
+        },
+        "0x002F": {
+            "group": "basic",
+            "key": "KC_LEFT_BRACKET",
+            "label": "[",
+            "aliases": [
+                "KC_LBRC"
+            ]
+        },
+        "0x0030": {
+            "group": "basic",
+            "key": "KC_RIGHT_BRACKET",
+            "label": "]",
+            "aliases": [
+                "KC_RBRC"
+            ]
+        },
+        "0x0031": {
+            "group": "basic",
+            "key": "KC_BACKSLASH",
+            "label": "\\",
+            "aliases": [
+                "KC_BSLS"
+            ]
+        },
+        "0x0032": {
+            "group": "basic",
+            "key": "KC_NONUS_HASH",
+            "label": "#",
+            "aliases": [
+                "KC_NUHS"
+            ]
+        },
+        "0x0033": {
+            "group": "basic",
+            "key": "KC_SEMICOLON",
+            "label": ";",
+            "aliases": [
+                "KC_SCLN"
+            ]
+        },
+        "0x0034": {
+            "group": "basic",
+            "key": "KC_QUOTE",
+            "label": "'",
+            "aliases": [
+                "KC_QUOT"
+            ]
+        },
+        "0x0035": {
+            "group": "basic",
+            "key": "KC_GRAVE",
+            "label": "`",
+            "aliases": [
+                "KC_GRV"
+            ]
+        },
+        "0x0036": {
+            "group": "basic",
+            "key": "KC_COMMA",
+            "label": ",",
+            "aliases": [
+                "KC_COMM"
+            ]
+        },
+        "0x0037": {
+            "group": "basic",
+            "key": "KC_DOT",
+            "label": "."
+        },
+        "0x0038": {
+            "group": "basic",
+            "key": "KC_SLASH",
+            "label": "/",
+            "aliases": [
+                "KC_SLSH"
+            ]
+        },
+        "0x0064": {
+            "group": "basic",
+            "key": "KC_NONUS_BACKSLASH",
+            "label": "\\",
+            "aliases": [
+                "KC_NUBS"
+            ]
+        }
+    }
+}

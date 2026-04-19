@@ -1,0 +1,744 @@
+//! Code generator: converts QMK HJSON keycode definitions into Zig source files.
+//!
+//! Two input formats are supported, distinguished by whether the filename contains "basic":
+//!   - keycodes (basic): produces grouped structs with raw hex values (keycodes.zig)
+//!   - alias layouts: produces flat const mappings with macro wrappers (german.zig, etc.)
+//!
+//! Usage: zkeycodes <input.hjson> <output.zig>
+
+const std = @import("std");
+
+const usage = "Usage: zkeycodes <in.hjson> <out.zig>\n";
+
+const OutputType = enum { keycodes, alias };
+
+/// Creates the directory at `dir_path`, including any missing parent directories.
+fn ensureDir(dir_path: []const u8) !void {
+    try std.fs.cwd().makePath(dir_path);
+}
+
+pub fn main() !void {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const allocator = gpa.allocator();
+
+    var args = try std.process.argsWithAllocator(allocator);
+    defer args.deinit();
+
+    _ = args.next(); // skip exe name
+
+    const in_path = args.next() orelse {
+        std.debug.print(usage, .{});
+        return;
+    };
+    const out_path = args.next() orelse {
+        std.debug.print(usage, .{});
+        return;
+    };
+
+    // Ensure the output directory exists before creating the file.
+    if (std.fs.path.dirname(out_path)) |dir| {
+        try ensureDir(dir);
+    }
+
+    // Read the entire input file into memory (max 10 MiB).
+    const in_file = try std.fs.cwd().openFile(in_path, .{});
+    defer in_file.close();
+    const in_content = try in_file.readToEndAlloc(allocator, 1024 * 1024 * 10);
+    defer allocator.free(in_content);
+
+    // Open the output file and wrap it in a buffered writer.
+    const out_file = try std.fs.cwd().createFile(out_path, .{});
+    defer out_file.close();
+    var buf: [65536]u8 = undefined;
+    var raw_writer = out_file.writer(&buf);
+    const writer = &raw_writer.interface;
+
+    // Determine output type from the filename: "basic" → keycodes structs, otherwise alias layout.
+    const basename = std.fs.path.basename(in_path);
+    const output_type: OutputType = if (std.mem.indexOf(u8, basename, "basic") != null)
+        .keycodes
+    else
+        .alias;
+
+    try parseAndGenerate(allocator, in_content, writer, output_type, basename);
+    try std.Io.Writer.flush(writer);
+}
+
+/// Extracts the language identifier and version string from a QMK HJSON filename.
+///
+/// Supported filename patterns:
+///   - `keycodes_0.0.1_basic.hjson`           → lang="", version="0.0.1"
+///   - `keycodes_german_0.0.1.hjson`           → lang="german", version="0.0.1"
+///   - `keycodes_us_international_0.0.1.hjson` → lang="us_international", version="0.0.1"
+///
+/// The version segment is identified as the first underscore-separated token that begins
+/// with a digit. Everything between the `keycodes_` prefix and that token is the language.
+fn extractLanguageAndVersion(basename: []const u8) struct { lang: []const u8, version: []const u8 } {
+    var lang: []const u8 = "";
+    var version: []const u8 = "";
+
+    if (std.mem.indexOf(u8, basename, "basic") != null) {
+        // Format: keycodes_<version>_basic.hjson — skip "keycodes_", take the version token.
+        var parts = std.mem.splitSequence(u8, basename, "_");
+        _ = parts.next(); // "keycodes"
+        version = parts.next() orelse "";
+    } else {
+        // Format: keycodes_<lang...>_<version>.hjson
+        const prefix = "keycodes_";
+        if (std.mem.startsWith(u8, basename, prefix)) {
+            const after_prefix = basename[prefix.len..];
+            // Strip the .hjson extension.
+            const stem = if (std.mem.endsWith(u8, after_prefix, ".hjson"))
+                after_prefix[0 .. after_prefix.len - 6]
+            else
+                after_prefix;
+
+            // Scan forward to find the first underscore followed by a digit —
+            // that marks the start of the version token.
+            var j: usize = 0;
+            while (j < stem.len) : (j += 1) {
+                if (stem[j] == '_' and j + 1 < stem.len and std.ascii.isDigit(stem[j + 1])) {
+                    lang = stem[0..j];
+                    version = stem[j + 1 ..];
+                    break;
+                }
+            } else {
+                // No version token found — treat the entire stem as the language name.
+                lang = stem;
+            }
+        }
+    }
+
+    return .{ .lang = lang, .version = version };
+}
+
+/// Writes the file header: copyright, auto-generation notice, and necessary imports.
+///
+/// For alias layouts, also emits modifier-function aliases (`S`, `A`, `ALGR`) sourced
+/// from `core.zig`, the keycodes import, and QMK version constants.
+fn writeHeader(writer: anytype, out_type: OutputType, lang: []const u8, version: []const u8) !void {
+    try writer.print("// Copyright 2026 QMK\n", .{});
+    try writer.print("// SPDX-License-Identifier: GPL-2.0-or-later\n", .{});
+    try writer.print("// Auto-generated by zkeycodes from QMK hjson keycode files\n", .{});
+    try writer.print("const core = @import(\"../src/core.zig\");\n", .{});
+
+    if (out_type == .alias) {
+        // Pull modifier helpers into scope so alias expressions compile.
+        try writer.print("const L_SFT = core.L_SFT;\n", .{});
+        try writer.print("const L_ALT = core.L_ALT;\n", .{});
+        try writer.print("const R_ALT = core.R_ALT;\n", .{});
+        try writer.print("const R_CTL = core.R_CTL;\n", .{});
+        try writer.print("const DEAD = core.DEAD;\n", .{});
+        // Import the full keycodes module; alias files reference keycodes.kcf.NAME.
+        try writer.print("pub const keycodes = @import(\"keycodes.zig\");\n\n", .{});
+
+        // Emit version constants, uppercasing the language name for the identifier prefix.
+        var lang_upper: [64]u8 = undefined;
+        const lang_upper_str = std.ascii.upperString(&lang_upper, lang);
+
+        try writer.print("pub const QMK_{s}_KEYCODES_VERSION = \"{s}\";\n", .{ lang_upper_str, version });
+        try writer.print("pub const QMK_{s}_KEYCODES_VERSION_BCD = @as(c_int, 0x00000001);\n", .{lang_upper_str});
+        try writer.print("pub const QMK_{s}_KEYCODES_VERSION_MAJOR = @as(c_int, 0);\n", .{lang_upper_str});
+        try writer.print("pub const QMK_{s}_KEYCODES_VERSION_MINOR = @as(c_int, 0);\n", .{lang_upper_str});
+        try writer.print("pub const QMK_{s}_KEYCODES_VERSION_PATCH = @as(c_int, 1);\n\n", .{lang_upper_str});
+    }
+}
+
+/// Holds the parsed fields for one keycode entry from the HJSON file.
+const KeycodeDef = struct {
+    hex: []const u8, // raw hex string, e.g. "0x0004"
+    group: []const u8, // group name, e.g. "basic", "modifiers"
+    key: []const u8, // primary constant name, e.g. "KC_A"
+    label: []const u8, // human-readable label from HJSON, e.g. "a"
+    aliases: std.ArrayList([]const u8), // shorter aliases, e.g. ["KC_ENT"]
+};
+
+/// Top-level generation entry point. Extracts metadata from the filename and
+/// dispatches to the appropriate generator based on `out_type`.
+fn parseAndGenerate(
+    allocator: std.mem.Allocator,
+    in_content: []const u8,
+    writer: anytype,
+    out_type: OutputType,
+    basename: []const u8,
+) !void {
+    const info = extractLanguageAndVersion(basename);
+    try writeHeader(writer, out_type, info.lang, info.version);
+
+    if (out_type == .keycodes) {
+        try generateKeycodes(allocator, in_content, writer);
+    } else {
+        try generateAliases(allocator, in_content, writer);
+    }
+}
+
+/// Strips the namespace prefix (up to and including the first `_`) from a keycode name,
+/// applying the digit→N rule if the result starts with a digit.
+///
+/// Returns a slice into `buf` when an N prefix was prepended; otherwise a slice into `name`.
+/// Caller must ensure `buf` is large enough (64 bytes is sufficient).
+fn stripPrefix(name: []const u8, buf: []u8) []const u8 {
+    const rest = if (std.mem.indexOfScalar(u8, name, '_')) |pos|
+        name[pos + 1 ..]
+    else
+        name;
+    if (rest.len > 0 and std.ascii.isDigit(rest[0])) {
+        if (1 + rest.len <= buf.len) {
+            buf[0] = 'N';
+            @memcpy(buf[1..][0..rest.len], rest);
+            return buf[0 .. 1 + rest.len];
+        }
+    }
+    return rest;
+}
+
+/// Derives a display label from a keycode name by stripping the namespace prefix.
+///
+/// Rules:
+///   - `_______` → `" "` (transparent/pass-through key shown as blank)
+///   - `KC_ENTER` → `"ENTER"` (strip up to and including the first `_`)
+///   - `DE_EXLM`  → `"EXLM"`
+///   - `XXXXXXX`  → `"XXXXXXX"` (no underscore → returned as-is)
+///   - `N1`       → `"N1"` (already stripped; no underscore)
+fn deriveLabelFromName(name: []const u8) []const u8 {
+    if (std.mem.eql(u8, name, "_______")) return " ";
+    if (std.mem.indexOfScalar(u8, name, '_')) |pos| return name[pos + 1 ..];
+    return name;
+}
+
+/// Transforms a source token from a locale HJSON file into the new Zig reference form.
+///
+/// Rules applied to each identifier-like run `[A-Za-z][A-Za-z0-9_]*`:
+///   - `KC_FOO`  → `keycodes.kcf.FOO`  (strip KC_, digit-start → prepend N)
+///   - `XX_FOO`  → `FOO`               (strip any other XX_ prefix, local const)
+///   - `S`, `A`  → unchanged            (modifier helpers)
+///
+/// Non-identifier characters (parentheses, commas) are passed through as-is.
+fn transformToken(token: []const u8, out_buf: []u8) []const u8 {
+    var out_pos: usize = 0;
+    var in_pos: usize = 0;
+
+    while (in_pos < token.len) {
+        if (std.ascii.isAlphabetic(token[in_pos]) or token[in_pos] == '_') {
+            // Read the full identifier.
+            const ident_start = in_pos;
+            while (in_pos < token.len and
+                (std.ascii.isAlphanumeric(token[in_pos]) or token[in_pos] == '_'))
+            {
+                in_pos += 1;
+            }
+            const ident = token[ident_start..in_pos];
+
+            if (std.mem.startsWith(u8, ident, "KC_")) {
+                // KC_ prefix: strip, add N if digit, prefix with keycodes.kcf.
+                const after_kc = ident[3..];
+                const pfx = "keycodes.kcf.";
+                if (out_pos + pfx.len <= out_buf.len) {
+                    @memcpy(out_buf[out_pos..][0..pfx.len], pfx);
+                    out_pos += pfx.len;
+                }
+                if (after_kc.len > 0 and std.ascii.isDigit(after_kc[0])) {
+                    if (out_pos < out_buf.len) {
+                        out_buf[out_pos] = 'N';
+                        out_pos += 1;
+                    }
+                }
+                if (out_pos + after_kc.len <= out_buf.len) {
+                    @memcpy(out_buf[out_pos..][0..after_kc.len], after_kc);
+                    out_pos += after_kc.len;
+                }
+            } else if (std.mem.indexOfScalar(u8, ident, '_') != null) {
+                // XX_ prefix (non-KC): strip up to and including first _, add N if digit.
+                const us_pos = std.mem.indexOfScalar(u8, ident, '_').?;
+                const local_name = ident[us_pos + 1 ..];
+                if (local_name.len > 0 and std.ascii.isDigit(local_name[0])) {
+                    if (out_pos < out_buf.len) {
+                        out_buf[out_pos] = 'N';
+                        out_pos += 1;
+                    }
+                }
+                if (out_pos + local_name.len <= out_buf.len) {
+                    @memcpy(out_buf[out_pos..][0..local_name.len], local_name);
+                    out_pos += local_name.len;
+                }
+            } else {
+                // Regular identifier — remap QMK modifier names to new core.zig names.
+                const remapped: []const u8 =
+                    if (std.mem.eql(u8, ident, "S") or std.mem.eql(u8, ident, "LSFT")) "L_SFT" else if (std.mem.eql(u8, ident, "A")) "L_ALT" else if (std.mem.eql(u8, ident, "ALGR")) "R_ALT" else if (std.mem.eql(u8, ident, "RCTL")) "R_CTL" else ident;
+                if (out_pos + remapped.len <= out_buf.len) {
+                    @memcpy(out_buf[out_pos..][0..remapped.len], remapped);
+                    out_pos += remapped.len;
+                }
+            }
+        } else {
+            if (out_pos < out_buf.len) {
+                out_buf[out_pos] = token[in_pos];
+                out_pos += 1;
+            }
+            in_pos += 1;
+        }
+    }
+    return out_buf[0..out_pos];
+}
+
+/// Returns the shortest derived label among the primary key name and all its aliases.
+///
+/// Example: primary=`KC_ENTER`, aliases=`["KC_ENT"]` → `"ENT"` (3 < 5 chars).
+fn computeShortLabel(primary: []const u8, aliases: []const []const u8) []const u8 {
+    var shortest = deriveLabelFromName(primary);
+    for (aliases) |alias| {
+        const candidate = deriveLabelFromName(alias);
+        if (candidate.len < shortest.len) shortest = candidate;
+    }
+    return shortest;
+}
+
+/// Advances `start` past any ASCII whitespace characters and returns the new index.
+fn skipWhitespace(content: []const u8, start: usize) usize {
+    var i = start;
+    while (i < content.len and std.ascii.isWhitespace(content[i])) i += 1;
+    return i;
+}
+
+/// Reads a JSON-style double-quoted string starting at `start`.
+///
+/// Returns the string contents (escape sequences left raw — use `unescapeString`
+/// to resolve them) and the index immediately after the closing quote.
+/// Returns an empty string and `next = start` if the character at `start` is not `"`.
+fn readString(content: []const u8, start: usize) struct { str: []const u8, next: usize } {
+    var i = start;
+    if (i >= content.len or content[i] != '"') return .{ .str = "", .next = i };
+
+    i += 1; // skip opening quote
+    const str_start = i;
+    while (i < content.len) {
+        if (content[i] == '\\' and i + 1 < content.len) {
+            i += 2; // skip the escaped character without inspecting it
+            continue;
+        }
+        if (content[i] == '"') break;
+        i += 1;
+    }
+    const str = content[str_start..i];
+    if (i < content.len) i += 1; // consume closing quote
+    return .{ .str = str, .next = i };
+}
+
+/// Resolves simple JSON backslash escape sequences in `input` into `buf`.
+///
+/// Only single-character escapes are handled (e.g. `\\` → `\`, `\"` → `"`).
+/// Unicode escapes (`\uXXXX`) are not supported. Returns a slice of `buf`.
+fn unescapeString(input: []const u8, buf: []u8) []const u8 {
+    var out_i: usize = 0;
+    var in_i: usize = 0;
+    while (in_i < input.len and out_i < buf.len) {
+        if (input[in_i] == '\\' and in_i + 1 < input.len) {
+            in_i += 1; // skip the backslash; emit the next character literally
+        }
+        buf[out_i] = input[in_i];
+        out_i += 1;
+        in_i += 1;
+    }
+    return buf[0..out_i];
+}
+
+/// Advances `start` past a colon and any surrounding whitespace (JSON key–value separator).
+fn skipColon(content: []const u8, start: usize) usize {
+    var i = start;
+    while (i < content.len and (std.ascii.isWhitespace(content[i]) or content[i] == ':')) i += 1;
+    return i;
+}
+
+/// Parses a basic keycodes HJSON file and writes grouped Zig structs.
+///
+/// Each top-level hex key (`"0x0004"`) becomes one `KeycodeDef`. Definitions are
+/// grouped by their `"group"` field and emitted as `pub const <group> = struct { … }`.
+///
+/// Special case: constants in the `basic` group are wrapped as `core.KeyCodeFire`
+/// structs so consumers can use them as key-fire actions without additional conversion.
+/// All other groups retain their raw integer form.
+///
+/// After all group structs, a `_labels` array and `getLabel` function are appended
+/// for runtime label lookup. The label table always uses raw hex integers as `.value`
+/// regardless of group, because `getLabel` searches by integer.
+///
+/// Note: group emission order depends on `StringHashMap` iteration, which is
+/// non-deterministic. The label table is always emitted in HJSON document order.
+fn generateKeycodes(allocator: std.mem.Allocator, content: []const u8, writer: anytype) !void {
+    // --- Phase 1: Parse all keycode definitions from the HJSON. ---
+    //
+    // The HJSON format we target looks like:
+    //   "0x0004": { "group": "basic", "key": "KC_A", "label": "a", "aliases": ["KC_A_ALIAS"] }
+    // We do a targeted scan rather than a full HJSON parse.
+
+    var defs = std.ArrayList(KeycodeDef).empty;
+    defer {
+        for (defs.items) |*d| d.aliases.deinit(allocator);
+        defs.deinit(allocator);
+    }
+
+    var i: usize = 0;
+    while (i < content.len) {
+        i = skipWhitespace(content, i);
+        if (i >= content.len) break;
+
+        // Top-level keycode entries start with a hex string key like "0x0004".
+        if (content[i] == '"' and
+            i + 1 < content.len and content[i + 1] == '0' and
+            i + 2 < content.len and content[i + 2] == 'x')
+        {
+            // Read the hex address (e.g. "0x0004").
+            const hex_res = readString(content, i);
+            const hex = hex_res.str;
+            i = hex_res.next;
+
+            // Advance to the opening brace of the value object.
+            while (i < content.len and content[i] != '{') i += 1;
+            i += 1; // consume '{'
+
+            var def = KeycodeDef{
+                .hex = hex,
+                .group = "",
+                .key = "",
+                .label = "",
+                .aliases = std.ArrayList([]const u8).empty,
+            };
+
+            // Parse the fields inside the object, tracking brace depth.
+            var depth: usize = 1;
+            while (i < content.len and depth > 0) {
+                i = skipWhitespace(content, i);
+                if (i >= content.len) break;
+
+                if (content[i] == '}') {
+                    depth -= 1;
+                    i += 1;
+                    continue;
+                }
+                if (content[i] != '"') {
+                    i += 1;
+                    continue;
+                }
+
+                // Read field name, then skip the colon separator.
+                const field_res = readString(content, i);
+                const field = field_res.str;
+                i = skipColon(content, field_res.next);
+
+                if (std.mem.eql(u8, field, "group")) {
+                    const val = readString(content, i);
+                    def.group = val.str;
+                    i = val.next;
+                } else if (std.mem.eql(u8, field, "key")) {
+                    const val = readString(content, i);
+                    def.key = val.str;
+                    i = val.next;
+                } else if (std.mem.eql(u8, field, "label")) {
+                    const val = readString(content, i);
+                    def.label = val.str;
+                    i = val.next;
+                } else if (std.mem.eql(u8, field, "aliases")) {
+                    // Parse a JSON array of strings: ["KC_ENT", ...]
+                    while (i < content.len and content[i] != '[') i += 1;
+                    i += 1; // consume '['
+                    while (i < content.len and content[i] != ']') {
+                        i = skipWhitespace(content, i);
+                        if (i >= content.len or content[i] == ']') break;
+                        if (content[i] == '"') {
+                            const alias = readString(content, i);
+                            try def.aliases.append(allocator, alias.str);
+                            i = alias.next;
+                        } else {
+                            i += 1; // skip commas
+                        }
+                    }
+                    // Leave `i` pointing at ']'; the outer loop will step past it.
+                } else {
+                    // Unknown field — skip its scalar value.
+                    while (i < content.len and
+                        content[i] != ',' and
+                        content[i] != '\n' and
+                        content[i] != '}') i += 1;
+                }
+            }
+            try defs.append(allocator, def);
+        } else {
+            i += 1;
+        }
+    }
+
+    // --- Phase 2: Group definitions by their "group" field. ---
+
+    var groups = std.StringHashMap(std.ArrayList(KeycodeDef)).init(allocator);
+    defer {
+        var it = groups.iterator();
+        while (it.next()) |entry| entry.value_ptr.deinit(allocator);
+        groups.deinit();
+    }
+
+    for (defs.items) |def| {
+        const group_name = if (def.group.len > 0) def.group else "generic";
+        var list = groups.get(group_name) orelse std.ArrayList(KeycodeDef).empty;
+        try list.append(allocator, def);
+        try groups.put(group_name, list);
+    }
+
+    // --- Phase 3: Emit `pub const kc = struct { … }` containing all groups as sub-enums.
+    //
+    // All constants in every group are stored as raw integer values (no KeyCodeFire wrapping).
+    // Each group is an enum(u16) where variants have explicit discriminant values.
+    // Alias constants become variant aliases (e.g. KC_ENT = KC_ENTER).
+
+    try writer.print("// Keycode Groups\n", .{});
+    try writer.print("pub const kc = struct {{\n", .{});
+    var group_it = groups.iterator();
+    while (group_it.next()) |entry| {
+        const group_name = entry.key_ptr.*;
+
+        try writer.print("    pub const {s} = enum(u16) {{\n", .{group_name});
+
+        // Primary constants — all as raw integers as enum discriminants.
+        for (entry.value_ptr.items) |def| {
+            if (def.key.len == 0) continue;
+            try writer.print("        {s} = {s},\n", .{ def.key, def.hex });
+        }
+
+        // Alias constants as pub const inside the enum.
+        for (entry.value_ptr.items) |def| {
+            if (def.key.len == 0) continue;
+            for (def.aliases.items) |alias| {
+                try writer.print("        pub const {s}: u16 = @intFromEnum({s}.{s});\n", .{ alias, group_name, def.key });
+            }
+        }
+        try writer.print("    }};\n\n", .{});
+    }
+    try writer.print("}};\n\n", .{});
+
+    // --- Phase 4: Emit `pub const kcf = struct { … }` for the basic group only.
+    //
+    // Constants are wrapped as `core.KeyCodeFire` and named without the `KC_` prefix.
+    // If the stripped name starts with a digit, it is prefixed with `N` (e.g. `N1`).
+    // Doc comments (`///`) are added using the `label` field from HJSON for IDE tooltips.
+
+    try writer.print("pub const kcf = struct {{\n", .{});
+    if (groups.get("basic")) |basic_items| {
+        // Primary constants with doc comments.
+        for (basic_items.items) |def| {
+            if (def.key.len == 0) continue;
+            var name_buf: [64]u8 = undefined;
+            const stripped = stripPrefix(def.key, &name_buf);
+            try writer.print("    /// {s}\n    pub const {s} = core.KeyCodeFire{{ .tap_keycode = {s} }};\n", .{ def.label, stripped, def.hex });
+        }
+
+        // Alias constants.
+        try writer.print("\n    // Aliases\n", .{});
+        for (basic_items.items) |def| {
+            if (def.key.len == 0) continue;
+            var prim_buf: [64]u8 = undefined;
+            const prim_stripped = stripPrefix(def.key, &prim_buf);
+            for (def.aliases.items) |alias| {
+                var alias_buf: [64]u8 = undefined;
+                const alias_stripped = stripPrefix(alias, &alias_buf);
+                try writer.print("    pub const {s} = {s};\n", .{ alias_stripped, prim_stripped });
+            }
+        }
+    }
+    try writer.print("}};\n\n", .{});
+
+    // --- Phase 5: Emit the label lookup table (one entry per primary keycode, HJSON order). ---
+
+    try writer.print("// Label lookup table\n", .{});
+    try writer.print("pub const _labels = [_]core.LabelEntry{{\n", .{});
+    for (defs.items) |def| {
+        if (def.key.len == 0) continue;
+        const label = deriveLabelFromName(def.key);
+        const short = computeShortLabel(def.key, def.aliases.items);
+        try writer.print("    .{{ .value = core.KeyCodeFire{{ .tap_keycode = {s} }}, .label = \"{s}\", .short_label = \"{s}\" }},\n", .{ def.hex, label, short });
+    }
+    try writer.print("}};\n\n", .{});
+    try writer.print("pub fn getLabel(keycode: core.KeyCodeFire, shortest: bool) ?[]const u8 {{\n", .{});
+    try writer.print("    return core.getLabel(&_labels, keycode, shortest);\n", .{});
+    try writer.print("}}\n", .{});
+}
+
+/// Parses a locale/alias HJSON file and writes flat `pub const` declarations.
+///
+/// Block comments (`/* … */`) in the source are converted to line comments and
+/// preserved in the output to keep keyboard layout diagrams readable.
+///
+/// Each alias entry maps a QMK source expression (e.g. `"KC_A"`, `"S(DE_1)"`) to
+/// a target key name (e.g. `DE_A`, `DE_EXLM`). The namespace prefix is stripped from
+/// the target key name (e.g. `DE_A` → `A`, `DE_1` → `N1`). KC_* references in source
+/// expressions are transformed to `keycodes.kcf.NAME`; other XX_* references (self-refs
+/// to other consts in the same file) have their prefix stripped.
+///
+/// After all declarations, a `_labels` array and `getLabel` function are appended.
+/// Values in `_labels` reference the generated (stripped) constants by name so
+/// macro-composed values (e.g. `S(N1)`) are resolved at Zig compile time.
+fn generateAliases(allocator: std.mem.Allocator, content: []const u8, writer: anytype) !void {
+    // Collect (original_key, stripped_name) pairs in document order for the label table.
+    var collected_originals = std.ArrayList([]const u8).empty;
+    var collected_stripped = std.ArrayList([]const u8).empty;
+    defer collected_originals.deinit(allocator);
+    defer {
+        for (collected_stripped.items) |s| allocator.free(s);
+        collected_stripped.deinit(allocator);
+    }
+
+    var i: usize = 0;
+    while (i < content.len) {
+        // --- Block comments: convert `/* … */` to `// …` lines. ---
+        //
+        // QMK locale files embed ASCII keyboard diagrams inside block comments;
+        // we want to preserve those as line comments in the output.
+        if (content[i] == '/' and i + 1 < content.len and content[i + 1] == '*') {
+            const comment_start = i;
+            // Advance past the entire `/* … */` block.
+            while (i < content.len) {
+                if (content[i] == '*' and i + 1 < content.len and content[i + 1] == '/') {
+                    i += 2;
+                    break;
+                }
+                i += 1;
+            }
+
+            // Re-emit each line of the block comment as a `//` comment.
+            var lines = std.mem.splitSequence(u8, content[comment_start..i], "\n");
+            while (lines.next()) |raw_line| {
+                var line = std.mem.trimRight(u8, raw_line, "\r"); // strip CRLF
+                // Strip comment delimiters and leading `*` decoration.
+                if (std.mem.startsWith(u8, line, "/*")) line = line[2..];
+                if (std.mem.endsWith(u8, line, "*/")) line = line[0 .. line.len - 2];
+                line = std.mem.trimLeft(u8, line, " *");
+
+                if (line.len == 0) {
+                    try writer.print("//\n", .{});
+                } else {
+                    try writer.print("// {s}\n", .{line});
+                }
+            }
+            continue;
+        }
+
+        // --- String tokens: structural wrapper objects or alias source expressions. ---
+        if (content[i] == '"') {
+            const res = readString(content, i);
+            const token = res.str;
+            i = res.next;
+
+            // "aliases" and "keycodes" are structural objects that wrap the real entries;
+            // skip their opening brace and continue into the entries inside.
+            if (std.mem.eql(u8, token, "aliases") or std.mem.eql(u8, token, "keycodes")) {
+                while (i < content.len and content[i] != '{') i += 1;
+                if (i < content.len) i += 1; // consume '{'
+                continue;
+            }
+
+            // Parse the associated value object to extract "key" and "label".
+            var target_key: []const u8 = "";
+            var target_label: []const u8 = "";
+
+            while (i < content.len and content[i] != '{') i += 1;
+            if (i < content.len) i += 1; // consume '{'
+
+            var depth: usize = 1;
+            while (i < content.len and depth > 0) {
+                i = skipWhitespace(content, i);
+                if (i >= content.len) break;
+
+                if (content[i] == '}') {
+                    depth -= 1;
+                    if (depth == 0) break;
+                    i += 1;
+                } else if (content[i] == '{') {
+                    depth += 1;
+                    i += 1;
+                } else if (content[i] == '"') {
+                    const kv = readString(content, i);
+                    i = skipColon(content, kv.next);
+                    if (std.mem.eql(u8, kv.str, "key")) {
+                        if (i < content.len and content[i] == '"') {
+                            const val = readString(content, i);
+                            target_key = val.str;
+                            i = val.next;
+                        }
+                    } else if (std.mem.eql(u8, kv.str, "label")) {
+                        if (i < content.len and content[i] == '"') {
+                            const val = readString(content, i);
+                            target_label = val.str;
+                            i = val.next;
+                        }
+                    } else {
+                        // Ignore other string-valued fields.
+                        if (i < content.len and content[i] == '"') {
+                            i = readString(content, i).next;
+                        }
+                    }
+                } else {
+                    i += 1;
+                }
+            }
+            if (i < content.len and content[i] == '}') i += 1;
+
+            // // Only emit an alias constant for recognized source-expression forms.
+            // // These correspond to QMK macro patterns found in locale HJSON files.
+            // const is_alias =
+            //     std.mem.indexOf(u8, token, "KC_") != null or
+            //     std.mem.indexOf(u8, token, "S(") != null or
+            //     std.mem.indexOf(u8, token, "A(") != null or
+            //     std.mem.indexOf(u8, token, "RCTL(") != null or
+            //     std.mem.indexOf(u8, token, "ALGR(") != null;
+
+            if (target_key.len > 0) {
+                // Compute the stripped const name: strip namespace prefix, add N if digit-start.
+                var name_buf: [64]u8 = undefined;
+                const const_name = stripPrefix(target_key, &name_buf);
+
+                // Build the right-hand side using transformToken.
+                var rhs_buf: [512]u8 = undefined;
+                const rhs = transformToken(token, &rhs_buf);
+
+                if (target_label.len > 0) {
+                    var label_buf: [256]u8 = undefined;
+                    const unescaped = unescapeString(target_label, &label_buf);
+                    // A bare backslash as a label would break the generated source,
+                    // so replace it with a descriptive string.
+                    const display = if (std.mem.eql(u8, unescaped, "\\")) "(backslash)" else unescaped;
+                    const is_dead = std.mem.indexOf(u8, target_label, "(dead)") != null;
+                    if (is_dead) {
+                        try writer.print("/// {s}\npub const {s} = DEAD({s});\n", .{ display, const_name, rhs });
+                    } else {
+                        try writer.print("/// {s}\npub const {s} = {s};\n", .{ display, const_name, rhs });
+                    }
+                } else {
+                    try writer.print("pub const {s} = {s};\n", .{ const_name, rhs });
+                }
+                // Store original key (for label derivation) and stripped name (for value ref).
+                try collected_originals.append(allocator, target_key);
+                const owned_stripped = try allocator.dupe(u8, const_name);
+                try collected_stripped.append(allocator, owned_stripped);
+            }
+        } else {
+            i += 1;
+        }
+    }
+
+    // --- Emit label lookup table, referencing stripped const names as values. ---
+    //
+    // The label string is derived from the original key name (e.g. "NE_1" → "1"),
+    // while the value references the stripped const (e.g. `N1`).
+
+    try writer.print("\n// Label lookup table\n", .{});
+    try writer.print("pub const _labels = [_]core.LabelEntry{{\n", .{});
+    for (0..collected_originals.items.len) |idx| {
+        const original = collected_originals.items[idx];
+        const stripped = collected_stripped.items[idx];
+        const label = deriveLabelFromName(original);
+        try writer.print("    .{{ .value = {s}, .label = \"{s}\", .short_label = \"{s}\" }},\n", .{ stripped, label, label });
+    }
+    try writer.print("}};\n\n", .{});
+    try writer.print("pub fn getLabel(keycode: core.KeyCodeFire, shortest: bool) ?[]const u8 {{\n", .{});
+    try writer.print("    return core.getLabel(&_labels, keycode, shortest);\n", .{});
+    try writer.print("}}\n", .{});
+}

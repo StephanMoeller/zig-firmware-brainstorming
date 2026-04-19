@@ -1,0 +1,14 @@
+.{
+    .name = .zkeycodes,
+    .version = "0.1.0",
+    .fingerprint = 0xd829e8133e5db3ac,
+    .minimum_zig_version = "0.15.2",
+    .dependencies = .{},
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "keycodes",
+        "root.zig",
+    },
+}
