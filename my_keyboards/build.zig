@@ -1,7 +1,7 @@
 const std = @import("std");
 
 const microzig = @import("microzig");
-
+const flash = @import("zig_flash");
 const MicroBuild = microzig.MicroBuild(.{
     .rp2xxx = true,
 });
@@ -24,7 +24,7 @@ pub fn build(b: *std.Build) void {
     std.debug.print("building keyboard '{s}'\n", .{keyboard});
     const root_source_file = std.fmt.allocPrint(b.allocator, "{s}", .{keyboard}) catch @panic("Keyboard folder not found");
     const firmware = mb.add_firmware(.{
-        .name = "zigmkay",
+        .name = "zigmkay_firmware",
         .target = &target,
         .optimize = optimize,
         .root_source_file = b.path(root_source_file),
@@ -33,4 +33,9 @@ pub fn build(b: *std.Build) void {
     firmware.add_app_import("zigmkay", zigmkay_mod, .{ .depend_on_microzig = true });
     firmware.add_app_import("zkeycodes", zkeycodes_mod, .{ .depend_on_microzig = true });
     mb.install_firmware(firmware, .{});
+
+    const flash_dep = b.dependency("zig_flash", .{});
+    const flash_exe = flash_dep.artifact("zig_flash");
+
+    _ = flash.addFlashStep(b, flash_exe, .{ .input_name = "zigmkay_firmware.uf2" });
 }
