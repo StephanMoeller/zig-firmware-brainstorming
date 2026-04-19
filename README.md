@@ -18,6 +18,7 @@ Do only modify things inside my_keyboards. If you stick to this rule, future git
 Feel free to join our discord server: https://discord.gg/jWY6UPgu
 
 
+<br>
 
 
 # OLD AND OUTDATED INFORMATION THAT NEEDS REWRITING:
