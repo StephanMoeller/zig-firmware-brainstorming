@@ -173,7 +173,8 @@ pub const OutputCommand = union(enum) {
     ModifiersChanged: Modifiers,
     ActivateBootMode,
     RawHidSignal: struct { signal_id: u8, data: [8]u8, len: u8 },
-    ConsumerKey: u16,
+    ConsumerKeyPressed: u16,
+    ConsumerKeyReleased: u16,
     MouseCommandPressed: MouseAction,
     MouseCommandReleased: MouseAction,
 };
