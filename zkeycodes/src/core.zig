@@ -1,40 +1,7 @@
-pub const KeyCodeFire = struct {
-    tap_keycode: u8 = 0,
-    tap_modifiers: ?Modifiers = null,
-    dead: bool = false,
-};
-
-pub const Modifiers = packed struct {
-    left_ctrl: bool = false,
-    left_shift: bool = false,
-    left_alt: bool = false,
-    left_gui: bool = false,
-    right_ctrl: bool = false,
-    right_shift: bool = false,
-    right_alt: bool = false,
-    right_gui: bool = false, // TODO: do we want to ad numlock and capslock here too?
-
-    pub fn add(self: *const Modifiers, other: Modifiers) Modifiers {
-        const self_bytes = self.toByte();
-        const other_bytes = other.toByte();
-        return Modifiers.fromByte(self_bytes | other_bytes);
-    }
-
-    pub fn remove(self: *const Modifiers, other: Modifiers) Modifiers {
-        const self_bytes = self.toByte();
-        const other_bytes = other.toByte();
-        return Modifiers.fromByte(self_bytes & ~other_bytes);
-    }
-    pub fn toByte(self: Modifiers) u8 {
-        return @bitCast(self);
-    }
-    pub fn fromByte(byte_val: u8) Modifiers {
-        return @bitCast(byte_val);
-    }
-};
-
-/// helper to add Left Control modifier to a KeyCodeFire.
-pub fn L_CTL(fire: KeyCodeFire) KeyCodeFire {
+const zigmkay = @import("zigmkay");
+const core = zigmkay.core;
+/// helper to add Left Control modifier to a core.KeyCodeFire.
+pub fn L_CTL(fire: core.KeyCodeFire) core.KeyCodeFire {
     var copy = fire;
     copy.dead = false;
     if (copy.tap_modifiers) |mods| {
@@ -45,8 +12,8 @@ pub fn L_CTL(fire: KeyCodeFire) KeyCodeFire {
     return copy;
 }
 
-/// helper to add Right Control modifier to a KeyCodeFire.
-pub fn R_CTL(fire: KeyCodeFire) KeyCodeFire {
+/// helper to add Right Control modifier to a core.KeyCodeFire.
+pub fn R_CTL(fire: core.KeyCodeFire) core.KeyCodeFire {
     var copy = fire;
     copy.dead = false;
     if (copy.tap_modifiers) |mods| {
@@ -57,8 +24,8 @@ pub fn R_CTL(fire: KeyCodeFire) KeyCodeFire {
     return copy;
 }
 
-/// helper to add Left Shift modifier to a KeyCodeFire.
-pub fn L_SFT(fire: KeyCodeFire) KeyCodeFire {
+/// helper to add Left Shift modifier to a core.KeyCodeFire.
+pub fn L_SFT(fire: core.KeyCodeFire) core.KeyCodeFire {
     var copy = fire;
     copy.dead = false;
     if (copy.tap_modifiers) |mods| {
@@ -69,8 +36,8 @@ pub fn L_SFT(fire: KeyCodeFire) KeyCodeFire {
     return copy;
 }
 
-/// helper to add Right Shift modifier to a KeyCodeFire.
-pub fn R_SFT(fire: KeyCodeFire) KeyCodeFire {
+/// helper to add Right Shift modifier to a core.KeyCodeFire.
+pub fn R_SFT(fire: core.KeyCodeFire) core.KeyCodeFire {
     var copy = fire;
     copy.dead = false;
     if (copy.tap_modifiers) |mods| {
@@ -81,8 +48,8 @@ pub fn R_SFT(fire: KeyCodeFire) KeyCodeFire {
     return copy;
 }
 
-/// helper to add Left GUI (Windows/Command) modifier to a KeyCodeFire.
-pub fn L_GUI(fire: KeyCodeFire) KeyCodeFire {
+/// helper to add Left GUI (Windows/Command) modifier to a core.KeyCodeFire.
+pub fn L_GUI(fire: core.KeyCodeFire) core.KeyCodeFire {
     var copy = fire;
     copy.dead = false;
     if (copy.tap_modifiers) |mods| {
@@ -93,8 +60,8 @@ pub fn L_GUI(fire: KeyCodeFire) KeyCodeFire {
     return copy;
 }
 
-/// helper to add Right GUI (Windows/Command) modifier to a KeyCodeFire.
-pub fn R_GUI(fire: KeyCodeFire) KeyCodeFire {
+/// helper to add Right GUI (Windows/Command) modifier to a core.KeyCodeFire.
+pub fn R_GUI(fire: core.KeyCodeFire) core.KeyCodeFire {
     var copy = fire;
     copy.dead = false;
     if (copy.tap_modifiers) |mods| {
@@ -105,8 +72,8 @@ pub fn R_GUI(fire: KeyCodeFire) KeyCodeFire {
     return copy;
 }
 
-/// helper to add Left Alt modifier to a KeyCodeFire.
-pub fn L_ALT(fire: KeyCodeFire) KeyCodeFire {
+/// helper to add Left Alt modifier to a core.KeyCodeFire.
+pub fn L_ALT(fire: core.KeyCodeFire) core.KeyCodeFire {
     var copy = fire;
     copy.dead = false;
     if (copy.tap_modifiers) |mods| {
@@ -117,8 +84,8 @@ pub fn L_ALT(fire: KeyCodeFire) KeyCodeFire {
     return copy;
 }
 
-/// helper to add Right Alt modifier to a KeyCodeFire.
-pub fn R_ALT(fire: KeyCodeFire) KeyCodeFire {
+/// helper to add Right Alt modifier to a core.KeyCodeFire.
+pub fn R_ALT(fire: core.KeyCodeFire) core.KeyCodeFire {
     var copy = fire;
     copy.dead = false;
     if (copy.tap_modifiers) |mods| {
@@ -129,23 +96,23 @@ pub fn R_ALT(fire: KeyCodeFire) KeyCodeFire {
     return copy;
 }
 
-/// Sets the dead key flag on a KeyCodeFire. Dead keys send the keycode followed by a
+/// Sets the dead key flag on a core.KeyCodeFire. Dead keys send the keycode followed by a
 /// spacebar press to cancel the dead key combination.
-pub fn DEAD(fire: KeyCodeFire) KeyCodeFire {
+pub fn DEAD(fire: core.KeyCodeFire) core.KeyCodeFire {
     var copy = fire;
     copy.dead = true;
     return copy;
 }
 
 pub const LabelEntry = struct {
-    value: KeyCodeFire,
+    value: core.KeyCodeFire,
     label: []const u8,
     short_label: []const u8,
 };
 
 /// Looks up `keycode` in `table` by matching both `tap_keycode` and `tap_modifiers`.
 /// This distinguishes e.g. `S(KC_1)` ("EXLM") from plain `KC_1` ("1").
-pub fn getLabel(table: []const LabelEntry, keycode: KeyCodeFire, shortest: bool) ?[]const u8 {
+pub fn getLabel(table: []const LabelEntry, keycode: core.KeyCodeFire, shortest: bool) ?[]const u8 {
     const key_mods: u8 = if (keycode.tap_modifiers) |m| m.toByte() else 0;
     for (table) |entry| {
         const entry_mods: u8 = if (entry.value.tap_modifiers) |m| m.toByte() else 0;

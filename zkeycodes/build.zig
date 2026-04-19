@@ -8,6 +8,10 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("root.zig"),
         .target = target,
     });
+    const zigmkay_dep = b.dependency("zigmkay", .{});
+    const zigmkay_mod = zigmkay_dep.module("zigmkay");
+
+    mod.addImport("zigmkay", zigmkay_mod);
 
     const exe = b.addExecutable(.{
         .name = "zkeycodes",

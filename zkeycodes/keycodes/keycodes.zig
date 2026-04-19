@@ -386,6 +386,7 @@ pub const kc = struct {
         pub const KC_CPNL: u16 = @intFromEnum(media.KC_CONTROL_PANEL);
         pub const KC_ASST: u16 = @intFromEnum(media.KC_ASSISTANT);
     };
+
 };
 
 pub const kcf = struct {
