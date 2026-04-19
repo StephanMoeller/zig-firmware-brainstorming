@@ -9,7 +9,7 @@ ZigMkay is a keyboard firmware made with zig.
 
 3. Navigate into the my_keyboards folder and build with this command: zig build -Dkeyboard=path_to/my_main.zig
 
-# Rule of thumb:
+# Only modify files in my_keyboards/
 
 Do only modify things inside my_keyboards. If you stick to this rule, future git fetches should be painless most of the time as we will keep changes inside the my_keyboards to an absolute minimum.
 
