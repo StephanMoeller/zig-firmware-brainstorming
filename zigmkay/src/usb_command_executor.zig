@@ -75,7 +75,7 @@ pub const UsbCommandExecutor = struct {
                         usb_if.send_raw_report(&report);
                     },
                     .ConsumerKeyPressed => |key| {
-                        var report = usb_if.ConsumerInReport{ .button = key };
+                        var report = usb_if.ConsumerInReport{ .button = @intFromEnum(key) };
                         usb_if.send_consumer_report(&report);
                     },
                     .ConsumerKeyReleased => |_| {
