@@ -48,7 +48,7 @@ pub const keymap = [_][key_count]core.KeyDef{
         // BOTH
     .{
     PrintStats,   T(us.F7),   T(us.F8),   T(us.F9), T(us.F10),            T(dk.TILD), T(us.SPACE), T(us.SPACE), T(us.SPACE), T(dk.GRV),
-        mouse_test,    ALT(us.F4), CTL(us.F5), SFT(us.F6), T(us.F11),             T(dk.DLR),  SFT(us.BSPC),  CTL(us.BSPC),  ALT(us.BSPC),   _______,
+        MEDIA(.VolumeDown),    MEDIA(.VolumeUp), CTL(us.F5), SFT(us.F6), T(us.F11),             T(dk.DLR),  SFT(us.BSPC),  CTL(us.BSPC),  ALT(us.BSPC),   _______,
                   T(us.F1),   T(us.F2),   T(us.F3), T(us.F12),            T(dk.CIRC),   T(us.DEL),   T(us.DEL),   T(us.DEL),
                                                    _______,              T(dk.N0)
     },
@@ -62,6 +62,15 @@ pub const keymap = [_][key_count]core.KeyDef{
 };
 // zig fmt: on
 
+fn MEDIA(key: core.MediaCode) core.KeyDef {
+    return core.KeyDef{
+        .tap_only = .{ .media_key = key },
+    };
+}
+
+const volume_test = core.KeyDef{
+    .tap_only = .{ .media_key = 0x00E9 },
+};
 const mouse_test = core.KeyDef{
     .tap_only = core.TapDef{
         .mouse_action = .WheelUp,

@@ -74,10 +74,11 @@ pub const UsbCommandExecutor = struct {
                         @memcpy(report[1 .. 1 + sig.len], sig.data[0..sig.len]);
                         usb_if.send_raw_report(&report);
                     },
-                    .ConsumerKey => |key| {
-                        var report = usb_if.ConsumerInReport{ .button = key };
+                    .ConsumerKeyPressed => |key| {
+                        var report = usb_if.ConsumerInReport{ .button = @intFromEnum(key) };
                         usb_if.send_consumer_report(&report);
-                        // Auto-release
+                    },
+                    .ConsumerKeyReleased => |_| {
                         var empty_report = usb_if.ConsumerInReport{ .button = 0 };
                         usb_if.send_consumer_report(&empty_report);
                     },

@@ -243,6 +243,9 @@ pub fn CreateProcessorType(
             if (tap.mouse_action) |mouse_action| {
                 try self.output_usb_commands.queue.enqueue(.{ .MouseCommandPressed = mouse_action });
             }
+            if (tap.media_key) |media_key| {
+                try self.output_usb_commands.queue.enqueue(.{ .ConsumerKeyPressed = media_key });
+            }
             on_event(self, .{ .OnTapEnterAfter = .{ .tap = tap } });
         }
 
@@ -258,6 +261,9 @@ pub fn CreateProcessorType(
 
             if (tap.mouse_action) |mouse_action| {
                 try self.output_usb_commands.queue.enqueue(.{ .MouseCommandReleased = mouse_action });
+            }
+            if (tap.media_key) |media_key| {
+                try self.output_usb_commands.queue.enqueue(.{ .ConsumerKeyReleased = media_key });
             }
             on_event(self, .{ .OnTapExitAfter = .{ .tap = tap } });
         }
