@@ -83,9 +83,17 @@ pub const TapDef = struct {
     key_press: ?KeyCodeFire = null,
     one_shot: ?HoldDef = null,
     custom: ?u8 = null,
-    media_key: ?u16 = null, // Optional media keycode for consumer control (e.g., volume, play/pause).
+    media_key: ?MediaCode = null, // Optional media keycode for consumer control (e.g., volume, play/pause).
     mouse_action: ?MouseAction = null, // Optional mouse action to be executed on tap.
 };
+
+// this list comes from here: https://www.usb.org/sites/default/files/documents/hut1_12v2.pdf
+pub const MediaCode = enum(u16) {
+    VolumeMute = 0x00e8,
+    VolumeUp = 0x00e9,
+    VolumeDown = 0x00ea,
+};
+
 pub const HoldDef = struct {
     hold_modifiers: ?Modifiers = null,
     hold_layer: ?LayerIndex = null,
@@ -173,8 +181,8 @@ pub const OutputCommand = union(enum) {
     ModifiersChanged: Modifiers,
     ActivateBootMode,
     RawHidSignal: struct { signal_id: u8, data: [8]u8, len: u8 },
-    ConsumerKeyPressed: u16,
-    ConsumerKeyReleased: u16,
+    ConsumerKeyPressed: MediaCode,
+    ConsumerKeyReleased: MediaCode,
     MouseCommandPressed: MouseAction,
     MouseCommandReleased: MouseAction,
 };

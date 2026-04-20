@@ -13,7 +13,7 @@ pub fn T(keycode_fire: core.KeyCodeFire) core.KeyDef {
 }
 
 /// Media key: Sends a consumer page keycode.
-pub fn MED(media_key: u16) core.KeyDef {
+pub fn MED(media_key: core.MediaCode) core.KeyDef {
     return core.KeyDef{
         .tap_only = .{ .media_key = media_key },
     };

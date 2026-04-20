@@ -24,7 +24,7 @@ const G = helpers.TAP(g);
 test "TAP - single key press" {
     var current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
 
-    const media_key_code = 0x00a9;
+    const media_key_code: core.MediaCode = .VolumeUp;
     const media_key = core.KeyDef{ .tap_only = .{ .media_key = media_key_code } };
     const base_layer = comptime [_]core.KeyDef{ A, B, media_key, D };
 
