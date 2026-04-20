@@ -1,5 +1,4 @@
 const core = @import("core.zig");
-const zkeycodes = core.zkeycodes;
 
 // ---------------------------------------------------------------------
 // KeyDef Macros
@@ -143,15 +142,4 @@ pub const OptionsHomeRowMods = struct {
             },
         };
     }
-};
-
-pub const KeyCodeModifier = struct {
-    pub const L_SFT = zkeycodes.L_SFT;
-    pub const R_SFT = zkeycodes.R_SFT;
-    pub const L_ALT = zkeycodes.L_ALT;
-    pub const R_ALT = zkeycodes.R_ALT;
-    pub const L_CTL = zkeycodes.L_CTL;
-    pub const R_CTL = zkeycodes.R_CTL;
-    pub const L_GUI = zkeycodes.L_GUI;
-    pub const R_GUI = zkeycodes.R_GUI;
 };
