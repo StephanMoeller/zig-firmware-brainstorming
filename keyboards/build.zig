@@ -12,8 +12,8 @@ const KeyboardSample = struct {
 };
 
 const keyboard_samples = [_]KeyboardSample{
-    .{ .name = "clackychan", .root_source_file = "my_keyboards/clackychan/main.zig" },
-    .{ .name = "clackychan2", .root_source_file = "my_keyboards/clackychan/clackychan2.zig" },
+    .{ .name = "clacky_chan", .root_source_file = "my_keyboards/rollercole/clackychan.zig" },
+    .{ .name = "leonardo_keycaprio", .root_source_file = "my_keyboards/clackychan/leonardo_keycaprio.zig" },
     .{ .name = "molekula", .root_source_file = "my_keyboards/molekula/main.zig" },
 };
 
