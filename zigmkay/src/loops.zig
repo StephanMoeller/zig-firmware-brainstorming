@@ -10,8 +10,19 @@ const microzig = @import("microzig");
 const rp2xxx = microzig.hal;
 const time = rp2xxx.time;
 
-/// Initializes and runs the primary half of the split keyboard (or a unibody keyboard).
-/// The `encoder_pins_or_null` parameter optionally defines the two GPIO pins [A, B] for a hardware rotary encoder.
+pub fn GetConfigType(comptime dimensions: core.KeymapDimensions) type {
+    return struct {
+        const Self = @This();
+        dimensions: core.KeymapDimensions,
+        keymap: *const [dimensions.layer_count][dimensions.key_count]core.KeyDef,
+        pub fn init(keymap: *const [dimensions.layer_count][dimensions.key_count]core.KeyDef) Self {
+            return .{
+                .keymap = keymap,
+                .dimensions = dimensions,
+            };
+        }
+    };
+}
 pub fn run_primary(
     comptime dimensions: core.KeymapDimensions,
     comptime pin_cols: []const rp2xxx.gpio.Pin,

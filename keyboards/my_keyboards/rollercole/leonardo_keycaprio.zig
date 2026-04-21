@@ -48,6 +48,8 @@ pub fn main() !void {
     // Init pins
     _ = pin_config.apply(); // dont know how this could be done inside the module, but it needs to be done for things to work
     blink_led(1, 300);
+    _ = zigmkay.loops.GetConfigType(rollercole_shared_keymap.dimensions)
+        .init(&rollercole_shared_keymap.keymap);
     zigmkay.loops.run_primary(
         rollercole_shared_keymap.dimensions,
         clacky_pin_cols[0..],
