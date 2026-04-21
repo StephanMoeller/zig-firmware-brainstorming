@@ -1,34 +1,18 @@
 const std = @import("std");
+const registry = @import("generated/keyboard_registry.zig");
+const api = @import("build_api.zig");
 
-const microzig = @import("microzig");
-const flash = @import("zig_flash");
-const MicroBuild = microzig.MicroBuild(.{
-    .rp2xxx = true,
-});
-
-const KeyboardSample = struct {
-    name: []const u8,
-    root_source_file: []const u8,
-};
-
-const keyboard_samples = [_]KeyboardSample{
-    .{ .name = "clackychan", .root_source_file = "my_keyboards/clackychan/main.zig" },
-    .{ .name = "clackychan2", .root_source_file = "my_keyboards/clackychan/clackychan2.zig" },
-    .{ .name = "molekula", .root_source_file = "my_keyboards/molekula/main.zig" },
-};
+const MicroBuild = api.MicroBuild;
 
 pub fn build(b: *std.Build) void {
-    const selected_keyboard = b.option([]const u8, "keyboard", keyboardOptionDescription(b)) orelse keyboard_samples[0].name;
+    const optimize: std.builtin.OptimizeMode = .ReleaseSafe;
 
-    if (shouldPrintSamplesForListSteps(b)) {
-        printAvailableSamples();
-    }
+    addGenerateRegistryStep(b);
 
+    const flash_dep = b.dependency("zig_flash", .{});
+    const flash_exe = flash_dep.artifact("zig_flash");
     const mz_dep = b.dependency("microzig", .{});
     const mb = MicroBuild.init(b, mz_dep) orelse return;
-
-    const target = mb.ports.rp2xxx.boards.raspberrypi.pico.*; //  b.standardTargetOptions(.{});
-    const optimize: std.builtin.OptimizeMode = .ReleaseSafe; //b.standardOptimizeOption(.{});
 
     const zigmkay_dep = b.dependency("zigmkay", .{});
     const zigmkay_mod = zigmkay_dep.module("zigmkay");
@@ -36,67 +20,81 @@ pub fn build(b: *std.Build) void {
     const zkeycodes_dep = b.dependency("zkeycodes", .{});
     const zkeycodes_mod = zkeycodes_dep.module("zkeycodes");
 
-    const sample = findSample(selected_keyboard) orelse {
-        printAvailableSamples();
-        std.debug.panic("Unknown keyboard sample: '{s}'", .{selected_keyboard});
+    const flash_step = b.step("flash", "Build and flash one or more keyboard firmwares");
+    const all_keyboards_step = b.step("all", "Build all keyboard firmwares");
+
+    var flash_targets = std.StringHashMap(*std.Build.Step).init(b.allocator);
+    var keyboard_names = std.ArrayList([]const u8).empty;
+
+    var builder = api.KeyboardBuilder{
+        .b = b,
+        .mb = mb,
+        .zigmkay_mod = zigmkay_mod,
+        .zkeycodes_mod = zkeycodes_mod,
+        .flash_exe = flash_exe,
+        .optimize = optimize,
+        .all_keyboards_step = all_keyboards_step,
+        .flash_step = flash_step,
+        .flash_targets = &flash_targets,
+        .keyboard_names = &keyboard_names,
     };
 
-    const firmware = mb.add_firmware(.{
-        .name = "zigmkay_firmware",
-        .target = &target,
-        .optimize = optimize,
-        .root_source_file = b.path(sample.root_source_file),
+    registry.registerAll(&builder);
+    configureFlashStep(&builder);
+}
+
+/// Adds a build step that regenerates the keyboard plugin registry.
+fn addGenerateRegistryStep(b: *std.Build) void {
+    const registry_tool = b.addExecutable(.{
+        .name = "generate_keyboard_registry",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("tools/generate_registry.zig"),
+            .target = b.graph.host,
+            .optimize = .ReleaseSafe,
+        }),
     });
 
-    firmware.add_app_import("zigmkay", zigmkay_mod, .{ .depend_on_microzig = true });
-    firmware.add_app_import("zkeycodes", zkeycodes_mod, .{ .depend_on_microzig = true });
-    mb.install_firmware(firmware, .{});
+    const generate_registry_step = b.step("generate-registry", "Generate keyboards/generated/keyboard_registry.zig");
+    const run_registry_tool = b.addRunArtifact(registry_tool);
+    generate_registry_step.dependOn(&run_registry_tool.step);
 
-    const flash_dep = b.dependency("zig_flash", .{});
-    const flash_exe = flash_dep.artifact("zig_flash");
-
-    _ = flash.addFlashStep(b, flash_exe, .{ .input_name = "zigmkay_firmware.uf2" });
+    if (b.args) |args| {
+        run_registry_tool.addArgs(args);
+    }
 }
 
-fn keyboardOptionDescription(b: *std.Build) []const u8 {
-    var sample_names: [keyboard_samples.len][]const u8 = undefined;
-    inline for (keyboard_samples, 0..) |sample, idx| {
-        sample_names[idx] = sample.name;
+/// Configures `flash` to depend on requested keyboard flash steps.
+fn configureFlashStep(builder: *api.KeyboardBuilder) void {
+    if (!containsArg(builder.b, "flash")) return;
+
+    var has_target = false;
+    for (builder.keyboard_names.items) |name| {
+        if (!containsArg(builder.b, name)) continue;
+        const flash_target = builder.flash_targets.get(name) orelse continue;
+        builder.flash_step.dependOn(flash_target);
+        has_target = true;
     }
 
-    const joined_samples = std.mem.join(b.allocator, ", ", sample_names[0..]) catch @panic("Failed to build keyboard sample list");
-    return std.fmt.allocPrint(
-        b.allocator,
-        "Keyboard sample to build/flash (use: zig build -Dkeyboard=<name>, flash: zig build flash -Dkeyboard=<name>, available: {s})",
-        .{joined_samples},
-    ) catch @panic("Failed to build keyboard option description");
-}
+    if (!has_target) {
+        const names = std.mem.join(builder.b.allocator, ", ", builder.keyboard_names.items) catch @panic("OOM");
+        const error_message = std.fmt.allocPrint(
+            builder.b.allocator,
+            "No keyboard target passed to flash. Use: zig build flash <name>\nAvailable keyboard targets: {s}\nExamples:\n  zig build molekula\n  zig build flash molekula",
+            .{names},
+        ) catch @panic("OOM");
 
-fn findSample(name: []const u8) ?KeyboardSample {
-    inline for (keyboard_samples) |sample| {
-        if (std.mem.eql(u8, sample.name, name)) return sample;
+        const fail_step = builder.b.addFail(error_message);
+        builder.flash_step.dependOn(&fail_step.step);
     }
-    return null;
 }
 
-fn printAvailableSamples() void {
-    std.debug.print("Available keyboard samples:\n", .{});
-    inline for (keyboard_samples) |sample| {
-        std.debug.print("  - {s}\n", .{sample.name});
-    }
-    std.debug.print("zig build -Dkeyboard=<name>\t\tBuild the Firmware\n", .{});
-    std.debug.print("zig build flash -Dkeyboard=<name>\tBuild & Flash the Firmware \n\n", .{});
-}
-
-fn shouldPrintSamplesForListSteps(b: *std.Build) bool {
+/// Returns true when a command-line argument exists.
+fn containsArg(b: *std.Build, value: []const u8) bool {
     const args = std.process.argsAlloc(b.allocator) catch return false;
     defer std.process.argsFree(b.allocator, args);
 
     for (args) |arg| {
-        if (std.mem.eql(u8, arg, "-l") or std.mem.eql(u8, arg, "--list-steps")) {
-            return true;
-        }
+        if (std.mem.eql(u8, arg, value)) return true;
     }
-
     return false;
 }

@@ -21,7 +21,10 @@
     },
     .paths = .{
         "build.zig",
+        "build_api.zig",
         "build.zig.zon",
-        "src",
+        "generated",
+        "my_keyboards",
+        "tools",
     },
 }
