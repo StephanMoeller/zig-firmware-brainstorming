@@ -4,7 +4,7 @@ const microzig = @import("microzig");
 const rp2xxx = microzig.hal;
 const time = rp2xxx.time;
 pub const ScannerSettings = struct {
-    debounce: core.TimeSpan,
+    debounce: core.TimeSpan = .{ .ms = 50 },
     pin_raise_wait_us: u64 = 30,
     activated_value: u1 = 1,
 };

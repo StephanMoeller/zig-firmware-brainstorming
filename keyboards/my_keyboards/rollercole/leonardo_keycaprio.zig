@@ -51,7 +51,7 @@ pub fn main() !void {
     blink_led(1, 300);
 
     // Mandatory
-    _ = zigmkay.loops.GetConfigType(&rollercole_shared_keymap.dimensions).init(
+    comptime var config = zigmkay.loops.GetConfigType(&rollercole_shared_keymap.dimensions).init(
         &rollercole_shared_keymap.keymap,
         &pin_mappings,
         clacky_pin_cols[0..],
@@ -59,7 +59,11 @@ pub fn main() !void {
     );
 
     // Optionals
-    //config.combos();
+    comptime config.set_combos(rollercole_shared_keymap.combos[0..]);
+    comptime config.set_scanner_settings(scanner_settings);
+    comptime config.set_custom_functions(&rollercole_shared_keymap.custom_functions);
+    comptime config.set_side_definitions(&rollercole_shared_keymap.sides);
+
     //config.scanner_settings();
     //config.custom_functions();
     //config.hold_ignore_zones();

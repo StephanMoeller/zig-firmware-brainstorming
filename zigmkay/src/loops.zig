@@ -18,13 +18,38 @@ pub fn GetConfigType(comptime dimensions: *const core.KeymapDimensions) type {
         pin_mappings: *const [dimensions.key_count]?[2]usize,
         pin_cols: []const rp2xxx.gpio.Pin,
         pin_rows: []const rp2xxx.gpio.Pin,
+        combos: []const core.Combo2Def = &.{},
+        scanner_settings: matrix_scanning.ScannerSettings = .{},
+        custom_functions: ?*const core.CustomFunctions = null,
+        side_definition: *const [dimensions.key_count]core.Side = undefined,
         pub fn init(
             keymap: *const [dimensions.layer_count][dimensions.key_count]core.KeyDef,
             pin_mappings: *const [dimensions.key_count]?[2]usize,
             pin_cols: []const rp2xxx.gpio.Pin,
             pin_rows: []const rp2xxx.gpio.Pin,
         ) Self {
-            return .{ .keymap = keymap, .dimensions = dimensions, .pin_mappings = pin_mappings, .pin_cols = pin_cols, .pin_rows = pin_rows };
+            return .{
+                .keymap = keymap,
+                .dimensions = dimensions,
+                .pin_mappings = pin_mappings,
+                .pin_cols = pin_cols,
+                .pin_rows = pin_rows,
+            };
+        }
+
+        pub fn set_combos(comptime self: *Self, combos: []const core.Combo2Def) void {
+            self.combos = combos;
+        }
+
+        pub fn set_scanner_settings(comptime self: *Self, scanner_settings: matrix_scanning.ScannerSettings) void {
+            self.scanner_settings = scanner_settings;
+        }
+
+        pub fn set_custom_functions(comptime self: *Self, custom_functions: *const core.CustomFunctions) void {
+            self.custom_functions = custom_functions;
+        }
+        pub fn set_side_definitions(comptime self: *Self, side_definition: *const [dimensions.key_count]core.Side) void {
+            self.side_definition = side_definition;
         }
     };
 }
