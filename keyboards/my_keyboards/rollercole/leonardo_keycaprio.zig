@@ -28,6 +28,7 @@ pub const pin_config = rp2xxx.pins.GlobalConfiguration{
     .GPIO6 = .{ .name = "row5", .direction = .in },
 };
 pub const p = pin_config.pins();
+
 pub const pin_mappings = [rollercole_shared_keymap.key_count]?[2]usize{
   .{0,0}, .{1,0}, .{2,0}, .{3,0}, .{4,0},  .{4,3},.{3,3},.{2,3},.{1,3},.{0,3},
   .{0,1}, .{1,1}, .{2,1}, .{3,1}, .{4,1},    .{4,4},.{3,4},.{2,4},.{1,4},.{0,4},
@@ -48,17 +49,35 @@ pub fn main() !void {
     // Init pins
     _ = pin_config.apply(); // dont know how this could be done inside the module, but it needs to be done for things to work
     blink_led(1, 300);
-    _ = zigmkay.loops.GetConfigType(rollercole_shared_keymap.dimensions)
-        .init(&rollercole_shared_keymap.keymap);
-    zigmkay.loops.run_primary(
-        rollercole_shared_keymap.dimensions,
+
+    // Mandatory
+    _ = zigmkay.loops.GetConfigType(&rollercole_shared_keymap.dimensions).init(
+        &rollercole_shared_keymap.keymap,
+        &pin_mappings,
         clacky_pin_cols[0..],
         clacky_pin_rows[0..],
-        scanner_settings,
-        rollercole_shared_keymap.combos[0..],
-        &rollercole_shared_keymap.custom_functions,
-        pin_mappings,
-        &rollercole_shared_keymap.keymap,
+    );
+
+    // Optionals
+    //config.combos();
+    //config.scanner_settings();
+    //config.custom_functions();
+    //config.hold_ignore_zones();
+
+    // Go!
+    //config.run_primary_blocking() catch {
+    //    blink_led(100000, 50);
+    //};
+
+    zigmkay.loops.run_primary(
+        rollercole_shared_keymap.dimensions, //
+        clacky_pin_cols[0..], //
+        clacky_pin_rows[0..], //
+        scanner_settings, //
+        rollercole_shared_keymap.combos[0..], //
+        &rollercole_shared_keymap.custom_functions, //
+        pin_mappings, //
+        &rollercole_shared_keymap.keymap, //
         rollercole_shared_keymap.sides,
         null,
     ) catch {
