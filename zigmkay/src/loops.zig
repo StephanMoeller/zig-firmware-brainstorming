@@ -129,7 +129,7 @@ pub fn run_primary_internal(
     comptime pin_mappings: *const [dimensions.key_count]?[2]usize,
     comptime keymap: *const [dimensions.layer_count][dimensions.key_count]core.KeyDef,
     comptime side_definition: *const [dimensions.key_count]core.Side,
-    uart: rp2xxx.uart.UART,
+    uart_or_null: ?rp2xxx.uart.UART,
 ) !void {
     // Data queues
     var matrix_change_queue = core.MatrixStateChangeQueue.Create();
@@ -154,10 +154,14 @@ pub fn run_primary_internal(
     // USB events
     const usb_command_executor = usb.CreateAndInitUsbCommandExecutor();
     while (true) {
-        // read
+        // Detect local changes
         const current_time = core.TimeSinceBoot{ .time_since_boot_us = time.get_time_since_boot().to_us() };
         try matrix_scanner.DetectKeyboardChanges(&matrix_change_queue, current_time); // Scan local matrix changes
-        try UartReader.read_from_uart(&uart, &matrix_change_queue, current_time);
+
+        // Receive remote changes
+        if (uart_or_null) |uart| {
+            try UartUtils.read_from_uart(&uart, &matrix_change_queue, current_time);
+        }
 
         // Processing: decide actions
         try processor.Process(current_time);
@@ -167,7 +171,25 @@ pub fn run_primary_internal(
     }
 }
 
-const UartReader = struct {
+pub fn run_secondary_internal(
+    comptime dimensions: *const core.KeymapDimensions,
+    comptime pin_cols: []const rp2xxx.gpio.Pin,
+    comptime pin_rows: []const rp2xxx.gpio.Pin,
+    comptime scanner_settings: *const matrix_scanning.ScannerSettings,
+    comptime pin_mappings: *const [dimensions.key_count]?[2]usize,
+    uart: rp2xxx.uart.UART,
+) !void {
+    var matrix_change_queue = core.MatrixStateChangeQueue.Create();
+    const matrix_scanner = comptime matrix_scanning.CreateMatrixScannerType(dimensions, pin_cols, pin_rows, pin_mappings, scanner_settings){};
+
+    while (true) {
+        const current_time = core.TimeSinceBoot{ .time_since_boot_us = time.get_time_since_boot().to_us() };
+        try matrix_scanner.DetectKeyboardChanges(&matrix_change_queue, current_time);
+        try UartUtils.write_to_uart(&uart, &matrix_change_queue);
+    }
+}
+
+const UartUtils = struct {
     pub fn read_from_uart(uart: *const rp2xxx.uart.UART, matrix_change_queue: *core.MatrixStateChangeQueue, current_time: core.TimeSinceBoot) !void {
         // Receive remote changes as well
         const byte_or_null: ?u8 = uart.read_word() catch blk: {
@@ -180,39 +202,17 @@ const UartReader = struct {
             try matrix_change_queue.enqueue(core.MatrixStateChange{ .pressed = uart_message.pressed, .key_index = uart_message.key_index, .time = current_time });
         }
     }
-};
 
-pub fn run_secondary_internal(
-    comptime dimensions: *const core.KeymapDimensions,
-    comptime pin_cols: []const rp2xxx.gpio.Pin,
-    comptime pin_rows: []const rp2xxx.gpio.Pin,
-    comptime scanner_settings: *const matrix_scanning.ScannerSettings,
-    comptime pin_mappings: *const [dimensions.key_count]?[2]usize,
-    uart: rp2xxx.uart.UART,
-) !void {
-
-    // Data queues
-    var matrix_change_queue = core.MatrixStateChangeQueue.Create();
-
-    // Matrix scanning
-    const matrix_scanner = comptime matrix_scanning.CreateMatrixScannerType(dimensions, pin_cols, pin_rows, pin_mappings, scanner_settings){};
-
-    // SECONDARY HALF
-    var uart_send_buffer: [1]u8 = .{0};
-    while (true) {
-        const current_time = core.TimeSinceBoot{ .time_since_boot_us = time.get_time_since_boot().to_us() };
-        // Scan local matrix changes
-        try matrix_scanner.DetectKeyboardChanges(&matrix_change_queue, current_time);
-
+    pub fn write_to_uart(uart: *const rp2xxx.uart.UART, matrix_change_queue: *core.MatrixStateChangeQueue) !void {
         if (matrix_change_queue.Count() > 0) {
             const change = try matrix_change_queue.dequeue();
             const msg = core.UartMessage{ .pressed = change.pressed, .key_index = change.key_index };
-            uart_send_buffer[0] = msg.toByte();
 
+            const uart_send_buffer: [1]u8 = [1]u8{msg.toByte()};
             // Tries to write one byte with 100ms timeout
             uart.write_blocking(&uart_send_buffer, microzig.drivers.time.Deadline{ .timeout = microzig.drivers.time.Absolute.from_us(100 * 1000) }) catch {
                 uart.clear_errors();
             };
         }
     }
-}
+};
