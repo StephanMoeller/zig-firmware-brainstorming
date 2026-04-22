@@ -17,9 +17,9 @@ pub fn init_test_full(
     comptime sides: [keymap_dimensions.key_count]core.Side,
 ) type {
     const ProcessorType = zigmkay.processing.CreateProcessorType(
-        keymap_dimensions,
+        &keymap_dimensions,
         keymap,
-        sides,
+        &sides,
         combos,
         custom_functions,
     );
