@@ -78,7 +78,7 @@ pub fn GetConfigType(comptime dimensions: *const core.KeymapDimensions) type {
                 self.dimensions,
                 self.pin_cols.?,
                 self.pin_rows.?,
-                self.scanner_settings,
+                self.scanner_settings.?,
                 self.combos,
                 self.custom_functions.?,
                 self.pin_mappings.?,
@@ -204,7 +204,7 @@ pub fn run_secondary_internal(
             uart_send_buffer[0] = msg.toByte();
 
             // Tries to write one byte with 100ms timeout
-            uart.write_blocking(&uart_send_buffer, microzig.drivers.time.Duration.from_ms(100)) catch {
+            uart.write_blocking(&uart_send_buffer, microzig.drivers.time.Deadline{ .timeout = microzig.drivers.time.Absolute.from_us(100 * 1000) }) catch {
                 uart.clear_errors();
             };
         }
