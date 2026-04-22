@@ -51,12 +51,9 @@ pub fn main() !void {
     blink_led(1, 300); // Show the user that the keyboard has actually booted up.
 
     // Mandatory
-    comptime var config = zigmkay.loops.GetConfigType(&rollercole_shared_keymap.dimensions).init(
-        &rollercole_shared_keymap.keymap,
-        &pin_mappings,
-        clacky_pin_cols[0..],
-        clacky_pin_rows[0..],
-    );
+    comptime var config = zigmkay.loops.GetConfigType(&rollercole_shared_keymap.dimensions).init();
+    comptime config.set_keymap(&rollercole_shared_keymap.keymap);
+    comptime config.set_pins(clacky_pin_cols[0..], clacky_pin_rows[0..], &pin_mappings);
 
     // Optionals
     comptime config.set_combos(rollercole_shared_keymap.combos[0..]);

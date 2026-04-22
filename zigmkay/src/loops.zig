@@ -14,27 +14,28 @@ pub fn GetConfigType(comptime dimensions: *const core.KeymapDimensions) type {
     return struct {
         const Self = @This();
         dimensions: *const core.KeymapDimensions,
-        keymap: *const [dimensions.layer_count][dimensions.key_count]core.KeyDef,
-        pin_mappings: *const [dimensions.key_count]?[2]usize,
-        pin_cols: []const rp2xxx.gpio.Pin,
-        pin_rows: []const rp2xxx.gpio.Pin,
+        keymap: ?*const [dimensions.layer_count][dimensions.key_count]core.KeyDef = null,
+        pin_mappings: ?*const [dimensions.key_count]?[2]usize = null,
+        pin_cols: ?[]const rp2xxx.gpio.Pin = null,
+        pin_rows: ?[]const rp2xxx.gpio.Pin = null,
         combos: []const core.Combo2Def = &.{},
         scanner_settings: matrix_scanning.ScannerSettings = .{},
         custom_functions: ?*const core.CustomFunctions = null,
         side_definition: *const [dimensions.key_count]core.Side = undefined,
-        pub fn init(
-            keymap: *const [dimensions.layer_count][dimensions.key_count]core.KeyDef,
-            pin_mappings: *const [dimensions.key_count]?[2]usize,
-            pin_cols: []const rp2xxx.gpio.Pin,
-            pin_rows: []const rp2xxx.gpio.Pin,
-        ) Self {
+        pub fn init() Self {
             return .{
-                .keymap = keymap,
                 .dimensions = dimensions,
-                .pin_mappings = pin_mappings,
-                .pin_cols = pin_cols,
-                .pin_rows = pin_rows,
             };
+        }
+
+        pub fn set_pins(comptime self: *Self, pin_cols: []const rp2xxx.gpio.Pin, pin_rows: []const rp2xxx.gpio.Pin, pin_mappings: *const [dimensions.key_count]?[2]usize) void {
+            self.pin_cols = pin_cols;
+            self.pin_rows = pin_rows;
+            self.pin_mappings = pin_mappings;
+        }
+
+        pub fn set_keymap(comptime self: *Self, keymap: *const [dimensions.layer_count][dimensions.key_count]core.KeyDef) void {
+            self.keymap = keymap;
         }
 
         pub fn set_combos(comptime self: *Self, combos: []const core.Combo2Def) void {
@@ -56,15 +57,21 @@ pub fn GetConfigType(comptime dimensions: *const core.KeymapDimensions) type {
             comptime self: Self,
             uart_or_null: ?rp2xxx.uart.UART,
         ) !void {
+            if (self.keymap == null) {
+                @compileError(std.fmt.comptimePrint("set_keymap must be calld on the config prior to calling run"));
+            }
+            if (self.pin_mappings == null) {
+                @compileError(std.fmt.comptimePrint("set_pins must be calld on the config prior to calling run"));
+            }
             try run_primary(
                 self.dimensions,
-                self.pin_cols,
-                self.pin_rows,
+                self.pin_cols.?,
+                self.pin_rows.?,
                 self.scanner_settings,
                 self.combos,
                 self.custom_functions.?,
-                self.pin_mappings,
-                self.keymap,
+                self.pin_mappings.?,
+                self.keymap.?,
                 self.side_definition,
                 uart_or_null,
             );

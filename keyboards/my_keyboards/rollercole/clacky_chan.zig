@@ -62,6 +62,35 @@ pub fn main() !void {
 
     // Init pins
     _ = pin_config.apply(); // dont know how this could be done inside the module, but it needs to be done for things to work
+    blink_led(1, 300); // Show the user that the keyboard has actually booted up.
+
+    // Mandatory
+    comptime var config = zigmkay.loops.GetConfigType(&rollercole_shared_keymap.dimensions).init(
+        &rollercole_shared_keymap.keymap,
+        &pin_mappings,
+        clacky_pin_cols[0..],
+        clacky_pin_rows[0..],
+    );
+
+    // Mandatory
+
+    // Optionals
+    comptime config.set_combos(rollercole_shared_keymap.combos[0..]);
+    comptime config.set_scanner_settings(scanner_settings);
+    comptime config.set_custom_functions(&rollercole_shared_keymap.custom_functions);
+    comptime config.set_side_definitions(&rollercole_shared_keymap.sides);
+
+    if (primary) {
+        config.run(null) catch {
+            blink_led(10000000, 500); // in case of an error, let the keyboard start blinking
+        };
+    }
+}
+
+pub fn main() !void {
+
+    // Init pins
+    _ = pin_config.apply(); // dont know how this could be done inside the module, but it needs to be done for things to work
     const uart = init_uart();
     if (primary) {
         blink_led(1, 300);
