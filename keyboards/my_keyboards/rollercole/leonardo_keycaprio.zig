@@ -48,7 +48,7 @@ pub fn main() !void {
 
     // Init pins
     _ = pin_config.apply(); // dont know how this could be done inside the module, but it needs to be done for things to work
-    blink_led(1, 300);
+    blink_led(1, 300); // Show the user that the keyboard has actually booted up.
 
     // Mandatory
     comptime var config = zigmkay.loops.GetConfigType(&rollercole_shared_keymap.dimensions).init(
@@ -65,7 +65,7 @@ pub fn main() !void {
     comptime config.set_side_definitions(&rollercole_shared_keymap.sides);
 
     config.run(null) catch {
-        blink_led(100000, 50);
+        blink_led(10000000, 500); // in case of an error, let the keyboard start blinking
     };
 }
 
