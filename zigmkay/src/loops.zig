@@ -10,6 +10,7 @@ const microzig = @import("microzig");
 const rp2xxx = microzig.hal;
 const time = rp2xxx.time;
 
+fn dummy_on_event(_: core.ProcessorEvent, _: *core.LayerActivations, _: *core.OutputCommandQueue) void {}
 pub fn GetConfigType(comptime dimensions: *const core.KeymapDimensions) type {
     return struct {
         const Self = @This();
@@ -18,10 +19,13 @@ pub fn GetConfigType(comptime dimensions: *const core.KeymapDimensions) type {
         pin_mappings: ?*const [dimensions.key_count]?[2]usize = null,
         pin_cols: ?[]const rp2xxx.gpio.Pin = null,
         pin_rows: ?[]const rp2xxx.gpio.Pin = null,
+
         combos: []const core.Combo2Def = &.{},
-        scanner_settings: ?*const matrix_scanning.ScannerSettings = null,
-        custom_functions: ?*const core.CustomFunctions = null,
-        side_definition: *const [dimensions.key_count]core.Side = undefined,
+        scanner_settings: *const matrix_scanning.ScannerSettings = &.{},
+        custom_functions: *const core.CustomFunctions = &core.CustomFunctions{
+            .on_event = dummy_on_event,
+        },
+        side_definition: *const [dimensions.key_count]core.Side = &[_]core.Side{core.Side.X} ** dimensions.key_count,
         pub fn init() Self {
             return .{
                 .dimensions = dimensions,
@@ -53,63 +57,70 @@ pub fn GetConfigType(comptime dimensions: *const core.KeymapDimensions) type {
             self.side_definition = side_definition;
         }
 
-        pub fn run_unibody(comptime self: Self) !void {
-            try validate_or_error(self);
-            try run_primary_internal(
-                self.dimensions,
-                self.pin_cols.?,
-                self.pin_rows.?,
-                self.scanner_settings.?,
-                self.combos,
-                self.custom_functions.?,
-                self.pin_mappings.?,
-                self.keymap.?,
-                self.side_definition,
-                null,
-            );
-        }
+        pub const Runner = struct {
+            config: Self,
+            pub fn run_unibody(comptime self: Runner) !void {
+                try run_primary_internal(
+                    self.config.dimensions,
+                    self.config.pin_cols.?,
+                    self.config.pin_rows.?,
+                    self.config.scanner_settings,
+                    self.config.combos,
+                    self.config.custom_functions,
+                    self.config.pin_mappings.?,
+                    self.config.keymap.?,
+                    self.config.side_definition,
+                    null,
+                );
+            }
 
-        pub fn run_primary(
-            comptime self: Self,
-            uart: rp2xxx.uart.UART,
-        ) !void {
-            try validate_or_error(self);
-            try run_primary_internal(
-                self.dimensions,
-                self.pin_cols.?,
-                self.pin_rows.?,
-                self.scanner_settings.?,
-                self.combos,
-                self.custom_functions.?,
-                self.pin_mappings.?,
-                self.keymap.?,
-                self.side_definition,
-                uart,
-            );
-        }
+            pub fn run_primary(
+                comptime self: Runner,
+                uart: rp2xxx.uart.UART,
+            ) !void {
+                try run_primary_internal(
+                    self.config.dimensions,
+                    self.config.pin_cols.?,
+                    self.config.pin_rows.?,
+                    self.config.scanner_settings,
+                    self.config.combos,
+                    self.config.custom_functions,
+                    self.config.pin_mappings.?,
+                    self.config.keymap.?,
+                    self.config.side_definition,
+                    uart,
+                );
+            }
 
-        pub fn run_secondary(
-            comptime self: Self,
-            uart: rp2xxx.uart.UART,
-        ) !void {
-            try validate_or_error(self);
-            try run_secondary_internal(
-                self.dimensions,
-                self.pin_cols.?,
-                self.pin_rows.?,
-                self.scanner_settings.?,
-                self.pin_mappings.?,
-                uart,
-            );
-        }
-
-        pub fn validate_or_error(comptime self: Self) !void {
+            pub fn run_secondary(
+                comptime self: Runner,
+                uart: rp2xxx.uart.UART,
+            ) !void {
+                try run_secondary_internal(
+                    self.config.dimensions,
+                    self.config.pin_cols.?,
+                    self.config.pin_rows.?,
+                    self.config.scanner_settings,
+                    self.config.pin_mappings.?,
+                    uart,
+                );
+            }
+        };
+        pub fn build(comptime self: Self) Runner {
             if (self.keymap == null) {
                 @compileError(std.fmt.comptimePrint("set_keymap must be calld on the config prior to calling run"));
             }
             if (self.pin_mappings == null) {
                 @compileError(std.fmt.comptimePrint("set_pins must be calld on the config prior to calling run"));
             }
+            if (self.pin_cols == null) {
+                @compileError(std.fmt.comptimePrint("set_pins must be calld on the config prior to calling run"));
+            }
+            if (self.pin_rows == null) {
+                @compileError(std.fmt.comptimePrint("set_pins must be calld on the config prior to calling run"));
+            }
+
+            return Runner{ .config = self };
         }
     };
 }

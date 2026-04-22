@@ -45,6 +45,7 @@ pub const clacky_pin_cols = [_]rp2xxx.gpio.Pin{ p.col0, p.col1, p.col2, p.col3, 
 pub const clacky_pin_rows = [_]rp2xxx.gpio.Pin{ p.row0, p.row1, p.row2, p.row3, p.row4, p.row5 };
 
 pub fn main() !void {
+    // todo: ensure combos, scanner settings, custom functions and side definitions are optional
 
     // Init pins
     _ = pin_config.apply(); // dont know how this could be done inside the module, but it needs to be done for things to work
@@ -61,7 +62,8 @@ pub fn main() !void {
     comptime config.set_custom_functions(&rollercole_shared_keymap.custom_functions);
     comptime config.set_side_definitions(&rollercole_shared_keymap.sides);
 
-    config.run_unibody() catch {
+    comptime var runner = config.build();
+    runner.run_unibody() catch {
         blink_led(10000000, 500); // in case of an error, let the keyboard start blinking
     };
 }

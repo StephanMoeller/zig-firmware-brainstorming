@@ -183,14 +183,10 @@ pub fn main() !void {
     comptime config.set_scanner_settings(&scanner_settings);
     comptime config.set_custom_functions(&keymap.custom_functions);
     comptime config.set_side_definitions(&keymap.sides);
+    comptime var runner = config.build();
 
-    config.run_unibody() catch {
+    runner.run_unibody() catch {
         blink_led(10000000, 500); // in case of an error, let the keyboard start blinking
-    };
-    config.run_unibody() catch {
-        // Error handling: If the main loop fails (e.g., USB disconnect),
-        // blink the LED rapidly in an infinite loop (indicates error state)
-        blink_led(100000, 50);
     };
 }
 
