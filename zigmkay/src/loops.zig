@@ -10,7 +10,6 @@ const microzig = @import("microzig");
 const rp2xxx = microzig.hal;
 const time = rp2xxx.time;
 
-fn dummy_on_event(_: core.ProcessorEvent, _: *core.LayerActivations, _: *core.OutputCommandQueue) void {}
 pub fn GetConfigType(comptime dimensions: *const core.KeymapDimensions) type {
     return struct {
         const Self = @This();
@@ -23,7 +22,7 @@ pub fn GetConfigType(comptime dimensions: *const core.KeymapDimensions) type {
         combos: []const core.Combo2Def = &.{},
         scanner_settings: *const matrix_scanning.ScannerSettings = &.{},
         custom_functions: *const core.CustomFunctions = &core.CustomFunctions{
-            .on_event = dummy_on_event,
+            .on_event = null,
         },
         side_definition: *const [dimensions.key_count]core.Side = &[_]core.Side{core.Side.X} ** dimensions.key_count,
         pub fn init() Self {
