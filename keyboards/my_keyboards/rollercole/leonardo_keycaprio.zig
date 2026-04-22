@@ -64,7 +64,7 @@ pub fn main() !void {
     comptime config.set_custom_functions(&rollercole_shared_keymap.custom_functions);
     comptime config.set_side_definitions(&rollercole_shared_keymap.sides);
 
-    zigmkay.loops.run(null) catch {
+    config.run(null) catch {
         blink_led(100000, 50);
     };
 }

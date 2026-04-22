@@ -62,7 +62,7 @@ pub fn GetConfigType(comptime dimensions: *const core.KeymapDimensions) type {
                 self.pin_rows,
                 self.scanner_settings,
                 self.combos,
-                self.custom_functions,
+                self.custom_functions.?,
                 self.pin_mappings,
                 self.keymap,
                 self.side_definition,
@@ -72,15 +72,15 @@ pub fn GetConfigType(comptime dimensions: *const core.KeymapDimensions) type {
     };
 }
 pub fn run_primary(
-    comptime dimensions: core.KeymapDimensions,
+    comptime dimensions: *const core.KeymapDimensions,
     comptime pin_cols: []const rp2xxx.gpio.Pin,
     comptime pin_rows: []const rp2xxx.gpio.Pin,
     comptime scanner_settings: matrix_scanning.ScannerSettings,
     comptime combos: []const core.Combo2Def,
     comptime custom_functions: *const core.CustomFunctions,
-    comptime pin_mappings: [dimensions.key_count]?[2]usize,
+    comptime pin_mappings: *const [dimensions.key_count]?[2]usize,
     comptime keymap: *const [dimensions.layer_count][dimensions.key_count]core.KeyDef,
-    comptime side_definition: [dimensions.key_count]core.Side,
+    comptime side_definition: *const [dimensions.key_count]core.Side,
     uart_or_null: ?rp2xxx.uart.UART,
 ) !void {
     // Data queues

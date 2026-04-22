@@ -16,10 +16,10 @@ const PinAndIndex = struct {
 };
 
 pub fn CreateMatrixScannerType(
-    comptime keymap_dimensions: core.KeymapDimensions,
+    comptime keymap_dimensions: *const core.KeymapDimensions,
     comptime pin_cols: []const rp2xxx.gpio.Pin,
     comptime pin_rows: []const rp2xxx.gpio.Pin,
-    comptime pins_to_keys_mapping: [keymap_dimensions.key_count]?[2]usize,
+    comptime pins_to_keys_mapping: *const [keymap_dimensions.key_count]?[2]usize,
     comptime settings: ScannerSettings,
 ) type {
     comptime var row_col_to_keyindex: [pin_cols.len][pin_rows.len]?core.KeyIndex = @splat(@splat(null));
