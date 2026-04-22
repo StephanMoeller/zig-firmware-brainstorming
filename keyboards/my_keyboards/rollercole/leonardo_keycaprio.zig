@@ -45,9 +45,7 @@ pub const clacky_pin_cols = [_]rp2xxx.gpio.Pin{ p.col0, p.col1, p.col2, p.col3, 
 pub const clacky_pin_rows = [_]rp2xxx.gpio.Pin{ p.row0, p.row1, p.row2, p.row3, p.row4, p.row5 };
 
 pub fn main() !void {
-
-    // Init pins
-    _ = pin_config.apply(); // dont know how this could be done inside the module, but it needs to be done for things to work
+    _ = pin_config.apply();
     blink_led(1, 300); // Show the user that the keyboard has actually booted up.
 
     // Mandatory

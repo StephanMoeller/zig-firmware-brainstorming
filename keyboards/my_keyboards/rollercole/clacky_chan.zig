@@ -56,15 +56,11 @@ pub const scanner_settings = zigmkay.matrix_scanning.ScannerSettings{
 pub const clacky_pin_cols = [_]rp2xxx.gpio.Pin{p.col};
 pub const clacky_pin_rows = [_]rp2xxx.gpio.Pin{ p.k7, p.k8, p.k9, p.k12, p.k13, p.k14, p.k15, p.k16, p.k21, p.k23, p.k20, p.k22, p.k26, p.k27, p.k10 };
 
-const primary = false;
+const primary = true;
 
 pub fn main() !void {
-
-    // Init pins
-    _ = pin_config.apply(); // dont know how this could be done inside the module, but it needs to be done for things to work
+    _ = pin_config.apply();
     blink_led(1, 300); // Show the user that the keyboard has actually booted up.
-
-    _ = pin_config.apply(); // dont know how this could be done inside the module, but it needs to be done for things to work
     const uart = init_uart();
 
     // Mandatory
