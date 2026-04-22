@@ -108,16 +108,16 @@ pub fn GetConfigType(comptime dimensions: *const core.KeymapDimensions) type {
         };
         pub fn build(comptime self: Self) Runner {
             if (self.keymap == null) {
-                @compileError(std.fmt.comptimePrint("set_keymap must be calld on the config prior to calling run"));
+                @compileError(std.fmt.comptimePrint("set_keymap must be calld on the config prior to calling run", .{}));
             }
             if (self.pin_mappings == null) {
-                @compileError(std.fmt.comptimePrint("set_pins must be calld on the config prior to calling run"));
+                @compileError(std.fmt.comptimePrint("set_pins must be calld on the config prior to calling run", .{}));
             }
             if (self.pin_cols == null) {
-                @compileError(std.fmt.comptimePrint("set_pins must be calld on the config prior to calling run"));
+                @compileError(std.fmt.comptimePrint("set_pins must be calld on the config prior to calling run", .{}));
             }
             if (self.pin_rows == null) {
-                @compileError(std.fmt.comptimePrint("set_pins must be calld on the config prior to calling run"));
+                @compileError(std.fmt.comptimePrint("set_pins must be calld on the config prior to calling run", .{}));
             }
 
             return Runner{ .config = self };
