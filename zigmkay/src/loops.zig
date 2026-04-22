@@ -129,7 +129,7 @@ pub fn run_primary_internal(
     comptime pin_mappings: *const [dimensions.key_count]?[2]usize,
     comptime keymap: *const [dimensions.layer_count][dimensions.key_count]core.KeyDef,
     comptime side_definition: *const [dimensions.key_count]core.Side,
-    uart_or_null: ?rp2xxx.uart.UART,
+    uart: rp2xxx.uart.UART,
 ) !void {
     // Data queues
     var matrix_change_queue = core.MatrixStateChangeQueue.Create();
@@ -154,24 +154,10 @@ pub fn run_primary_internal(
     // USB events
     const usb_command_executor = usb.CreateAndInitUsbCommandExecutor();
     while (true) {
+        // read
         const current_time = core.TimeSinceBoot{ .time_since_boot_us = time.get_time_since_boot().to_us() };
-
-        // Scan local matrix changes
-        try matrix_scanner.DetectKeyboardChanges(&matrix_change_queue, current_time);
-
-        // if uart specified, we are dealing with a primary half of a split keyboard
-        if (uart_or_null) |uart| {
-            // Receive remote changes as well
-            const byte_or_null: ?u8 = uart.read_word() catch blk: {
-                uart.clear_errors();
-                break :blk null;
-            };
-
-            if (byte_or_null) |byte| {
-                const uart_message = core.UartMessage.fromByte(byte);
-                try matrix_change_queue.enqueue(core.MatrixStateChange{ .pressed = uart_message.pressed, .key_index = uart_message.key_index, .time = current_time });
-            }
-        }
+        try matrix_scanner.DetectKeyboardChanges(&matrix_change_queue, current_time); // Scan local matrix changes
+        try UartReader.read_from_uart(&uart, &matrix_change_queue, current_time);
 
         // Processing: decide actions
         try processor.Process(current_time);
@@ -180,6 +166,21 @@ pub fn run_primary_internal(
         try usb_command_executor.HouseKeepAndProcessCommands(&usb_command_queue, current_time);
     }
 }
+
+const UartReader = struct {
+    pub fn read_from_uart(uart: *const rp2xxx.uart.UART, matrix_change_queue: *core.MatrixStateChangeQueue, current_time: core.TimeSinceBoot) !void {
+        // Receive remote changes as well
+        const byte_or_null: ?u8 = uart.read_word() catch blk: {
+            uart.clear_errors();
+            break :blk null;
+        };
+
+        if (byte_or_null) |byte| {
+            const uart_message = core.UartMessage.fromByte(byte);
+            try matrix_change_queue.enqueue(core.MatrixStateChange{ .pressed = uart_message.pressed, .key_index = uart_message.key_index, .time = current_time });
+        }
+    }
+};
 
 pub fn run_secondary_internal(
     comptime dimensions: *const core.KeymapDimensions,
