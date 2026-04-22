@@ -10,7 +10,6 @@ const microzig = @import("microzig");
 const rp2xxx = microzig.hal;
 const time = rp2xxx.time;
 
-fn dummy_on_event(_: core.ProcessorEvent, _: *core.LayerActivations, _: *core.OutputCommandQueue) void {}
 pub fn GetConfigType(comptime dimensions: *const core.KeymapDimensions) type {
     return struct {
         const Self = @This();
@@ -23,7 +22,7 @@ pub fn GetConfigType(comptime dimensions: *const core.KeymapDimensions) type {
         combos: []const core.Combo2Def = &.{},
         scanner_settings: *const matrix_scanning.ScannerSettings = &.{},
         custom_functions: *const core.CustomFunctions = &core.CustomFunctions{
-            .on_event = dummy_on_event,
+            .on_event = null,
         },
         side_definition: *const [dimensions.key_count]core.Side = &[_]core.Side{core.Side.X} ** dimensions.key_count,
         pub fn init() Self {
@@ -110,13 +109,7 @@ pub fn GetConfigType(comptime dimensions: *const core.KeymapDimensions) type {
             if (self.keymap == null) {
                 @compileError(std.fmt.comptimePrint("set_keymap must be calld on the config prior to calling run", .{}));
             }
-            if (self.pin_mappings == null) {
-                @compileError(std.fmt.comptimePrint("set_pins must be calld on the config prior to calling run", .{}));
-            }
-            if (self.pin_cols == null) {
-                @compileError(std.fmt.comptimePrint("set_pins must be calld on the config prior to calling run", .{}));
-            }
-            if (self.pin_rows == null) {
+            if (self.pin_mappings == null or self.pin_cols == null or self.pin_rows == null) {
                 @compileError(std.fmt.comptimePrint("set_pins must be calld on the config prior to calling run", .{}));
             }
 
@@ -160,23 +153,13 @@ pub fn run_primary_internal(
     // USB events
     const usb_command_executor = usb.CreateAndInitUsbCommandExecutor();
     while (true) {
+        // Detect local changes
         const current_time = core.TimeSinceBoot{ .time_since_boot_us = time.get_time_since_boot().to_us() };
+        try matrix_scanner.DetectKeyboardChanges(&matrix_change_queue, current_time); // Scan local matrix changes
 
-        // Scan local matrix changes
-        try matrix_scanner.DetectKeyboardChanges(&matrix_change_queue, current_time);
-
-        // if uart specified, we are dealing with a primary half of a split keyboard
+        // Receive remote changes
         if (uart_or_null) |uart| {
-            // Receive remote changes as well
-            const byte_or_null: ?u8 = uart.read_word() catch blk: {
-                uart.clear_errors();
-                break :blk null;
-            };
-
-            if (byte_or_null) |byte| {
-                const uart_message = core.UartMessage.fromByte(byte);
-                try matrix_change_queue.enqueue(core.MatrixStateChange{ .pressed = uart_message.pressed, .key_index = uart_message.key_index, .time = current_time });
-            }
+            try UartUtils.read_from_uart(&uart, &matrix_change_queue, current_time);
         }
 
         // Processing: decide actions
@@ -195,29 +178,40 @@ pub fn run_secondary_internal(
     comptime pin_mappings: *const [dimensions.key_count]?[2]usize,
     uart: rp2xxx.uart.UART,
 ) !void {
-
-    // Data queues
     var matrix_change_queue = core.MatrixStateChangeQueue.Create();
-
-    // Matrix scanning
     const matrix_scanner = comptime matrix_scanning.CreateMatrixScannerType(dimensions, pin_cols, pin_rows, pin_mappings, scanner_settings){};
 
-    // SECONDARY HALF
-    var uart_send_buffer: [1]u8 = .{0};
     while (true) {
         const current_time = core.TimeSinceBoot{ .time_since_boot_us = time.get_time_since_boot().to_us() };
-        // Scan local matrix changes
         try matrix_scanner.DetectKeyboardChanges(&matrix_change_queue, current_time);
+        try UartUtils.write_to_uart(&uart, &matrix_change_queue);
+    }
+}
 
+const UartUtils = struct {
+    pub fn read_from_uart(uart: *const rp2xxx.uart.UART, matrix_change_queue: *core.MatrixStateChangeQueue, current_time: core.TimeSinceBoot) !void {
+        // Receive remote changes as well
+        const byte_or_null: ?u8 = uart.read_word() catch blk: {
+            uart.clear_errors();
+            break :blk null;
+        };
+
+        if (byte_or_null) |byte| {
+            const uart_message = core.UartMessage.fromByte(byte);
+            try matrix_change_queue.enqueue(core.MatrixStateChange{ .pressed = uart_message.pressed, .key_index = uart_message.key_index, .time = current_time });
+        }
+    }
+
+    pub fn write_to_uart(uart: *const rp2xxx.uart.UART, matrix_change_queue: *core.MatrixStateChangeQueue) !void {
         if (matrix_change_queue.Count() > 0) {
             const change = try matrix_change_queue.dequeue();
             const msg = core.UartMessage{ .pressed = change.pressed, .key_index = change.key_index };
-            uart_send_buffer[0] = msg.toByte();
 
+            const uart_send_buffer: [1]u8 = [1]u8{msg.toByte()};
             // Tries to write one byte with 100ms timeout
             uart.write_blocking(&uart_send_buffer, microzig.drivers.time.Deadline{ .timeout = microzig.drivers.time.Absolute.from_us(100 * 1000) }) catch {
                 uart.clear_errors();
             };
         }
     }
-}
+};
