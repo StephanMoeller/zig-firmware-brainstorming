@@ -3,9 +3,9 @@ const core = @import("core.zig");
 const stats_collector = @import("stats_collector.zig");
 
 pub fn CreateProcessorType(
-    comptime keymap_dimensions: core.KeymapDimensions,
+    comptime keymap_dimensions: *const core.KeymapDimensions,
     comptime keymap: *const [keymap_dimensions.layer_count][keymap_dimensions.key_count]core.KeyDef,
-    comptime sides: [keymap_dimensions.key_count]core.Side,
+    comptime sides: *const [keymap_dimensions.key_count]core.Side,
     comptime combos: []const core.Combo2Def,
     comptime custom: *const core.CustomFunctions,
 ) type {

@@ -10,18 +10,120 @@ const microzig = @import("microzig");
 const rp2xxx = microzig.hal;
 const time = rp2xxx.time;
 
-/// Initializes and runs the primary half of the split keyboard (or a unibody keyboard).
-/// The `encoder_pins_or_null` parameter optionally defines the two GPIO pins [A, B] for a hardware rotary encoder.
-pub fn run_primary(
-    comptime dimensions: core.KeymapDimensions,
+pub fn GetConfigType(comptime dimensions: *const core.KeymapDimensions) type {
+    return struct {
+        const Self = @This();
+        dimensions: *const core.KeymapDimensions,
+        keymap: ?*const [dimensions.layer_count][dimensions.key_count]core.KeyDef = null,
+        pin_mappings: ?*const [dimensions.key_count]?[2]usize = null,
+        pin_cols: ?[]const rp2xxx.gpio.Pin = null,
+        pin_rows: ?[]const rp2xxx.gpio.Pin = null,
+        combos: []const core.Combo2Def = &.{},
+        scanner_settings: ?*const matrix_scanning.ScannerSettings = null,
+        custom_functions: ?*const core.CustomFunctions = null,
+        side_definition: *const [dimensions.key_count]core.Side = undefined,
+        pub fn init() Self {
+            return .{
+                .dimensions = dimensions,
+            };
+        }
+
+        pub fn set_pins(comptime self: *Self, pin_cols: []const rp2xxx.gpio.Pin, pin_rows: []const rp2xxx.gpio.Pin, pin_mappings: *const [dimensions.key_count]?[2]usize) void {
+            self.pin_cols = pin_cols;
+            self.pin_rows = pin_rows;
+            self.pin_mappings = pin_mappings;
+        }
+
+        pub fn set_keymap(comptime self: *Self, keymap: *const [dimensions.layer_count][dimensions.key_count]core.KeyDef) void {
+            self.keymap = keymap;
+        }
+
+        pub fn set_combos(comptime self: *Self, combos: []const core.Combo2Def) void {
+            self.combos = combos;
+        }
+
+        pub fn set_scanner_settings(comptime self: *Self, scanner_settings: *const matrix_scanning.ScannerSettings) void {
+            self.scanner_settings = scanner_settings;
+        }
+
+        pub fn set_custom_functions(comptime self: *Self, custom_functions: *const core.CustomFunctions) void {
+            self.custom_functions = custom_functions;
+        }
+        pub fn set_side_definitions(comptime self: *Self, side_definition: *const [dimensions.key_count]core.Side) void {
+            self.side_definition = side_definition;
+        }
+
+        pub fn run_unibody(comptime self: Self) !void {
+            try validate_or_error(self);
+            try run_primary_internal(
+                self.dimensions,
+                self.pin_cols.?,
+                self.pin_rows.?,
+                self.scanner_settings.?,
+                self.combos,
+                self.custom_functions.?,
+                self.pin_mappings.?,
+                self.keymap.?,
+                self.side_definition,
+                null,
+            );
+        }
+
+        pub fn run_primary(
+            comptime self: Self,
+            uart: rp2xxx.uart.UART,
+        ) !void {
+            try validate_or_error(self);
+            try run_primary_internal(
+                self.dimensions,
+                self.pin_cols.?,
+                self.pin_rows.?,
+                self.scanner_settings.?,
+                self.combos,
+                self.custom_functions.?,
+                self.pin_mappings.?,
+                self.keymap.?,
+                self.side_definition,
+                uart,
+            );
+        }
+
+        pub fn run_secondary(
+            comptime self: Self,
+            uart: rp2xxx.uart.UART,
+        ) !void {
+            try validate_or_error(self);
+            try run_secondary_internal(
+                self.dimensions,
+                self.pin_cols.?,
+                self.pin_rows.?,
+                self.scanner_settings.?,
+                self.pin_mappings.?,
+                uart,
+            );
+        }
+
+        pub fn validate_or_error(comptime self: Self) !void {
+            if (self.keymap == null) {
+                @compileError(std.fmt.comptimePrint("set_keymap must be calld on the config prior to calling run"));
+            }
+            if (self.pin_mappings == null) {
+                @compileError(std.fmt.comptimePrint("set_pins must be calld on the config prior to calling run"));
+            }
+        }
+    };
+}
+
+pub fn run_primary_internal(
+    comptime dimensions: *const core.KeymapDimensions,
     comptime pin_cols: []const rp2xxx.gpio.Pin,
     comptime pin_rows: []const rp2xxx.gpio.Pin,
-    comptime scanner_settings: matrix_scanning.ScannerSettings,
+    comptime scanner_settings: *const matrix_scanning.ScannerSettings,
     comptime combos: []const core.Combo2Def,
     comptime custom_functions: *const core.CustomFunctions,
-    comptime pin_mappings: [dimensions.key_count]?[2]usize,
+    comptime pin_mappings: *const [dimensions.key_count]?[2]usize,
     comptime keymap: *const [dimensions.layer_count][dimensions.key_count]core.KeyDef,
-    comptime side_definition: [dimensions.key_count]core.Side,
+    comptime side_definition: *const [dimensions.key_count]core.Side,
     uart_or_null: ?rp2xxx.uart.UART,
 ) !void {
     // Data queues
@@ -74,12 +176,12 @@ pub fn run_primary(
     }
 }
 
-pub fn run_secondary(
-    comptime dimensions: core.KeymapDimensions,
+pub fn run_secondary_internal(
+    comptime dimensions: *const core.KeymapDimensions,
     comptime pin_cols: []const rp2xxx.gpio.Pin,
     comptime pin_rows: []const rp2xxx.gpio.Pin,
-    comptime scanner_settings: matrix_scanning.ScannerSettings,
-    comptime pin_mappings: [dimensions.key_count]?[2]usize,
+    comptime scanner_settings: *const matrix_scanning.ScannerSettings,
+    comptime pin_mappings: *const [dimensions.key_count]?[2]usize,
     uart: rp2xxx.uart.UART,
 ) !void {
 
@@ -87,7 +189,7 @@ pub fn run_secondary(
     var matrix_change_queue = core.MatrixStateChangeQueue.Create();
 
     // Matrix scanning
-    const matrix_scanner = matrix_scanning.CreateMatrixScannerType(dimensions, pin_cols, pin_rows, pin_mappings, scanner_settings){};
+    const matrix_scanner = comptime matrix_scanning.CreateMatrixScannerType(dimensions, pin_cols, pin_rows, pin_mappings, scanner_settings){};
 
     // SECONDARY HALF
     var uart_send_buffer: [1]u8 = .{0};
@@ -102,7 +204,7 @@ pub fn run_secondary(
             uart_send_buffer[0] = msg.toByte();
 
             // Tries to write one byte with 100ms timeout
-            uart.write_blocking(&uart_send_buffer, microzig.drivers.time.Duration.from_ms(100)) catch {
+            uart.write_blocking(&uart_send_buffer, microzig.drivers.time.Deadline{ .timeout = microzig.drivers.time.Absolute.from_us(100 * 1000) }) catch {
                 uart.clear_errors();
             };
         }

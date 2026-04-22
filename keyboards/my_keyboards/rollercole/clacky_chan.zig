@@ -56,41 +56,36 @@ pub const scanner_settings = zigmkay.matrix_scanning.ScannerSettings{
 pub const clacky_pin_cols = [_]rp2xxx.gpio.Pin{p.col};
 pub const clacky_pin_rows = [_]rp2xxx.gpio.Pin{ p.k7, p.k8, p.k9, p.k12, p.k13, p.k14, p.k15, p.k16, p.k21, p.k23, p.k20, p.k22, p.k26, p.k27, p.k10 };
 
-const primary = true;
+const primary = false;
 
 pub fn main() !void {
 
     // Init pins
     _ = pin_config.apply(); // dont know how this could be done inside the module, but it needs to be done for things to work
+    blink_led(1, 300); // Show the user that the keyboard has actually booted up.
+
+    _ = pin_config.apply(); // dont know how this could be done inside the module, but it needs to be done for things to work
     const uart = init_uart();
+
+    // Mandatory
+    comptime var config = zigmkay.loops.GetConfigType(&rollercole_shared_keymap.dimensions).init();
+    comptime config.set_keymap(&rollercole_shared_keymap.keymap);
+
+    // Optionals
+    comptime config.set_combos(rollercole_shared_keymap.combos[0..]);
+    comptime config.set_scanner_settings(&scanner_settings);
+    comptime config.set_custom_functions(&rollercole_shared_keymap.custom_functions);
+    comptime config.set_side_definitions(&rollercole_shared_keymap.sides);
+
     if (primary) {
-        blink_led(1, 300);
-        zigmkay.loops.run_primary(
-            rollercole_shared_keymap.dimensions,
-            clacky_pin_cols[0..],
-            clacky_pin_rows[0..],
-            scanner_settings,
-            rollercole_shared_keymap.combos[0..],
-            &rollercole_shared_keymap.custom_functions,
-            pin_mappings_right,
-            &rollercole_shared_keymap.keymap,
-            rollercole_shared_keymap.sides,
-            uart,
-        ) catch {
-            blink_led(100000, 50);
+        comptime config.set_pins(clacky_pin_cols[0..], clacky_pin_rows[0..], &pin_mappings_right);
+        config.run_primary(uart) catch {
+            blink_led(10000000, 500); // in case of an error, let the keyboard start blinking
         };
     } else {
-        blink_led(5, 50);
-        zigmkay.loops.run_secondary(
-            rollercole_shared_keymap.dimensions,
-            clacky_pin_cols[0..],
-            clacky_pin_rows[0..],
-            scanner_settings,
-            pin_mappings_left,
-            uart,
-            null,
-        ) catch {
-            blink_led(100000, 50);
+        comptime config.set_pins(clacky_pin_cols[0..], clacky_pin_rows[0..], &pin_mappings_left);
+        config.run_secondary(uart) catch {
+            blink_led(10000000, 500); // in case of an error, let the keyboard start blinking
         };
     }
 }

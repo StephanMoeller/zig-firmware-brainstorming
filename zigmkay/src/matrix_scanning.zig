@@ -4,7 +4,7 @@ const microzig = @import("microzig");
 const rp2xxx = microzig.hal;
 const time = rp2xxx.time;
 pub const ScannerSettings = struct {
-    debounce: core.TimeSpan,
+    debounce: core.TimeSpan = .{ .ms = 50 },
     pin_raise_wait_us: u64 = 30,
     activated_value: u1 = 1,
 };
@@ -16,11 +16,11 @@ const PinAndIndex = struct {
 };
 
 pub fn CreateMatrixScannerType(
-    comptime keymap_dimensions: core.KeymapDimensions,
+    comptime keymap_dimensions: *const core.KeymapDimensions,
     comptime pin_cols: []const rp2xxx.gpio.Pin,
     comptime pin_rows: []const rp2xxx.gpio.Pin,
-    comptime pins_to_keys_mapping: [keymap_dimensions.key_count]?[2]usize,
-    comptime settings: ScannerSettings,
+    comptime pins_to_keys_mapping: *const [keymap_dimensions.key_count]?[2]usize,
+    comptime settings: *const ScannerSettings,
 ) type {
     comptime var row_col_to_keyindex: [pin_cols.len][pin_rows.len]?core.KeyIndex = @splat(@splat(null));
     comptime for (pins_to_keys_mapping, 0..) |pins_or_null, key_index| {

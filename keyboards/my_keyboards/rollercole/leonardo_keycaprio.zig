@@ -28,6 +28,7 @@ pub const pin_config = rp2xxx.pins.GlobalConfiguration{
     .GPIO6 = .{ .name = "row5", .direction = .in },
 };
 pub const p = pin_config.pins();
+
 pub const pin_mappings = [rollercole_shared_keymap.key_count]?[2]usize{
   .{0,0}, .{1,0}, .{2,0}, .{3,0}, .{4,0},  .{4,3},.{3,3},.{2,3},.{1,3},.{0,3},
   .{0,1}, .{1,1}, .{2,1}, .{3,1}, .{4,1},    .{4,4},.{3,4},.{2,4},.{1,4},.{0,4},
@@ -47,20 +48,21 @@ pub fn main() !void {
 
     // Init pins
     _ = pin_config.apply(); // dont know how this could be done inside the module, but it needs to be done for things to work
-    blink_led(1, 300);
-    zigmkay.loops.run_primary(
-        rollercole_shared_keymap.dimensions,
-        clacky_pin_cols[0..],
-        clacky_pin_rows[0..],
-        scanner_settings,
-        rollercole_shared_keymap.combos[0..],
-        &rollercole_shared_keymap.custom_functions,
-        pin_mappings,
-        &rollercole_shared_keymap.keymap,
-        rollercole_shared_keymap.sides,
-        null,
-    ) catch {
-        blink_led(100000, 50);
+    blink_led(1, 300); // Show the user that the keyboard has actually booted up.
+
+    // Mandatory
+    comptime var config = zigmkay.loops.GetConfigType(&rollercole_shared_keymap.dimensions).init();
+    comptime config.set_keymap(&rollercole_shared_keymap.keymap);
+    comptime config.set_pins(clacky_pin_cols[0..], clacky_pin_rows[0..], &pin_mappings);
+
+    // Optionals
+    comptime config.set_combos(rollercole_shared_keymap.combos[0..]);
+    comptime config.set_scanner_settings(&scanner_settings);
+    comptime config.set_custom_functions(&rollercole_shared_keymap.custom_functions);
+    comptime config.set_side_definitions(&rollercole_shared_keymap.sides);
+
+    config.run_unibody() catch {
+        blink_led(10000000, 500); // in case of an error, let the keyboard start blinking
     };
 }
 
