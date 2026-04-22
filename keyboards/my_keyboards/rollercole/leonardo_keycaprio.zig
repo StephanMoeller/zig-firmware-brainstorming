@@ -57,11 +57,11 @@ pub fn main() !void {
 
     // Optionals
     comptime config.set_combos(rollercole_shared_keymap.combos[0..]);
-    comptime config.set_scanner_settings(scanner_settings);
+    comptime config.set_scanner_settings(&scanner_settings);
     comptime config.set_custom_functions(&rollercole_shared_keymap.custom_functions);
     comptime config.set_side_definitions(&rollercole_shared_keymap.sides);
 
-    config.run(null) catch {
+    config.run_unibody() catch {
         blink_led(10000000, 500); // in case of an error, let the keyboard start blinking
     };
 }

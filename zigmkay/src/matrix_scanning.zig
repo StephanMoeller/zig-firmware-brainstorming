@@ -20,7 +20,7 @@ pub fn CreateMatrixScannerType(
     comptime pin_cols: []const rp2xxx.gpio.Pin,
     comptime pin_rows: []const rp2xxx.gpio.Pin,
     comptime pins_to_keys_mapping: *const [keymap_dimensions.key_count]?[2]usize,
-    comptime settings: ScannerSettings,
+    comptime settings: *const ScannerSettings,
 ) type {
     comptime var row_col_to_keyindex: [pin_cols.len][pin_rows.len]?core.KeyIndex = @splat(@splat(null));
     comptime for (pins_to_keys_mapping, 0..) |pins_or_null, key_index| {
