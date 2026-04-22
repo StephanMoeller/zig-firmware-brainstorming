@@ -2,8 +2,8 @@ const api = @import("../../build_api.zig");
 
 /// Registers clackychan keyboard firmware steps.
 pub fn register(builder: *api.KeyboardBuilder) void {
-    registerVariant(builder, "clackychan", "my_keyboards/clackychan/main.zig");
-    registerVariant(builder, "clackychan2", "my_keyboards/clackychan/clackychan2.zig");
+    registerVariant(builder, "clacky_chan", "my_keyboards/rollercole/clacky_chan.zig");
+    registerVariant(builder, "leonardo_keycaprio", "my_keyboards/rollercole/leonardo_keycaprio.zig");
 }
 
 /// Registers a single clackychan firmware variant.
