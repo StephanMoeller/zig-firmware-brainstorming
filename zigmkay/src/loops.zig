@@ -51,6 +51,24 @@ pub fn GetConfigType(comptime dimensions: *const core.KeymapDimensions) type {
         pub fn set_side_definitions(comptime self: *Self, side_definition: *const [dimensions.key_count]core.Side) void {
             self.side_definition = side_definition;
         }
+
+        pub fn run(
+            comptime self: Self,
+            uart_or_null: ?rp2xxx.uart.UART,
+        ) !void {
+            try run_primary(
+                self.dimensions,
+                self.pin_cols,
+                self.pin_rows,
+                self.scanner_settings,
+                self.combos,
+                self.custom_functions,
+                self.pin_mappings,
+                self.keymap,
+                self.side_definition,
+                uart_or_null,
+            );
+        }
     };
 }
 pub fn run_primary(

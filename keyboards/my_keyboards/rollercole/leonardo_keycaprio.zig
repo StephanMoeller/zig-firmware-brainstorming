@@ -64,27 +64,7 @@ pub fn main() !void {
     comptime config.set_custom_functions(&rollercole_shared_keymap.custom_functions);
     comptime config.set_side_definitions(&rollercole_shared_keymap.sides);
 
-    //config.scanner_settings();
-    //config.custom_functions();
-    //config.hold_ignore_zones();
-
-    // Go!
-    //config.run_primary_blocking() catch {
-    //    blink_led(100000, 50);
-    //};
-
-    zigmkay.loops.run_primary(
-        rollercole_shared_keymap.dimensions, //
-        clacky_pin_cols[0..], //
-        clacky_pin_rows[0..], //
-        scanner_settings, //
-        rollercole_shared_keymap.combos[0..], //
-        &rollercole_shared_keymap.custom_functions, //
-        pin_mappings, //
-        &rollercole_shared_keymap.keymap, //
-        rollercole_shared_keymap.sides,
-        null,
-    ) catch {
+    zigmkay.loops.run(null) catch {
         blink_led(100000, 50);
     };
 }
