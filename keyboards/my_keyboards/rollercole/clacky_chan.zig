@@ -79,12 +79,14 @@ pub fn main() !void {
 
     if (primary) {
         comptime config.set_pins(clacky_pin_cols[0..], clacky_pin_rows[0..], &pin_mappings_right);
-        config.run_primary(uart) catch {
+        comptime var runner = config.build();
+        runner.run_primary(uart) catch {
             blink_led(10000000, 500); // in case of an error, let the keyboard start blinking
         };
     } else {
         comptime config.set_pins(clacky_pin_cols[0..], clacky_pin_rows[0..], &pin_mappings_left);
-        config.run_secondary(uart) catch {
+        comptime var runner = config.build();
+        runner.run_secondary(uart) catch {
             blink_led(10000000, 500); // in case of an error, let the keyboard start blinking
         };
     }
