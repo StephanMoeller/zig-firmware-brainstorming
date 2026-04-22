@@ -172,19 +172,22 @@ pub fn main() !void {
     //   - Processing (determining tap vs hold, layers, combos)
     //   - USB HID output (sending keycodes to computer)
     //   - Raw HID communication (companion app telemetry)
-    zigmkay.loops.run_primary(
-        keymap.dimensions, // Number of keys and layers
-        molekula_pin_cols[0..], // Column pins for scanning
-        molekula_pin_rows[0..], // Row pins for scanning
-        scanner_settings, // Debounce and other settings
-        keymap.combos[0..], // Combo definitions
-        &keymap.custom_functions, // Custom event handlers
-        pin_mappings, // Key index to pin mapping
-        &keymap.keymap, // The actual keymap/layers
-        keymap.sides, // Which half each key belongs to
-        null, // No secondary half for unibody
-        // encoder_pins, // Encoder pins
-    ) catch {
+
+    // Mandatory
+    comptime var config = zigmkay.loops.GetConfigType(&keymap.dimensions).init();
+    comptime config.set_keymap(&keymap.keymap);
+    comptime config.set_pins(molekula_pin_cols[0..], molekula_pin_rows[0..], &pin_mappings);
+
+    // Optionals
+    comptime config.set_combos(keymap.combos[0..]);
+    comptime config.set_scanner_settings(&scanner_settings);
+    comptime config.set_custom_functions(&keymap.custom_functions);
+    comptime config.set_side_definitions(&keymap.sides);
+
+    config.run_unibody() catch {
+        blink_led(10000000, 500); // in case of an error, let the keyboard start blinking
+    };
+    config.run_unibody() catch {
         // Error handling: If the main loop fails (e.g., USB disconnect),
         // blink the LED rapidly in an infinite loop (indicates error state)
         blink_led(100000, 50);
