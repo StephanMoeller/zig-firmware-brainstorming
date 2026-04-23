@@ -1,3 +1,4 @@
+pub const split_protocol = @import("split_protocol.zig");
 pub const generic_queue = @import("generic_queue.zig");
 pub const core = @import("core.zig");
 pub const matrix_scanning = @import("matrix_scanning.zig");
@@ -150,6 +151,9 @@ pub fn run_primary_internal(
         .output_usb_commands = &usb_command_queue,
     };
 
+    // uart byte queue
+    const uart_byte_queue = split_protocol.ByteQueue.Create();
+
     // USB events
     const usb_command_executor = usb.CreateAndInitUsbCommandExecutor();
     while (true) {
@@ -159,7 +163,18 @@ pub fn run_primary_internal(
 
         // Receive remote changes
         if (uart_or_null) |uart| {
-            try UartUtils.read_from_uart(&uart, &matrix_change_queue, current_time);
+            read_into_queue(&uart, &uart_byte_queue);
+            if (split_protocol.receiveMessage(&uart_byte_queue)) |msg| {
+                switch (msg) {
+                    .KeyPressed => |key_index| {
+                        matrix_change_queue.enqueue(.{ .key_index = key_index, .pressed = true, .time = current_time });
+                    },
+                    .KeyReleased => |key_index| {
+                        matrix_change_queue.enqueue(.{ .key_index = key_index, .pressed = false, .time = current_time });
+                    },
+                    .EncoderValueChanged => {},
+                }
+            }
         }
 
         // Processing: decide actions
@@ -167,6 +182,21 @@ pub fn run_primary_internal(
 
         // Execute actions: send usb commands to the host
         try usb_command_executor.HouseKeepAndProcessCommands(&usb_command_queue, current_time);
+    }
+}
+
+pub fn read_into_queue(uart: *rp2xxx.uart.UART, buffer: *split_protocol.ByteQueue) !void {
+    while (uart.read_word() catch return) |byte| {
+        buffer.enqueue(byte);
+    }
+}
+
+pub fn write_from_queue(uart: *rp2xxx.uart.UART, buffer: *split_protocol.ByteQueue) !void {
+    while (buffer.Count() > 0) {
+        const uart_send_buffer = [1]u8{buffer.dequeue()};
+        uart.write_blocking(&uart_send_buffer, microzig.drivers.time.Deadline{ .timeout = microzig.drivers.time.Absolute.from_us(100 * 1000) }) catch {
+            uart.clear_errors();
+        };
     }
 }
 
@@ -181,10 +211,14 @@ pub fn run_secondary_internal(
     var matrix_change_queue = core.MatrixStateChangeQueue.Create();
     const matrix_scanner = comptime matrix_scanning.CreateMatrixScannerType(dimensions, pin_cols, pin_rows, pin_mappings, scanner_settings){};
 
+    const uart_byte_queue = split_protocol.ByteQueue.Create();
     while (true) {
         const current_time = core.TimeSinceBoot{ .time_since_boot_us = time.get_time_since_boot().to_us() };
         try matrix_scanner.DetectKeyboardChanges(&matrix_change_queue, current_time);
-        try UartUtils.write_to_uart(&uart, &matrix_change_queue);
+        while (matrix_change_queue.Count() > 0) {
+            split_protocol.sendMessage(&uart_byte_queue, matrix_change_queue.dequeue());
+            write_from_queue(&uart, &uart_byte_queue);
+        }
     }
 }
 
