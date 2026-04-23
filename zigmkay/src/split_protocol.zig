@@ -28,33 +28,40 @@ pub const UartClient = struct {
 };
 
 pub const UartWrapper = struct {
-    uart: ?rp2xxx.uart.UART = null,
+    //uart: ?rp2xxx.uart.UART = null,
     mock_pointer: usize = 0,
     mock_data: []const u8,
-    pub fn create(uart: rp2xxx.uart.UART) UartWrapper {
-        return UartWrapper{ .uart = uart, .mock = null };
-    }
+    //pub fn create(uart: rp2xxx.uart.UART) UartWrapper {
+    //     return UartWrapper{
+    //        .uart = uart,
+    //        .mock = null,
+    //        };
+    // }
     pub fn create_mock(mock_data: []const u8) UartWrapper {
-        return UartWrapper{ .uart = null, .mock = .{ .data = mock_data } };
+        return UartWrapper{
+            //.uart = null,
+            .mock_data = mock_data,
+        };
     }
     pub fn read_word(self: *UartWrapper) ?u8 {
-        if (self.uart) |uart| {
-            // return real world uart value
-            const byte_or_null: ?u8 = uart.read_word() catch {
-                uart.clear_errors();
-                return null;
-            };
+        //
+        // if (self.uart) |uart| {
+        //   // return real world uart value
+        //  const byte_or_null: ?u8 = uart.read_word() catch {
+        //    uart.clear_errors();
+        //    return null;
+        //   };
 
-            return byte_or_null;
+        //return byte_or_null;
+        //  } else {
+        // return mock
+        if (self.mock_pointer < self.mock_data.len) {
+            self.mock_pointer += 1;
+            return self.mock_data[self.mock_pointer - 1];
         } else {
-            // return mock
-            if (self.mock_pointer < self.mock_data.len) {
-                self.mock_pointer += 1;
-                return self.mock_data[self.mock_pointer - 1];
-            } else {
-                return null;
-            }
+            return null;
         }
+        // }
     }
 };
 
