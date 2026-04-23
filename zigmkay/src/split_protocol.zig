@@ -17,7 +17,6 @@ pub const UartHelper = struct {
     data: [2]u8 = @splat(2),
     pub fn receiveMessage(self: *UartHelper, input_byte_queue: *ByteQueue) ?ProtocolMessage {
         // read until delimiter + 2x non-delimiters received or null received
-
         while (true) {
             const byte = input_byte_queue.dequeue() catch return null;
             if (self.pointer == 0 and byte != DELIMITER) {

@@ -162,7 +162,7 @@ pub fn run_primary_internal(
         const current_time = core.TimeSinceBoot{ .time_since_boot_us = time.get_time_since_boot().to_us() };
         try matrix_scanner.DetectKeyboardChanges(&matrix_change_queue, current_time); // Scan local matrix changes
 
-        // Receive remote changes
+        // Receive uart remote changes
         if (uart_or_null) |uart| {
             try receive_from_uart_to_queue(&uart, &uart_byte_queue);
             if (uart_helper.receiveMessage(&uart_byte_queue)) |msg| {
@@ -220,6 +220,8 @@ pub fn run_secondary_internal(
     while (true) {
         const current_time = core.TimeSinceBoot{ .time_since_boot_us = time.get_time_since_boot().to_us() };
         try matrix_scanner.DetectKeyboardChanges(&matrix_change_queue, current_time);
+
+        // send uart messages to other side
         while (matrix_change_queue.Count() > 0) {
             const matrix_change = try matrix_change_queue.dequeue();
             if (matrix_change.pressed) {
