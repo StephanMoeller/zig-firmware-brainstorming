@@ -152,7 +152,7 @@ pub fn run_primary_internal(
     };
 
     // uart byte queue
-    const uart_byte_queue = split_protocol.ByteQueue.Create();
+    var uart_byte_queue = split_protocol.ByteQueue.Create();
 
     // USB events
     const usb_command_executor = usb.CreateAndInitUsbCommandExecutor();
@@ -163,14 +163,14 @@ pub fn run_primary_internal(
 
         // Receive remote changes
         if (uart_or_null) |uart| {
-            read_into_queue(&uart, &uart_byte_queue);
+            try read_into_queue(&uart, &uart_byte_queue);
             if (split_protocol.receiveMessage(&uart_byte_queue)) |msg| {
                 switch (msg) {
                     .KeyPressed => |key_index| {
-                        matrix_change_queue.enqueue(.{ .key_index = key_index, .pressed = true, .time = current_time });
+                        try matrix_change_queue.enqueue(.{ .key_index = key_index, .pressed = true, .time = current_time });
                     },
                     .KeyReleased => |key_index| {
-                        matrix_change_queue.enqueue(.{ .key_index = key_index, .pressed = false, .time = current_time });
+                        try matrix_change_queue.enqueue(.{ .key_index = key_index, .pressed = false, .time = current_time });
                     },
                     .EncoderValueChanged => {},
                 }
@@ -185,13 +185,13 @@ pub fn run_primary_internal(
     }
 }
 
-pub fn read_into_queue(uart: *rp2xxx.uart.UART, buffer: *split_protocol.ByteQueue) !void {
+pub fn read_into_queue(uart: *const rp2xxx.uart.UART, buffer: *split_protocol.ByteQueue) !void {
     while (uart.read_word() catch return) |byte| {
-        buffer.enqueue(byte);
+        try buffer.enqueue(byte);
     }
 }
 
-pub fn write_from_queue(uart: *rp2xxx.uart.UART, buffer: *split_protocol.ByteQueue) !void {
+pub fn write_from_queue(uart: *const rp2xxx.uart.UART, buffer: *split_protocol.ByteQueue) !void {
     while (buffer.Count() > 0) {
         const uart_send_buffer = [1]u8{buffer.dequeue()};
         uart.write_blocking(&uart_send_buffer, microzig.drivers.time.Deadline{ .timeout = microzig.drivers.time.Absolute.from_us(100 * 1000) }) catch {
@@ -211,7 +211,7 @@ pub fn run_secondary_internal(
     var matrix_change_queue = core.MatrixStateChangeQueue.Create();
     const matrix_scanner = comptime matrix_scanning.CreateMatrixScannerType(dimensions, pin_cols, pin_rows, pin_mappings, scanner_settings){};
 
-    const uart_byte_queue = split_protocol.ByteQueue.Create();
+    var uart_byte_queue = split_protocol.ByteQueue.Create();
     while (true) {
         const current_time = core.TimeSinceBoot{ .time_since_boot_us = time.get_time_since_boot().to_us() };
         try matrix_scanner.DetectKeyboardChanges(&matrix_change_queue, current_time);
