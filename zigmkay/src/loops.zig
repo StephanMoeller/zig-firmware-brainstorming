@@ -64,55 +64,6 @@ pub fn GetConfigType(comptime dimensions: *const core.KeymapDimensions) type {
             self.side_definition = side_definition;
         }
 
-        pub const Runner = struct {
-            config: Self,
-            pub fn run_unibody(comptime self: Runner) !void {
-                try run_primary_internal(
-                    self.config.dimensions,
-                    self.config.pin_cols,
-                    self.config.pin_rows,
-                    self.config.scanner_settings,
-                    self.config.combos,
-                    self.config.custom_functions,
-                    self.config.pin_mappings,
-                    self.config.keymap,
-                    self.config.side_definition,
-                    null,
-                );
-            }
-
-            pub fn run_primary(
-                comptime self: Runner,
-                uart: rp2xxx.uart.UART,
-            ) !void {
-                try run_primary_internal(
-                    self.config.dimensions,
-                    self.config.pin_cols,
-                    self.config.pin_rows,
-                    self.config.scanner_settings,
-                    self.config.combos,
-                    self.config.custom_functions,
-                    self.config.pin_mappings,
-                    self.config.keymap,
-                    self.config.side_definition,
-                    uart,
-                );
-            }
-
-            pub fn run_secondary(
-                comptime self: Runner,
-                uart: rp2xxx.uart.UART,
-            ) !void {
-                try run_secondary_internal(
-                    self.config.dimensions,
-                    self.config.pin_cols,
-                    self.config.pin_rows,
-                    self.config.scanner_settings,
-                    self.config.pin_mappings,
-                    uart,
-                );
-            }
-        };
         pub fn build(comptime self: Self) Runner {
             if (self._keymap_defined == false) {
                 @compileError(std.fmt.comptimePrint("set_keymap must be calld on the config prior to calling run", .{}));
@@ -123,19 +74,27 @@ pub fn GetConfigType(comptime dimensions: *const core.KeymapDimensions) type {
 
             return Runner{ .config = self };
         }
+
+        pub const Runner = struct {
+            config: Self,
+            pub fn run_unibody(comptime self: Runner) !void {
+                try run_primary_internal(self.config.dimensions, self.config, null);
+            }
+
+            pub fn run_primary(comptime self: Runner, uart: rp2xxx.uart.UART) !void {
+                try run_primary_internal(self.config.dimensions, self.config, uart);
+            }
+
+            pub fn run_secondary(comptime self: Runner, uart: rp2xxx.uart.UART) !void {
+                try run_secondary_internal(self.config.dimensions, self.config.pin_cols, self.config.pin_rows, self.config.scanner_settings, self.config.pin_mappings, uart);
+            }
+        };
     };
 }
 
 pub fn run_primary_internal(
     comptime dimensions: *const core.KeymapDimensions,
-    comptime pin_cols: []const rp2xxx.gpio.Pin,
-    comptime pin_rows: []const rp2xxx.gpio.Pin,
-    comptime scanner_settings: *const matrix_scanning.ScannerSettings,
-    comptime combos: []const core.Combo2Def,
-    comptime custom_functions: *const core.CustomFunctions,
-    comptime pin_mappings: *const [dimensions.key_count]?[2]usize,
-    comptime keymap: *const [dimensions.layer_count][dimensions.key_count]core.KeyDef,
-    comptime side_definition: *const [dimensions.key_count]core.Side,
+    comptime config: GetConfigType(dimensions),
     uart_or_null: ?rp2xxx.uart.UART,
 ) !void {
     // Data queues
@@ -143,11 +102,11 @@ pub fn run_primary_internal(
     var usb_command_queue = core.OutputCommandQueue.Create();
 
     // Matrix scanning
-    const matrix_scanner = comptime matrix_scanning.CreateMatrixScannerType(dimensions, pin_cols, pin_rows, pin_mappings, scanner_settings){};
+    const matrix_scanner = comptime matrix_scanning.CreateMatrixScannerType(dimensions, config.pin_cols, config.pin_rows, config.pin_mappings, config.scanner_settings){};
 
     // PRIMARY HALF
     // Processing
-    var processor = processing.CreateProcessorType(dimensions, keymap, side_definition, combos, custom_functions){
+    var processor = processing.CreateProcessorType(dimensions, config.keymap, config.side_definition, config.combos, config.custom_functions){
         .input_matrix_changes = &matrix_change_queue,
         .output_usb_commands = &usb_command_queue,
     };
@@ -188,14 +147,11 @@ pub fn run_primary_internal(
 
 pub fn run_secondary_internal(
     comptime dimensions: *const core.KeymapDimensions,
-    comptime pin_cols: []const rp2xxx.gpio.Pin,
-    comptime pin_rows: []const rp2xxx.gpio.Pin,
-    comptime scanner_settings: *const matrix_scanning.ScannerSettings,
-    comptime pin_mappings: *const [dimensions.key_count]?[2]usize,
+    comptime config: GetConfigType(dimensions),
     uart: rp2xxx.uart.UART,
 ) !void {
     var matrix_change_queue = core.MatrixStateChangeQueue.Create();
-    const matrix_scanner = comptime matrix_scanning.CreateMatrixScannerType(dimensions, pin_cols, pin_rows, pin_mappings, scanner_settings){};
+    const matrix_scanner = comptime matrix_scanning.CreateMatrixScannerType(dimensions, config.pin_cols, config.pin_rows, config.pin_mappings, config.scanner_settings){};
 
     var uart_helper = split_protocol.UartHelper{};
     while (true) {
