@@ -163,9 +163,9 @@ pub fn run_secondary_internal(
         while (matrix_change_queue.Count() > 0) {
             const matrix_change = try matrix_change_queue.dequeue();
             if (matrix_change.pressed) {
-                try uart_sender.sendMessage(&uart_sender.byte_queue, .{ .KeyPressed = matrix_change.key_index });
+                try uart_sender.sendMessage(.{ .KeyPressed = matrix_change.key_index });
             } else {
-                try uart_sender.sendMessage(&uart_sender.byte_queue, .{ .KeyReleased = matrix_change.key_index });
+                try uart_sender.sendMessage(.{ .KeyReleased = matrix_change.key_index });
             }
 
             try send_from_queue_to_uart(&uart, &uart_sender.byte_queue);

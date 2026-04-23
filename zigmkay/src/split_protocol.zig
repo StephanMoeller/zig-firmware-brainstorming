@@ -51,12 +51,12 @@ pub const UartReceiveHelper = struct {
 
 pub const UartSendHelper = struct {
     byte_queue: ByteQueue = ByteQueue.Create(),
-    pub fn sendMessage(_: *UartSendHelper, output_byte_queue: *ByteQueue, msg: ProtocolMessage) !void {
+    pub fn sendMessage(self: *UartSendHelper, msg: ProtocolMessage) !void {
         var data_u7: [2]u7 = .{ 0, 0 };
         serialize(msg, &data_u7);
-        try output_byte_queue.enqueue(DELIMITER);
-        try output_byte_queue.enqueue(data_u7[0]);
-        try output_byte_queue.enqueue(data_u7[1]);
+        try self.byte_queue.enqueue(DELIMITER);
+        try self.byte_queue.enqueue(data_u7[0]);
+        try self.byte_queue.enqueue(data_u7[1]);
     }
 };
 
