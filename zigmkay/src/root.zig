@@ -7,4 +7,5 @@ pub const encoder = @import("encoder.zig");
 pub const macros = @import("macros.zig");
 pub const combo = @import("combo.zig");
 pub const loops = @import("loops.zig");
+pub const split_protocol = @import("split_protocol.zig");
 pub const microzig = @import("microzig");
