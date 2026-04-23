@@ -15,11 +15,9 @@ pub const DELIMITER: u8 = 0b11111111;
 pub const UartReceiveHelper = struct {
     pointer: usize = 0,
     data: [2]u8 = @splat(2),
-    byte_queue: ByteQueue = ByteQueue.Create(),
-    pub fn receiveMessage(self: *UartReceiveHelper) ?ProtocolMessage {
+    pub fn receiveByte(self: *UartReceiveHelper, byte: u8) ?ProtocolMessage {
         // read until delimiter + 2x non-delimiters received or null received
         while (true) {
-            const byte = self.byte_queue.dequeue() catch return null;
             if (self.pointer == 0 and byte != DELIMITER) {
                 self.pointer = 0; // Reset, starting with a delimiter
                 continue; // non delimiter received, reset pointer
