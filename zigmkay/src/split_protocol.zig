@@ -13,37 +13,51 @@ pub const ByteQueue = generic_queue.GenericQueue(u8, 250);
 pub const DELIMITER: u8 = 0b11111111;
 
 pub const UartReceiveHelper = struct {
+    pub const ExpectedData = enum { Delimiter, MessageId, Payload };
     pointer: usize = 0,
-    data: [2]u8 = @splat(2),
+    cached_message_id: u7 = undefined,
+    expected_next: ExpectedData = ExpectedData.Delimiter,
     pub fn receiveByte(self: *UartReceiveHelper, byte: u8) ?ProtocolMessage {
         // read until delimiter + 2x non-delimiters received or null received
-        while (true) {
-            if (self.pointer == 0 and byte != DELIMITER) {
-                self.pointer = 0; // Reset, starting with a delimiter
-                continue; // non delimiter received, reset pointer
-            }
+        switch (self.expected_next) {
+            .Delimiter => {
+                if (byte == DELIMITER) {
+                    self.expected_next = .MessageId;
+                }
+                return null;
+            },
+            .MessageId => {
+                if (byte == DELIMITER) {
+                    // Let the expected next stay at message id
+                    return null;
+                }
+                self.cached_message_id = u8_to_u7(byte) catch {
+                    self.expected_next = .Delimiter; // Reset
+                    return null;
+                };
 
-            if (self.pointer > 0 and byte == DELIMITER) {
-                self.pointer = 1; // received a delimiter, now expect the next to be the first byte in the message
-                continue;
-            }
+                self.expected_next = .Payload;
+                return null;
+            },
+            .Payload => {
+                if (byte == DELIMITER) {
+                    self.expected_next = .MessageId;
+                    return null;
+                }
 
-            if (self.pointer > 0) {
-                self.data[self.pointer - 1] = byte;
-            }
-
-            self.pointer += 1;
-            if (self.pointer > 2) {
+                self.expected_next = .Delimiter; // Reset no matter what
+                const payload: u7 = u8_to_u7(byte) catch {
+                    return null;
+                };
                 var buffer: [2]u7 = @splat(2);
-                buffer[0] = u8_to_u7(self.data[0]) catch return null;
-                buffer[1] = u8_to_u7(self.data[1]) catch return null;
+                buffer[0] = self.cached_message_id;
+                buffer[1] = payload;
                 const msg = deserialize(&buffer) catch return null;
-
-                self.pointer = 0;
-
                 return msg;
-            }
+            },
         }
+
+        unreachable;
     }
 };
 

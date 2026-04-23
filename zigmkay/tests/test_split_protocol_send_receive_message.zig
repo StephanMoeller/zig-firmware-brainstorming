@@ -84,9 +84,11 @@ test "receiveMessage - Mixed data - with errors in it" {
     try std.testing.expectEqual(null, uart_helper.receiveByte(p.DELIMITER));
 
     // VALID
+    try std.testing.expectEqual(p.UartReceiveHelper.ExpectedData.MessageId, uart_helper.expected_next);
     try std.testing.expectEqual(null, uart_helper.receiveByte(p.DELIMITER));
+    try std.testing.expectEqual(p.UartReceiveHelper.ExpectedData.MessageId, uart_helper.expected_next);
     try std.testing.expectEqual(null, uart_helper.receiveByte(2)); // key released
-    try std.testing.expectEqual(p.ProtocolMessage{ .KeyPressed = 112 }, uart_helper.receiveByte(112));
+    try std.testing.expectEqual(p.ProtocolMessage{ .KeyReleased = 112 }, uart_helper.receiveByte(112));
 
     // INVALID
     try std.testing.expectEqual(null, uart_helper.receiveByte(p.DELIMITER));
@@ -104,28 +106,34 @@ test "sendMessage/receive - KeyPressed example" {
     var uart_sender = p.UartSendHelper{};
 
     try uart_sender.sendMessage(p.ProtocolMessage{ .KeyPressed = 54 });
-    try move_from_to(&uart_sender.byte_queue, &uart_receiver.byte_queue);
-    const msg = uart_receiver.receiveMessage();
-    try std.testing.expectEqual(p.ProtocolMessage{ .KeyPressed = 54 }, msg);
+
+    try std.testing.expectEqual(null, uart_receiver.receiveByte(try uart_sender.byte_queue.dequeue()));
+    try std.testing.expectEqual(null, uart_receiver.receiveByte(try uart_sender.byte_queue.dequeue()));
+    try std.testing.expectEqual(p.ProtocolMessage{ .KeyPressed = 54 }, uart_receiver.receiveByte(try uart_sender.byte_queue.dequeue()));
+    try std.testing.expectEqual(0, uart_sender.byte_queue.Count());
 }
 
 test "sendMessage/receive - KeyReleased example" {
     var uart_receiver = p.UartReceiveHelper{};
     var uart_sender = p.UartSendHelper{};
-    try uart_sender.sendMessage(p.ProtocolMessage{ .KeyReleased = 54 });
-    try move_from_to(&uart_sender.byte_queue, &uart_receiver.byte_queue);
 
-    const msg = uart_receiver.receiveMessage();
-    try std.testing.expectEqual(p.ProtocolMessage{ .KeyReleased = 54 }, msg);
+    try uart_sender.sendMessage(p.ProtocolMessage{ .KeyReleased = 54 });
+
+    try std.testing.expectEqual(null, uart_receiver.receiveByte(try uart_sender.byte_queue.dequeue()));
+    try std.testing.expectEqual(null, uart_receiver.receiveByte(try uart_sender.byte_queue.dequeue()));
+    try std.testing.expectEqual(p.ProtocolMessage{ .KeyReleased = 54 }, uart_receiver.receiveByte(try uart_sender.byte_queue.dequeue()));
+    try std.testing.expectEqual(0, uart_sender.byte_queue.Count());
 }
 
 test "sendMessage/receive - EncoderValueChanged example" {
     var uart_receiver = p.UartReceiveHelper{};
     var uart_sender = p.UartSendHelper{};
     try uart_sender.sendMessage(p.ProtocolMessage{ .EncoderValueChanged = 2 });
-    try move_from_to(&uart_sender.byte_queue, &uart_receiver.byte_queue);
-    const msg = uart_receiver.receiveMessage();
-    try std.testing.expectEqual(p.ProtocolMessage{ .EncoderValueChanged = 2 }, msg);
+
+    try std.testing.expectEqual(null, uart_receiver.receiveByte(try uart_sender.byte_queue.dequeue()));
+    try std.testing.expectEqual(null, uart_receiver.receiveByte(try uart_sender.byte_queue.dequeue()));
+    try std.testing.expectEqual(p.ProtocolMessage{ .EncoderValueChanged = 2 }, uart_receiver.receiveByte(try uart_sender.byte_queue.dequeue()));
+    try std.testing.expectEqual(0, uart_sender.byte_queue.Count());
 }
 
 test "sendMessage/receive - multiple values example" {
@@ -133,36 +141,22 @@ test "sendMessage/receive - multiple values example" {
     var uart_sender = p.UartSendHelper{};
     try uart_sender.sendMessage(p.ProtocolMessage{ .KeyPressed = 20 });
     try uart_sender.sendMessage(p.ProtocolMessage{ .KeyReleased = 100 });
+
     try uart_sender.byte_queue.enqueue(p.DELIMITER); // add some noise!
     try uart_sender.sendMessage(p.ProtocolMessage{ .EncoderValueChanged = 2 });
 
-    try move_from_to(&uart_sender.byte_queue, &uart_receiver.byte_queue);
+    try std.testing.expectEqual(null, uart_receiver.receiveByte(try uart_sender.byte_queue.dequeue()));
+    try std.testing.expectEqual(null, uart_receiver.receiveByte(try uart_sender.byte_queue.dequeue()));
+    try std.testing.expectEqual(p.ProtocolMessage{ .KeyPressed = 20 }, uart_receiver.receiveByte(try uart_sender.byte_queue.dequeue()));
 
-    try std.testing.expectEqual(p.ProtocolMessage{ .KeyPressed = 20 }, uart_receiver.receiveMessage());
-    try std.testing.expectEqual(p.ProtocolMessage{ .KeyReleased = 100 }, uart_receiver.receiveMessage());
-    try std.testing.expectEqual(p.ProtocolMessage{ .EncoderValueChanged = 2 }, uart_receiver.receiveMessage());
-    try std.testing.expectEqual(null, uart_receiver.receiveMessage());
-}
+    try std.testing.expectEqual(null, uart_receiver.receiveByte(try uart_sender.byte_queue.dequeue()));
+    try std.testing.expectEqual(null, uart_receiver.receiveByte(try uart_sender.byte_queue.dequeue()));
+    try std.testing.expectEqual(p.ProtocolMessage{ .KeyReleased = 100 }, uart_receiver.receiveByte(try uart_sender.byte_queue.dequeue()));
 
-test "sendMessage/receive - reading mid-message - expect resumed at next read call" {
-    var uart_receiver = p.UartReceiveHelper{};
-    var uart_sender = p.UartSendHelper{};
+    try std.testing.expectEqual(null, uart_receiver.receiveByte(try uart_sender.byte_queue.dequeue()));
+    try std.testing.expectEqual(null, uart_receiver.receiveByte(try uart_sender.byte_queue.dequeue()));
+    try std.testing.expectEqual(null, uart_receiver.receiveByte(try uart_sender.byte_queue.dequeue()));
+    try std.testing.expectEqual(p.ProtocolMessage{ .EncoderValueChanged = 2 }, uart_receiver.receiveByte(try uart_sender.byte_queue.dequeue()));
 
-    try uart_sender.byte_queue.enqueue(p.DELIMITER);
-    try uart_sender.byte_queue.enqueue(1); // key pressed
-
-    try move_from_to(&uart_sender.byte_queue, &uart_receiver.byte_queue);
-    try std.testing.expectEqual(null, uart_receiver.receiveMessage());
-
-    try uart_sender.byte_queue.enqueue(111); // key index
-    try move_from_to(&uart_sender.byte_queue, &uart_receiver.byte_queue);
-
-    try std.testing.expectEqual(p.ProtocolMessage{ .KeyPressed = 111 }, uart_receiver.receiveMessage());
-}
-
-fn move_from_to(from: *p.ByteQueue, to: *p.ByteQueue) !void {
-    while (true) {
-        const val: u8 = from.dequeue() catch return;
-        try to.enqueue(val);
-    }
+    try std.testing.expectEqual(0, uart_sender.byte_queue.Count());
 }
