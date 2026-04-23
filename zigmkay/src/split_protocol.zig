@@ -27,41 +27,35 @@ pub const UartClient = struct {
     }
 };
 
-pub const UartMock = struct {
-    pointer: usize = 0,
-    data: []const u8,
-    pub fn read_next_mocked_value(self: *UartMock) ?u8 {
-        if (self.pointer < self.data.len) {
-            self.pointer += 1;
-            return self.data[self.pointer - 1];
-        } else {
-            return null;
-        }
-    }
-};
 pub const UartWrapper = struct {
-    uart: ?rp2xxx.uart.UART,
-    mock: ?UartMock,
+    uart: ?rp2xxx.uart.UART = null,
+    mock_pointer: usize = 0,
+    mock_data: []const u8,
     pub fn create(uart: rp2xxx.uart.UART) UartWrapper {
         return UartWrapper{ .uart = uart, .mock = null };
     }
-    pub fn create_mock(mock: UartMock) UartWrapper {
-        return UartWrapper{ .uart = null, .mock = mock };
+    pub fn create_mock(mock_data: []const u8) UartWrapper {
+        return UartWrapper{ .uart = null, .mock = .{ .data = mock_data } };
     }
-    const UartUtils = struct {
-        pub fn read_word(self: *const UartWrapper) ?u8 {
-            if (self.uart) |uart| {
-                const byte_or_null: ?u8 = uart.read_word() catch {
-                    uart.clear_errors();
-                    return null;
-                };
+    pub fn read_word(self: *UartWrapper) ?u8 {
+        if (self.uart) |uart| {
+            // return real world uart value
+            const byte_or_null: ?u8 = uart.read_word() catch {
+                uart.clear_errors();
+                return null;
+            };
 
-                return byte_or_null;
-            } else if (self.mock) |mock| {
-                return mock.read_next_mocked_value();
+            return byte_or_null;
+        } else {
+            // return mock
+            if (self.mock_pointer < self.mock_data.len) {
+                self.mock_pointer += 1;
+                return self.mock_data[self.mock_pointer - 1];
+            } else {
+                return null;
             }
         }
-    };
+    }
 };
 
 pub fn readData(_: rp2xxx.uart.UART, _: *[2]u7) bool {} // <= error handling and message discarding will happen here
