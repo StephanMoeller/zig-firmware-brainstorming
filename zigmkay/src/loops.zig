@@ -123,7 +123,7 @@ pub fn run_primary_internal(
         // Receive from remote side
         if (uart_or_null) |uart| {
             try receive_from_uart_to_queue(&uart, &uart_receiver.byte_queue);
-            if (uart_receiver.receiveMessage(&uart_receiver.byte_queue)) |msg| {
+            if (uart_receiver.receiveMessage()) |msg| {
                 switch (msg) {
                     .KeyPressed => |key_index| {
                         try matrix_change_queue.enqueue(.{ .key_index = key_index, .pressed = true, .time = current_time });
