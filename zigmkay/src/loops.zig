@@ -86,7 +86,7 @@ pub fn GetConfigType(comptime dimensions: *const core.KeymapDimensions) type {
             }
 
             pub fn run_secondary(comptime self: Runner, uart: rp2xxx.uart.UART) !void {
-                try run_secondary_internal(self.config.dimensions, self.config.pin_cols, self.config.pin_rows, self.config.scanner_settings, self.config.pin_mappings, uart);
+                try run_secondary_internal(self.config.dimensions, self.config, uart);
             }
         };
     };
