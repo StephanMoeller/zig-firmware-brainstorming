@@ -120,7 +120,7 @@ pub fn run_primary_internal(
         const current_time = core.TimeSinceBoot{ .time_since_boot_us = time.get_time_since_boot().to_us() };
         try matrix_scanner.DetectKeyboardChanges(&matrix_change_queue, current_time); // Scan local matrix changes
 
-        // Receive uart remote changes
+        // Receive from remote side
         if (uart_or_null) |uart| {
             try receive_from_uart_to_queue(&uart, &uart_receiver.byte_queue);
             if (uart_receiver.receiveMessage(&uart_receiver.byte_queue)) |msg| {
@@ -155,9 +155,11 @@ pub fn run_secondary_internal(
     var uart_sender = split_protocol.UartSendHelper{};
     while (true) {
         const current_time = core.TimeSinceBoot{ .time_since_boot_us = time.get_time_since_boot().to_us() };
+
+        // Detect local changes
         try matrix_scanner.DetectKeyboardChanges(&matrix_change_queue, current_time);
 
-        // send uart messages to other side
+        // Send to primary side
         while (matrix_change_queue.Count() > 0) {
             const matrix_change = try matrix_change_queue.dequeue();
             if (matrix_change.pressed) {
