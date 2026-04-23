@@ -13,32 +13,36 @@ pub const ByteQueue = generic_queue.GenericQueue(u8, 250);
 pub const DELIMITER: u8 = 0b11111111;
 
 pub const UartHelper = struct {
-    pub fn receiveMessage(_: *UartHelper, input_byte_queue: *ByteQueue) ?ProtocolMessage {
+    pointer: usize = 0,
+    data: [2]u8 = @splat(2),
+    pub fn receiveMessage(self: *UartHelper, input_byte_queue: *ByteQueue) ?ProtocolMessage {
         // read until delimiter + 2x non-delimiters received or null received
-        var pointer: usize = 0;
-        var data: [2]u8 = @splat(2);
+
         while (true) {
             const byte = input_byte_queue.dequeue() catch return null;
-            if (pointer == 0 and byte != DELIMITER) {
-                pointer = 0; // Reset, starting with a delimiter
+            if (self.pointer == 0 and byte != DELIMITER) {
+                self.pointer = 0; // Reset, starting with a delimiter
                 continue; // non delimiter received, reset pointer
             }
 
-            if (pointer > 0 and byte == DELIMITER) {
-                pointer = 1; // received a delimiter, now expect the next to be the first byte in the message
+            if (self.pointer > 0 and byte == DELIMITER) {
+                self.pointer = 1; // received a delimiter, now expect the next to be the first byte in the message
                 continue;
             }
 
-            if (pointer > 0) {
-                data[pointer - 1] = byte;
+            if (self.pointer > 0) {
+                self.data[self.pointer - 1] = byte;
             }
 
-            pointer += 1;
-            if (pointer > 2) {
+            self.pointer += 1;
+            if (self.pointer > 2) {
                 var buffer: [2]u7 = @splat(2);
-                buffer[0] = u8_to_u7(data[0]) catch return null;
-                buffer[1] = u8_to_u7(data[1]) catch return null;
+                buffer[0] = u8_to_u7(self.data[0]) catch return null;
+                buffer[1] = u8_to_u7(self.data[1]) catch return null;
                 const msg = deserialize(&buffer) catch return null;
+
+                self.pointer = 0;
+
                 return msg;
             }
         }
