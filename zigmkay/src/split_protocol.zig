@@ -42,6 +42,8 @@ pub fn receiveMessage(input_byte_queue: *ByteQueue) ?ProtocolMessage {
     }
 }
 
+//pub fn sendMessage(input_byte_queue: *ByteQueue) ?ProtocolMessage {}
+
 fn u8_to_u7(val: u8) DeserializeError!u7 {
     if (val > 127) {
         return DeserializeError.U8notConvertibleToU7;
