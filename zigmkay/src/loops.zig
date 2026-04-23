@@ -104,7 +104,6 @@ pub fn run_primary_internal(
     // Matrix scanning
     const matrix_scanner = comptime matrix_scanning.CreateMatrixScannerType(dimensions, config.pin_cols, config.pin_rows, config.pin_mappings, config.scanner_settings){};
 
-    // PRIMARY HALF
     // Processing
     var processor = processing.CreateProcessorType(dimensions, config.keymap, config.side_definition, config.combos, config.custom_functions){
         .input_matrix_changes = &matrix_change_queue,
@@ -112,7 +111,7 @@ pub fn run_primary_internal(
     };
 
     // uart byte queue
-    var uart_helper = split_protocol.UartHelper{};
+    var uart_receiver = split_protocol.UartReceiveHelper{};
 
     // USB events
     const usb_command_executor = usb.CreateAndInitUsbCommandExecutor();
@@ -123,8 +122,8 @@ pub fn run_primary_internal(
 
         // Receive uart remote changes
         if (uart_or_null) |uart| {
-            try receive_from_uart_to_queue(&uart, &uart_helper.byte_queue);
-            if (uart_helper.receiveMessage(&uart_helper.byte_queue)) |msg| {
+            try receive_from_uart_to_queue(&uart, &uart_receiver.byte_queue);
+            if (uart_receiver.receiveMessage(&uart_receiver.byte_queue)) |msg| {
                 switch (msg) {
                     .KeyPressed => |key_index| {
                         try matrix_change_queue.enqueue(.{ .key_index = key_index, .pressed = true, .time = current_time });
@@ -153,7 +152,7 @@ pub fn run_secondary_internal(
     var matrix_change_queue = core.MatrixStateChangeQueue.Create();
     const matrix_scanner = comptime matrix_scanning.CreateMatrixScannerType(dimensions, config.pin_cols, config.pin_rows, config.pin_mappings, config.scanner_settings){};
 
-    var uart_helper = split_protocol.UartHelper{};
+    var uart_sender = split_protocol.UartSendHelper{};
     while (true) {
         const current_time = core.TimeSinceBoot{ .time_since_boot_us = time.get_time_since_boot().to_us() };
         try matrix_scanner.DetectKeyboardChanges(&matrix_change_queue, current_time);
@@ -162,12 +161,12 @@ pub fn run_secondary_internal(
         while (matrix_change_queue.Count() > 0) {
             const matrix_change = try matrix_change_queue.dequeue();
             if (matrix_change.pressed) {
-                try uart_helper.sendMessage(&uart_helper.byte_queue, .{ .KeyPressed = matrix_change.key_index });
+                try uart_sender.sendMessage(&uart_sender.byte_queue, .{ .KeyPressed = matrix_change.key_index });
             } else {
-                try uart_helper.sendMessage(&uart_helper.byte_queue, .{ .KeyReleased = matrix_change.key_index });
+                try uart_sender.sendMessage(&uart_sender.byte_queue, .{ .KeyReleased = matrix_change.key_index });
             }
 
-            try send_from_queue_to_uart(&uart, &uart_helper.byte_queue);
+            try send_from_queue_to_uart(&uart, &uart_sender.byte_queue);
         }
     }
 }

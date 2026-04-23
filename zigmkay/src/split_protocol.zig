@@ -12,11 +12,11 @@ pub const ByteQueue = generic_queue.GenericQueue(u8, 250);
 
 pub const DELIMITER: u8 = 0b11111111;
 
-pub const UartHelper = struct {
+pub const UartReceiveHelper = struct {
     pointer: usize = 0,
     data: [2]u8 = @splat(2),
     byte_queue: ByteQueue = ByteQueue.Create(),
-    pub fn receiveMessage(self: *UartHelper, input_byte_queue: *ByteQueue) ?ProtocolMessage {
+    pub fn receiveMessage(self: *UartReceiveHelper, input_byte_queue: *ByteQueue) ?ProtocolMessage {
         // read until delimiter + 2x non-delimiters received or null received
         while (true) {
             const byte = input_byte_queue.dequeue() catch return null;
@@ -47,8 +47,11 @@ pub const UartHelper = struct {
             }
         }
     }
+};
 
-    pub fn sendMessage(_: *UartHelper, output_byte_queue: *ByteQueue, msg: ProtocolMessage) !void {
+pub const UartSendHelper = struct {
+    byte_queue: ByteQueue = ByteQueue.Create(),
+    pub fn sendMessage(_: *UartSendHelper, output_byte_queue: *ByteQueue, msg: ProtocolMessage) !void {
         var data_u7: [2]u7 = .{ 0, 0 };
         serialize(msg, &data_u7);
         try output_byte_queue.enqueue(DELIMITER);
