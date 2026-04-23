@@ -1,7 +1,6 @@
 const std = @import("std");
 const core = @import("core.zig");
-const microzig = @import("microzig");
-const rp2xxx = microzig.hal;
+const generic_queue = @import("generic_queue.zig");
 
 pub const ProtocolMessage = union(enum) {
     KeyPressed: core.KeyIndex,
@@ -9,64 +8,48 @@ pub const ProtocolMessage = union(enum) {
     EncoderValueChanged: u2,
 };
 
-pub const UartClient = struct {
-    uart: rp2xxx.uart.UART,
-    buffer: [2]u7 = @splat(u7),
-    pub fn send(self: *UartClient, message: ProtocolMessage) !void {
-        serialize(message, self.buffer);
-        try sendData(self.uart, self.buffer);
-    }
+pub const ByteQueue = generic_queue.GenericQueue(u8, 250);
 
-    pub fn receiveNext(self: *UartClient) !?ProtocolMessage {
-        if (readData(self.uart, self.buffer)) {
-            const message = try deserialize(self.buffer);
-            return message;
-        } else {
-            return null;
+pub const DELIMITER: u8 = 0b11111111;
+pub fn receiveMessage(input_byte_queue: *ByteQueue) ?ProtocolMessage {
+    // read until delimiter + 2x non-delimiters received or null received
+    var pointer: usize = 0;
+    var data: [2]u8 = @splat(2);
+    while (true) {
+        const byte = input_byte_queue.dequeue() catch return null;
+        if (pointer == 0 and byte != DELIMITER) {
+            pointer = 0; // Reset, starting with a delimiter
+            continue; // non delimiter received, reset pointer
+        }
+
+        if (pointer > 0 and byte == DELIMITER) {
+            pointer = 1; // received a delimiter, now expect the next to be the first byte in the message
+            continue;
+        }
+
+        if (pointer > 0) {
+            data[pointer - 1] = byte;
+        }
+
+        pointer += 1;
+        if (pointer > 2) {
+            var buffer: [2]u7 = @splat(2);
+            buffer[0] = u8_to_u7(data[0]) catch return null;
+            buffer[1] = u8_to_u7(data[1]) catch return null;
+            const msg = deserialize(&buffer) catch return null;
+            return msg;
         }
     }
-};
+}
 
-pub const UartWrapper = struct {
-    //uart: ?rp2xxx.uart.UART = null,
-    mock_pointer: usize = 0,
-    mock_data: []const u8,
-    //pub fn create(uart: rp2xxx.uart.UART) UartWrapper {
-    //     return UartWrapper{
-    //        .uart = uart,
-    //        .mock = null,
-    //        };
-    // }
-    pub fn create_mock(mock_data: []const u8) UartWrapper {
-        return UartWrapper{
-            //.uart = null,
-            .mock_data = mock_data,
-        };
+fn u8_to_u7(val: u8) DeserializeError!u7 {
+    if (val > 127) {
+        return DeserializeError.U8notConvertibleToU7;
     }
-    pub fn read_word(self: *UartWrapper) ?u8 {
-        //
-        // if (self.uart) |uart| {
-        //   // return real world uart value
-        //  const byte_or_null: ?u8 = uart.read_word() catch {
-        //    uart.clear_errors();
-        //    return null;
-        //   };
+    return @intCast(val);
+}
 
-        //return byte_or_null;
-        //  } else {
-        // return mock
-        if (self.mock_pointer < self.mock_data.len) {
-            self.mock_pointer += 1;
-            return self.mock_data[self.mock_pointer - 1];
-        } else {
-            return null;
-        }
-        // }
-    }
-};
-
-pub fn readData(_: rp2xxx.uart.UART, _: *[2]u7) bool {} // <= error handling and message discarding will happen here
-pub fn sendData(_: rp2xxx.uart.UART, _: [2]u7) !void {}
+//pub fn sendMessage(uart_write_word: fn (word: u8) void, msg: ProtocolMessage) void {}
 
 pub fn serialize(msg: ProtocolMessage, buffer: *[2]u7) void {
     var message_type: u7 = 0;
@@ -115,5 +98,6 @@ pub fn u7_to_u2(input: u7) DeserializeError!u2 {
 
 pub const DeserializeError = error{
     U7notConvertibleToU2,
+    U8notConvertibleToU7,
     UnknownMessageType,
 };
