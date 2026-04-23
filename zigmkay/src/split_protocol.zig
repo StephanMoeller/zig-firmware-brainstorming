@@ -49,10 +49,10 @@ pub const UartReceiveHelper = struct {
                 const payload: u7 = u8_to_u7(byte) catch {
                     return null;
                 };
-                var buffer: [2]u7 = @splat(2);
+                var buffer: [2]u8 = @splat(2);
                 buffer[0] = self.cached_message_id;
                 buffer[1] = payload;
-                const msg = deserialize(&buffer) catch return null;
+                const msg = deserialize(buffer) catch return null;
                 return msg;
             },
         }
@@ -64,11 +64,10 @@ pub const UartReceiveHelper = struct {
 pub const UartSendHelper = struct {
     byte_queue: ByteQueue = ByteQueue.Create(),
     pub fn sendMessage(self: *UartSendHelper, msg: ProtocolMessage) !void {
-        var data_u7: [2]u7 = .{ 0, 0 };
-        serialize(msg, &data_u7);
+        const data: [2]u8 = serialize(msg);
         try self.byte_queue.enqueue(DELIMITER);
-        try self.byte_queue.enqueue(data_u7[0]);
-        try self.byte_queue.enqueue(data_u7[1]);
+        try self.byte_queue.enqueue(data[0]);
+        try self.byte_queue.enqueue(data[1]);
     }
 };
 
@@ -81,45 +80,32 @@ fn u8_to_u7(val: u8) DeserializeError!u7 {
 
 //pub fn sendMessage(uart_write_word: fn (word: u8) void, msg: ProtocolMessage) void {}
 
-pub fn serialize(msg: ProtocolMessage, buffer: *[2]u7) void {
-    var message_type: u7 = 0;
-    var payload: u7 = 0;
+pub fn serialize(msg: ProtocolMessage) [2]u8 {
     switch (msg) {
-        .KeyPressed => |key_index_released| {
-            message_type = 1;
-            payload = key_index_released;
+        .KeyPressed => |key_index_pressed| {
+            return .{ 1, key_index_pressed };
         },
-        .KeyReleased => |key_index_pressed| {
-            message_type = 2;
-            payload = key_index_pressed;
+        .KeyReleased => |key_index_released| {
+            return .{ 2, key_index_released };
         },
-
         .EncoderValueChanged => |encoder_value| {
-            message_type = 3;
-            payload = u2_to_u7(encoder_value);
+            return .{ 3, encoder_value };
         },
     }
-
-    buffer[0] = message_type;
-    buffer[1] = payload;
 }
 
-pub fn deserialize(buffer: *[2]u7) DeserializeError!ProtocolMessage {
+pub fn deserialize(buffer: [2]u8) DeserializeError!ProtocolMessage {
     const message_type = buffer[0];
     const payload = buffer[1];
     switch (message_type) {
-        1 => return .{ .KeyPressed = payload },
-        2 => return .{ .KeyReleased = payload },
-        3 => return .{ .EncoderValueChanged = try u7_to_u2(payload) },
+        1 => return .{ .KeyPressed = try u8_to_u7(payload) },
+        2 => return .{ .KeyReleased = try u8_to_u7(payload) },
+        3 => return .{ .EncoderValueChanged = try u8_to_u2(payload) },
         else => return DeserializeError.UnknownMessageType,
     }
 }
 
-pub fn u2_to_u7(input: u2) u7 {
-    return input;
-}
-
-pub fn u7_to_u2(input: u7) DeserializeError!u2 {
+pub fn u8_to_u2(input: u8) DeserializeError!u2 {
     if (input > 3) {
         return DeserializeError.U7notConvertibleToU2;
     }
