@@ -152,7 +152,6 @@ pub fn run_primary_internal(
     };
 
     // uart byte queue
-    var uart_byte_queue = split_protocol.ByteQueue.Create();
     var uart_helper = split_protocol.UartHelper{};
 
     // USB events
@@ -164,8 +163,8 @@ pub fn run_primary_internal(
 
         // Receive uart remote changes
         if (uart_or_null) |uart| {
-            try receive_from_uart_to_queue(&uart, &uart_byte_queue);
-            if (uart_helper.receiveMessage(&uart_byte_queue)) |msg| {
+            try receive_from_uart_to_queue(&uart, &uart_helper.byte_queue);
+            if (uart_helper.receiveMessage(&uart_helper.byte_queue)) |msg| {
                 switch (msg) {
                     .KeyPressed => |key_index| {
                         try matrix_change_queue.enqueue(.{ .key_index = key_index, .pressed = true, .time = current_time });
@@ -215,7 +214,6 @@ pub fn run_secondary_internal(
     var matrix_change_queue = core.MatrixStateChangeQueue.Create();
     const matrix_scanner = comptime matrix_scanning.CreateMatrixScannerType(dimensions, pin_cols, pin_rows, pin_mappings, scanner_settings){};
 
-    var uart_byte_queue = split_protocol.ByteQueue.Create();
     var uart_helper = split_protocol.UartHelper{};
     while (true) {
         const current_time = core.TimeSinceBoot{ .time_since_boot_us = time.get_time_since_boot().to_us() };
@@ -225,12 +223,12 @@ pub fn run_secondary_internal(
         while (matrix_change_queue.Count() > 0) {
             const matrix_change = try matrix_change_queue.dequeue();
             if (matrix_change.pressed) {
-                try uart_helper.sendMessage(&uart_byte_queue, .{ .KeyPressed = matrix_change.key_index });
+                try uart_helper.sendMessage(&uart_helper.byte_queue, .{ .KeyPressed = matrix_change.key_index });
             } else {
-                try uart_helper.sendMessage(&uart_byte_queue, .{ .KeyReleased = matrix_change.key_index });
+                try uart_helper.sendMessage(&uart_helper.byte_queue, .{ .KeyReleased = matrix_change.key_index });
             }
 
-            try send_from_queue_to_uart(&uart, &uart_byte_queue);
+            try send_from_queue_to_uart(&uart, &uart_helper.byte_queue);
         }
     }
 }
