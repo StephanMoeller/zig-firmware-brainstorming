@@ -44,7 +44,7 @@ pub fn serialize(msg: ProtocolMessage, buffer: *[2]u7) void {
 
         .EncoderValueChanged => |encoder_value| {
             message_type = 3;
-            payload = encoder_value;
+            payload = u2_to_u7(encoder_value);
         },
     }
 
@@ -52,13 +52,29 @@ pub fn serialize(msg: ProtocolMessage, buffer: *[2]u7) void {
     buffer[1] = payload;
 }
 
-pub fn deserialize(buffer: *[2]u7) !ProtocolMessage {
+pub fn deserialize(buffer: *[2]u7) DeserializeError!ProtocolMessage {
     const message_type = buffer[0];
     const payload = buffer[1];
     switch (message_type) {
         1 => return .{ .KeyPressed = payload },
         2 => return .{ .KeyReleased = payload },
-        //3 => return .{ .EncoderValueChanged = payload },
-        else => return ProtocolMessage{ .KeyPressed = 0 },
+        3 => return .{ .EncoderValueChanged = try u7_to_u2(payload) },
+        else => return DeserializeError.UnknownMessageType,
     }
 }
+
+pub fn u2_to_u7(input: u2) u7 {
+    return input;
+}
+
+pub fn u7_to_u2(input: u7) DeserializeError!u2 {
+    if (input > 3) {
+        return DeserializeError.U7notConvertibleToU2;
+    }
+    return @intCast(input);
+}
+
+pub const DeserializeError = error{
+    U7notConvertibleToU2,
+    UnknownMessageType,
+};
