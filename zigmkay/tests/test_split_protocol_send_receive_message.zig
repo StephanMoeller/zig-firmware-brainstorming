@@ -164,31 +164,31 @@ test "receiveMessage - Mixed data - with errors in it" {
 
 test "sendMessage/receive - KeyPressed example" {
     var queue = p.ByteQueue.Create();
-    p.sendMessage(&queue, p.ProtocolMessage{ .KeyPressed = 54 });
+    try p.sendMessage(&queue, p.ProtocolMessage{ .KeyPressed = 54 });
     const msg = p.receiveMessage(&queue);
     try std.testing.expectEqual(p.ProtocolMessage{ .KeyPressed = 54 }, msg);
 }
 
 test "sendMessage/receive - KeyReleased example" {
     var queue = p.ByteQueue.Create();
-    p.sendMessage(&queue, p.ProtocolMessage{ .KeyReleased = 54 });
+    try p.sendMessage(&queue, p.ProtocolMessage{ .KeyReleased = 54 });
     const msg = p.receiveMessage(&queue);
     try std.testing.expectEqual(p.ProtocolMessage{ .KeyReleased = 54 }, msg);
 }
 
 test "sendMessage/receive - EncoderValueChanged example" {
     var queue = p.ByteQueue.Create();
-    p.sendMessage(&queue, p.ProtocolMessage{ .EncoderValueChanged = 2 });
+    try p.sendMessage(&queue, p.ProtocolMessage{ .EncoderValueChanged = 2 });
     const msg = p.receiveMessage(&queue);
     try std.testing.expectEqual(p.ProtocolMessage{ .EncoderValueChanged = 2 }, msg);
 }
 
 test "sendMessage/receive - multiple values example" {
     var queue = p.ByteQueue.Create();
-    p.sendMessage(&queue, p.ProtocolMessage{ .KeyPressed = 20 });
-    p.sendMessage(&queue, p.ProtocolMessage{ .KeyReleased = 100 });
+    try p.sendMessage(&queue, p.ProtocolMessage{ .KeyPressed = 20 });
+    try p.sendMessage(&queue, p.ProtocolMessage{ .KeyReleased = 100 });
     try queue.enqueue(p.DELIMITER); // add some noise!
-    p.sendMessage(&queue, p.ProtocolMessage{ .EncoderValueChanged = 2 });
+    try p.sendMessage(&queue, p.ProtocolMessage{ .EncoderValueChanged = 2 });
     try std.testing.expectEqual(p.ProtocolMessage{ .KeyPressed = 20 }, p.receiveMessage(&queue));
     try std.testing.expectEqual(p.ProtocolMessage{ .KeyReleased = 100 }, p.receiveMessage(&queue));
     try std.testing.expectEqual(p.ProtocolMessage{ .EncoderValueChanged = 2 }, p.receiveMessage(&queue));

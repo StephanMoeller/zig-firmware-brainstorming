@@ -163,7 +163,7 @@ pub fn run_primary_internal(
 
         // Receive remote changes
         if (uart_or_null) |uart| {
-            try read_into_queue(&uart, &uart_byte_queue);
+            try receive_from_uart_to_queue(&uart, &uart_byte_queue);
             if (split_protocol.receiveMessage(&uart_byte_queue)) |msg| {
                 switch (msg) {
                     .KeyPressed => |key_index| {
@@ -185,15 +185,18 @@ pub fn run_primary_internal(
     }
 }
 
-pub fn read_into_queue(uart: *const rp2xxx.uart.UART, buffer: *split_protocol.ByteQueue) !void {
-    while (uart.read_word() catch return) |byte| {
+pub fn receive_from_uart_to_queue(uart: *const rp2xxx.uart.UART, buffer: *split_protocol.ByteQueue) !void {
+    while (uart.read_word() catch {
+        uart.clear_errors();
+        return;
+    }) |byte| {
         try buffer.enqueue(byte);
     }
 }
 
-pub fn write_from_queue(uart: *const rp2xxx.uart.UART, buffer: *split_protocol.ByteQueue) !void {
+pub fn send_from_queue_to_uart(uart: *const rp2xxx.uart.UART, buffer: *split_protocol.ByteQueue) !void {
     while (buffer.Count() > 0) {
-        const uart_send_buffer = [1]u8{buffer.dequeue()};
+        const uart_send_buffer = [1]u8{try buffer.dequeue()};
         uart.write_blocking(&uart_send_buffer, microzig.drivers.time.Deadline{ .timeout = microzig.drivers.time.Absolute.from_us(100 * 1000) }) catch {
             uart.clear_errors();
         };
@@ -216,8 +219,14 @@ pub fn run_secondary_internal(
         const current_time = core.TimeSinceBoot{ .time_since_boot_us = time.get_time_since_boot().to_us() };
         try matrix_scanner.DetectKeyboardChanges(&matrix_change_queue, current_time);
         while (matrix_change_queue.Count() > 0) {
-            split_protocol.sendMessage(&uart_byte_queue, matrix_change_queue.dequeue());
-            write_from_queue(&uart, &uart_byte_queue);
+            const matrix_change = try matrix_change_queue.dequeue();
+            if (matrix_change.pressed) {
+                try split_protocol.sendMessage(&uart_byte_queue, .{ .KeyPressed = matrix_change.key_index });
+            } else {
+                try split_protocol.sendMessage(&uart_byte_queue, .{ .KeyReleased = matrix_change.key_index });
+            }
+
+            try send_from_queue_to_uart(&uart, &uart_byte_queue);
         }
     }
 }

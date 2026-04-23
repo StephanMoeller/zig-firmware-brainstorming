@@ -42,12 +42,12 @@ pub fn receiveMessage(input_byte_queue: *ByteQueue) ?ProtocolMessage {
     }
 }
 
-pub fn sendMessage(output_byte_queue: *ByteQueue, msg: ProtocolMessage) void {
+pub fn sendMessage(output_byte_queue: *ByteQueue, msg: ProtocolMessage) !void {
     var data_u7: [2]u7 = .{ 0, 0 };
     serialize(msg, &data_u7);
-    output_byte_queue.enqueue(DELIMITER) catch return;
-    output_byte_queue.enqueue(data_u7[0]) catch return;
-    output_byte_queue.enqueue(data_u7[1]) catch return;
+    try output_byte_queue.enqueue(DELIMITER);
+    try output_byte_queue.enqueue(data_u7[0]);
+    try output_byte_queue.enqueue(data_u7[1]);
 }
 
 fn u8_to_u7(val: u8) DeserializeError!u7 {
