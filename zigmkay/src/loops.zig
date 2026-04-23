@@ -122,8 +122,7 @@ pub fn run_primary_internal(
 
         // Receive from remote side
         if (uart_or_null) |uart| {
-            try receive_from_uart_to_queue(&uart, &uart_receiver.byte_queue);
-            if (uart_receiver.receiveMessage()) |msg| {
+            if (receive_from_uart_to_queue(&uart, &uart_receiver)) |msg| {
                 switch (msg) {
                     .KeyPressed => |key_index| {
                         try matrix_change_queue.enqueue(.{ .key_index = key_index, .pressed = true, .time = current_time });
@@ -173,13 +172,16 @@ pub fn run_secondary_internal(
     }
 }
 
-pub fn receive_from_uart_to_queue(uart: *const rp2xxx.uart.UART, buffer: *split_protocol.ByteQueue) !void {
+pub fn receive_from_uart_to_queue(uart: *const rp2xxx.uart.UART, receiver: *split_protocol.UartReceiveHelper) ?split_protocol.ProtocolMessage {
     while (uart.read_word() catch {
         uart.clear_errors();
-        return;
+        return null;
     }) |byte| {
-        try buffer.enqueue(byte);
+        if (receiver.receiveByte(byte)) |msg| {
+            return msg;
+        }
     }
+    return null;
 }
 
 pub fn send_from_queue_to_uart(uart: *const rp2xxx.uart.UART, buffer: *split_protocol.ByteQueue) !void {
