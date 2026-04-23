@@ -14,11 +14,16 @@ const time = rp2xxx.time;
 pub fn GetConfigType(comptime dimensions: *const core.KeymapDimensions) type {
     return struct {
         const Self = @This();
+
+        _keymap_defined: bool = false,
+        _pins_defined: bool = false,
+
         dimensions: *const core.KeymapDimensions,
-        keymap: ?*const [dimensions.layer_count][dimensions.key_count]core.KeyDef = null,
-        pin_mappings: ?*const [dimensions.key_count]?[2]usize = null,
-        pin_cols: ?[]const rp2xxx.gpio.Pin = null,
-        pin_rows: ?[]const rp2xxx.gpio.Pin = null,
+
+        keymap: *const [dimensions.layer_count][dimensions.key_count]core.KeyDef = undefined,
+        pin_mappings: *const [dimensions.key_count]?[2]usize = undefined,
+        pin_cols: []const rp2xxx.gpio.Pin = undefined,
+        pin_rows: []const rp2xxx.gpio.Pin = undefined,
 
         combos: []const core.Combo2Def = &.{},
         scanner_settings: *const matrix_scanning.ScannerSettings = &.{},
@@ -36,10 +41,12 @@ pub fn GetConfigType(comptime dimensions: *const core.KeymapDimensions) type {
             self.pin_cols = pin_cols;
             self.pin_rows = pin_rows;
             self.pin_mappings = pin_mappings;
+            self._pins_defined = true;
         }
 
         pub fn set_keymap(comptime self: *Self, keymap: *const [dimensions.layer_count][dimensions.key_count]core.KeyDef) void {
             self.keymap = keymap;
+            self._keymap_defined = true;
         }
 
         pub fn set_combos(comptime self: *Self, combos: []const core.Combo2Def) void {
@@ -62,13 +69,13 @@ pub fn GetConfigType(comptime dimensions: *const core.KeymapDimensions) type {
             pub fn run_unibody(comptime self: Runner) !void {
                 try run_primary_internal(
                     self.config.dimensions,
-                    self.config.pin_cols.?,
-                    self.config.pin_rows.?,
+                    self.config.pin_cols,
+                    self.config.pin_rows,
                     self.config.scanner_settings,
                     self.config.combos,
                     self.config.custom_functions,
-                    self.config.pin_mappings.?,
-                    self.config.keymap.?,
+                    self.config.pin_mappings,
+                    self.config.keymap,
                     self.config.side_definition,
                     null,
                 );
@@ -80,13 +87,13 @@ pub fn GetConfigType(comptime dimensions: *const core.KeymapDimensions) type {
             ) !void {
                 try run_primary_internal(
                     self.config.dimensions,
-                    self.config.pin_cols.?,
-                    self.config.pin_rows.?,
+                    self.config.pin_cols,
+                    self.config.pin_rows,
                     self.config.scanner_settings,
                     self.config.combos,
                     self.config.custom_functions,
-                    self.config.pin_mappings.?,
-                    self.config.keymap.?,
+                    self.config.pin_mappings,
+                    self.config.keymap,
                     self.config.side_definition,
                     uart,
                 );
@@ -98,19 +105,19 @@ pub fn GetConfigType(comptime dimensions: *const core.KeymapDimensions) type {
             ) !void {
                 try run_secondary_internal(
                     self.config.dimensions,
-                    self.config.pin_cols.?,
-                    self.config.pin_rows.?,
+                    self.config.pin_cols,
+                    self.config.pin_rows,
                     self.config.scanner_settings,
-                    self.config.pin_mappings.?,
+                    self.config.pin_mappings,
                     uart,
                 );
             }
         };
         pub fn build(comptime self: Self) Runner {
-            if (self.keymap == null) {
+            if (self._keymap_defined == false) {
                 @compileError(std.fmt.comptimePrint("set_keymap must be calld on the config prior to calling run", .{}));
             }
-            if (self.pin_mappings == null or self.pin_cols == null or self.pin_rows == null) {
+            if (self._pins_defined == false) {
                 @compileError(std.fmt.comptimePrint("set_pins must be calld on the config prior to calling run", .{}));
             }
 
@@ -140,13 +147,7 @@ pub fn run_primary_internal(
 
     // PRIMARY HALF
     // Processing
-    var processor = processing.CreateProcessorType(
-        dimensions,
-        keymap,
-        side_definition,
-        combos,
-        custom_functions,
-    ){
+    var processor = processing.CreateProcessorType(dimensions, keymap, side_definition, combos, custom_functions){
         .input_matrix_changes = &matrix_change_queue,
         .output_usb_commands = &usb_command_queue,
     };
@@ -185,24 +186,6 @@ pub fn run_primary_internal(
     }
 }
 
-pub fn receive_from_uart_to_queue(uart: *const rp2xxx.uart.UART, buffer: *split_protocol.ByteQueue) !void {
-    while (uart.read_word() catch {
-        uart.clear_errors();
-        return;
-    }) |byte| {
-        try buffer.enqueue(byte);
-    }
-}
-
-pub fn send_from_queue_to_uart(uart: *const rp2xxx.uart.UART, buffer: *split_protocol.ByteQueue) !void {
-    while (buffer.Count() > 0) {
-        const uart_send_buffer = [1]u8{try buffer.dequeue()};
-        uart.write_blocking(&uart_send_buffer, microzig.drivers.time.Deadline{ .timeout = microzig.drivers.time.Absolute.from_us(100 * 1000) }) catch {
-            uart.clear_errors();
-        };
-    }
-}
-
 pub fn run_secondary_internal(
     comptime dimensions: *const core.KeymapDimensions,
     comptime pin_cols: []const rp2xxx.gpio.Pin,
@@ -233,30 +216,20 @@ pub fn run_secondary_internal(
     }
 }
 
-const UartUtils = struct {
-    pub fn read_from_uart(uart: *const rp2xxx.uart.UART, matrix_change_queue: *core.MatrixStateChangeQueue, current_time: core.TimeSinceBoot) !void {
-        // Receive remote changes as well
-        const byte_or_null: ?u8 = uart.read_word() catch blk: {
+pub fn receive_from_uart_to_queue(uart: *const rp2xxx.uart.UART, buffer: *split_protocol.ByteQueue) !void {
+    while (uart.read_word() catch {
+        uart.clear_errors();
+        return;
+    }) |byte| {
+        try buffer.enqueue(byte);
+    }
+}
+
+pub fn send_from_queue_to_uart(uart: *const rp2xxx.uart.UART, buffer: *split_protocol.ByteQueue) !void {
+    while (buffer.Count() > 0) {
+        const uart_send_buffer = [1]u8{try buffer.dequeue()};
+        uart.write_blocking(&uart_send_buffer, microzig.drivers.time.Deadline{ .timeout = microzig.drivers.time.Absolute.from_us(100 * 1000) }) catch {
             uart.clear_errors();
-            break :blk null;
         };
-
-        if (byte_or_null) |byte| {
-            const uart_message = core.UartMessage.fromByte(byte);
-            try matrix_change_queue.enqueue(core.MatrixStateChange{ .pressed = uart_message.pressed, .key_index = uart_message.key_index, .time = current_time });
-        }
     }
-
-    pub fn write_to_uart(uart: *const rp2xxx.uart.UART, matrix_change_queue: *core.MatrixStateChangeQueue) !void {
-        if (matrix_change_queue.Count() > 0) {
-            const change = try matrix_change_queue.dequeue();
-            const msg = core.UartMessage{ .pressed = change.pressed, .key_index = change.key_index };
-
-            const uart_send_buffer: [1]u8 = [1]u8{msg.toByte()};
-            // Tries to write one byte with 100ms timeout
-            uart.write_blocking(&uart_send_buffer, microzig.drivers.time.Deadline{ .timeout = microzig.drivers.time.Absolute.from_us(100 * 1000) }) catch {
-                uart.clear_errors();
-            };
-        }
-    }
-};
+}
