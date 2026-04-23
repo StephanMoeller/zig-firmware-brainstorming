@@ -122,17 +122,7 @@ pub fn run_primary_internal(
 
         // Receive from remote side
         if (uart_or_null) |uart| {
-            if (receive_from_uart_to_queue(&uart, &uart_receiver)) |msg| {
-                switch (msg) {
-                    .KeyPressed => |key_index| {
-                        try matrix_change_queue.enqueue(.{ .key_index = key_index, .pressed = true, .time = current_time });
-                    },
-                    .KeyReleased => |key_index| {
-                        try matrix_change_queue.enqueue(.{ .key_index = key_index, .pressed = false, .time = current_time });
-                    },
-                    .EncoderValueChanged => {},
-                }
-            }
+            try receive_from_uart_to_queue(&uart, &uart_receiver, &matrix_change_queue, current_time);
         }
 
         // Processing: decide actions
@@ -172,16 +162,23 @@ pub fn run_secondary_internal(
     }
 }
 
-pub fn receive_from_uart_to_queue(uart: *const rp2xxx.uart.UART, receiver: *split_protocol.UartReceiveHelper) ?split_protocol.ProtocolMessage {
+pub fn receive_from_uart_to_queue(uart: *const rp2xxx.uart.UART, receiver: *split_protocol.UartReceiveHelper, matrix_change_queue: *core.MatrixStateChangeQueue, current_time: core.TimeSinceBoot) !void {
     while (uart.read_word() catch {
         uart.clear_errors();
-        return null;
+        return;
     }) |byte| {
         if (receiver.receiveByte(byte)) |msg| {
-            return msg;
+            switch (msg) {
+                .KeyPressed => |key_index| {
+                    try matrix_change_queue.enqueue(.{ .key_index = key_index, .pressed = true, .time = current_time });
+                },
+                .KeyReleased => |key_index| {
+                    try matrix_change_queue.enqueue(.{ .key_index = key_index, .pressed = false, .time = current_time });
+                },
+                .EncoderValueChanged => {},
+            }
         }
     }
-    return null;
 }
 
 pub fn send_from_queue_to_uart(uart: *const rp2xxx.uart.UART, buffer: *split_protocol.ByteQueue) !void {
