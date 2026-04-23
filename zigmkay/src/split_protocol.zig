@@ -46,12 +46,10 @@ pub const UartReceiveHelper = struct {
                 }
 
                 self.expected_next = .Delimiter; // Reset no matter what
-                const payload: u7 = u8_to_u7(byte) catch {
-                    return null;
-                };
+
                 var buffer: [2]u8 = @splat(2);
                 buffer[0] = self.cached_message_id;
-                buffer[1] = payload;
+                buffer[1] = byte;
                 const msg = deserialize(buffer) catch return null;
                 return msg;
             },
