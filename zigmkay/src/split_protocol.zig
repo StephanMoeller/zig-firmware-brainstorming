@@ -15,7 +15,7 @@ pub const MessageType = enum(u8) { Undefined = 0, KeyPressed = 1, KeyReleased = 
 pub const UartReceiveHelper = struct {
     pub const ExpectedData = enum { Delimiter, MessageId, Payload };
     pointer: usize = 0,
-    cached_message_id: u7 = undefined,
+    cached_message_type: MessageType = undefined,
     expected_next: ExpectedData = ExpectedData.Delimiter,
     pub fn receiveByte(self: *UartReceiveHelper, byte: u8) ?ProtocolMessage {
         // read until delimiter + 2x non-delimiters received or null received
@@ -31,10 +31,7 @@ pub const UartReceiveHelper = struct {
                     // Let the expected next stay at message id
                     return null;
                 }
-                self.cached_message_id = u8_to_u7(byte) catch {
-                    self.expected_next = .Delimiter; // Reset
-                    return null;
-                };
+                self.cached_message_type = @enumFromInt(byte);
 
                 self.expected_next = .Payload;
                 return null;
@@ -48,7 +45,7 @@ pub const UartReceiveHelper = struct {
                 self.expected_next = .Delimiter; // Reset no matter what
 
                 var buffer: [2]u8 = @splat(2);
-                buffer[0] = self.cached_message_id;
+                buffer[0] = @intFromEnum(self.cached_message_type);
                 buffer[1] = byte;
                 const msg = deserialize(buffer) catch return null;
                 return msg;
