@@ -20,7 +20,7 @@ pub const pin_config = rp2xxx.pins.GlobalConfiguration{
     .GPIO1 = .{ .name = "row", .direction = .in },
     .GPIO23 = .{ .name = "data1", .direction = .in },
     .GPIO21 = .{ .name = "data2", .direction = .in },
-    .GPIO9 = .{ .name = "click", .direction = .in },
+    .GPIO8 = .{ .name = "click", .direction = .in },
 };
 pub const p = pin_config.pins();
 
@@ -57,14 +57,22 @@ pub fn run() !void {
     var usb_command_queue = core.OutputCommandQueue.Create();
     const usb_command_executor = usb.CreateAndInitUsbCommandExecutor();
 
-    var encoder = encoder_lib.Encoder.init(p.data1, p.data2, 3, core.TimeSinceBoot{
-        .time_since_boot_us = time.get_time_since_boot().to_us(),
-    });
+    var current_time = get_current_time();
+    var encoder = encoder_lib.Encoder.init(
+        p.data1,
+        p.data2,
+        4,
+        current_time,
+    );
     const max_len = 2000;
     var buf: [max_len]u8 = undefined;
 
+    p.click.set_function(.sio);
+    p.click.set_direction(.in);
+    p.click.set_pull(.up);
+
     while (true) {
-        const current_time = core.TimeSinceBoot{ .time_since_boot_us = time.get_time_since_boot().to_us() };
+        current_time = get_current_time();
         try usb_command_executor.HouseKeepAndProcessCommands(&usb_command_queue, current_time);
 
         const event = encoder.update(current_time);
@@ -76,21 +84,31 @@ pub fn run() !void {
 
                     const numAsString = try std.fmt.bufPrint(&buf, "{}", .{1});
                     try usb_command_queue.print_string(numAsString);
+
+                    //p.led.put(1);
                 },
                 .CCW => {
                     try usb_command_queue.queue.enqueue(.{ .ConsumerKeyPressed = .VolumeDown });
                     try usb_command_queue.queue.enqueue(.{ .ConsumerKeyReleased = .VolumeDown });
                     const numAsString = try std.fmt.bufPrint(&buf, "{}", .{0});
                     try usb_command_queue.print_string(numAsString);
+                    //p.led.put(0);
                 },
             }
         }
 
+        p.led.put(p.click.read());
         //runner.run_unibody() catch {
         //    blink_led(10000000, 500); // in case of an error, let the keyboard start blinking
         //};
 
     }
+}
+
+fn get_current_time() core.TimeSinceBoot {
+    return core.TimeSinceBoot{
+        .time_since_boot_us = time.get_time_since_boot().to_us(),
+    };
 }
 
 pub fn blink_led(blink_count: u32, interval_ms: u32) void {
