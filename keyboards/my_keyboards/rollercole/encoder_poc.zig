@@ -9,12 +9,16 @@ const dk = zigmkay.keycodes.dk;
 const core = zigmkay.core;
 const us = zigmkay.keycodes.us;
 
+pub const usb = zigmkay.usb;
+
 // zig fmt: off
 pub const pin_config = rp2xxx.pins.GlobalConfiguration{
     .GPIO17 = .{ .name = "led", .direction = .out },
 
     .GPIO0 = .{ .name = "col", .direction = .out },
     .GPIO1 = .{ .name = "row", .direction = .in },
+    .GPIO23 = .{ .name = "data1", .direction = .in },
+    .GPIO21 = .{ .name = "data2", .direction = .in },
 };
 pub const p = pin_config.pins();
 
@@ -42,10 +46,15 @@ pub fn main() !void {
     comptime config.set_keymap(&keymap);
     comptime config.set_pins(pins_cols[0..], pins_rows[0..], &no_pin_mappings);
 
-    comptime var runner = config.build();
-    runner.run_unibody() catch {
-        blink_led(10000000, 500); // in case of an error, let the keyboard start blinking
-    };
+    var usb_command_queue = core.OutputCommandQueue.Create();
+    const usb_command_executor = usb.CreateAndInitUsbCommandExecutor();
+    while (true) {
+        const current_time = core.TimeSinceBoot{ .time_since_boot_us = time.get_time_since_boot().to_us() };
+        try usb_command_executor.HouseKeepAndProcessCommands(&usb_command_queue, current_time);
+    }
+    //runner.run_unibody() catch {
+    //    blink_led(10000000, 500); // in case of an error, let the keyboard start blinking
+    //};
 }
 
 pub fn blink_led(blink_count: u32, interval_ms: u32) void {
