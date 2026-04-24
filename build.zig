@@ -13,16 +13,15 @@ pub fn build(b: *std.Build) void {
         },
     });
 
-    add_test_steps(b, zigmkay_mod);
+    add_test_steps(b, zigmkay_mod, "zigmkay/tests");
 }
 
-pub fn add_test_steps(b: *std.Build, zigmkay_module: *std.Build.Module) void {
+pub fn add_test_steps(b: *std.Build, zigmkay_module: *std.Build.Module, test_dir: []const u8) void {
     const global_test_compile_step = b.step("test_compile_only", "Compile unit tests");
     const global_test_run_step = b.step("test", "Run unit tests");
     const target = b.standardTargetOptions(.{});
 
     // START: Create test file iterator
-    const test_dir = "zigmkay/tests";
     var src_dir = b.build_root.handle.openDir(test_dir, .{ .iterate = true }) catch |err|
         std.debug.panic("Failed to open '{s}': {}", .{ test_dir, err });
     defer src_dir.close();
@@ -53,4 +52,3 @@ pub fn add_test_steps(b: *std.Build, zigmkay_module: *std.Build.Module) void {
         }
     }
 }
-
