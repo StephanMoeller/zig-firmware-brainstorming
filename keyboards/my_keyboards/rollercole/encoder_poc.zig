@@ -2,14 +2,15 @@ const std = @import("std");
 
 const microzig = @import("microzig");
 const rp2xxx = microzig.hal;
-const time = rp2xxx.time;
 const gpio = rp2xxx.gpio;
 const zigmkay = @import("zigmkay");
 const dk = zigmkay.keycodes.dk;
 const core = zigmkay.core;
 const us = zigmkay.keycodes.us;
+const time = rp2xxx.time;
 
-pub const usb = zigmkay.usb;
+const usb = zigmkay.usb;
+const encoder_lib = zigmkay.encoder;
 
 // zig fmt: off
 pub const pin_config = rp2xxx.pins.GlobalConfiguration{
@@ -19,6 +20,7 @@ pub const pin_config = rp2xxx.pins.GlobalConfiguration{
     .GPIO1 = .{ .name = "row", .direction = .in },
     .GPIO23 = .{ .name = "data1", .direction = .in },
     .GPIO21 = .{ .name = "data2", .direction = .in },
+    .GPIO9 = .{ .name = "click", .direction = .in },
 };
 pub const p = pin_config.pins();
 
@@ -38,23 +40,50 @@ pub const pins_cols = [_]rp2xxx.gpio.Pin{p.col};
 pub const pins_rows = [_]rp2xxx.gpio.Pin{p.row};
 
 pub fn main() !void {
+    run() catch {
+        p.led.put(1);
+    };
+}
+
+pub fn run() !void {
     _ = pin_config.apply();
     blink_led(1, 300); // Show the user that the keyboard has actually booted up.
 
     // Mandatory
-    comptime var config = zigmkay.loops.GetConfigType(&dimensions).init();
-    comptime config.set_keymap(&keymap);
-    comptime config.set_pins(pins_cols[0..], pins_rows[0..], &no_pin_mappings);
+    //comptime var config = zigmkay.loops.GetConfigType(&dimensions).init();
+    //comptime config.set_keymap(&keymap);
+    //comptime config.set_pins(pins_cols[0..], pins_rows[0..], &no_pin_mappings);
 
     var usb_command_queue = core.OutputCommandQueue.Create();
     const usb_command_executor = usb.CreateAndInitUsbCommandExecutor();
+
+    var encoder = encoder_lib.Encoder.init(p.data1, p.data2, 2, core.TimeSinceBoot{
+        .time_since_boot_us = time.get_time_since_boot().to_us(),
+    });
+
     while (true) {
         const current_time = core.TimeSinceBoot{ .time_since_boot_us = time.get_time_since_boot().to_us() };
         try usb_command_executor.HouseKeepAndProcessCommands(&usb_command_queue, current_time);
+
+        const event = encoder.update(current_time);
+        if (event) |e| {
+            switch (e.direction) {
+                .CW => {
+                    try usb_command_queue.queue.enqueue(.{ .ConsumerKeyPressed = .VolumeUp });
+                    try usb_command_queue.queue.enqueue(.{ .ConsumerKeyReleased = .VolumeUp });
+                },
+                .CCW => {
+                    try usb_command_queue.queue.enqueue(.{ .ConsumerKeyPressed = .VolumeDown });
+                    try usb_command_queue.queue.enqueue(.{ .ConsumerKeyReleased = .VolumeDown });
+                },
+            }
+        }
+
+        //runner.run_unibody() catch {
+        //    blink_led(10000000, 500); // in case of an error, let the keyboard start blinking
+        //};
+
     }
-    //runner.run_unibody() catch {
-    //    blink_led(10000000, 500); // in case of an error, let the keyboard start blinking
-    //};
 }
 
 pub fn blink_led(blink_count: u32, interval_ms: u32) void {
