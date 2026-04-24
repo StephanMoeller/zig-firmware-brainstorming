@@ -6,28 +6,32 @@
 //! detent state transitions (e.g., 00 and 11) to avoid multiple phantom events per click.
 
 const std = @import("std");
+const core = @import("core.zig");
 const microzig = @import("microzig");
 const rp2xxx = microzig.hal;
-
-pub const EncoderDirection = enum(u8) {
-    CW = 1,
-    CCW = 2,
-};
-
+const time = rp2xxx.time;
 pub const EncoderEvent = struct {
-    direction: EncoderDirection,
+    direction: enum(u8) {
+        CW = 1,
+        CCW = 2,
+    },
 };
 
 /// Represents a physical rotary encoder connected to two GPIO pins.
+///
 pub const Encoder = struct {
     pin_a: rp2xxx.gpio.Pin,
     pin_b: rp2xxx.gpio.Pin,
-    state: u2 = 0,
+    last_detected_state: u2 = 0,
     accumulator: i8 = 0,
+
+    last_change_detected: core.TimeSinceBoot,
+    last_announced_change: core.TimeSinceBoot,
+    sensitivity: i8, // lower number get higher sensitivity
 
     /// Initializes a new Encoder instance, setting the given pins as input with pull-ups enabled.
     /// Reads the initial internal state of the pins.
-    pub fn init(pin_a: rp2xxx.gpio.Pin, pin_b: rp2xxx.gpio.Pin) Encoder {
+    pub fn init(pin_a: rp2xxx.gpio.Pin, pin_b: rp2xxx.gpio.Pin, sensitivity: i8, current_time: core.TimeSinceBoot) Encoder {
         pin_a.set_function(.sio);
         pin_b.set_function(.sio);
         pin_a.set_direction(.in);
@@ -38,8 +42,12 @@ pub const Encoder = struct {
         var self = Encoder{
             .pin_a = pin_a,
             .pin_b = pin_b,
+            .sensitivity = sensitivity,
+            .last_announced_change = current_time,
+            .last_change_detected = current_time,
         };
-        self.state = self.read_state();
+        self.last_detected_state = self.read_state();
+
         return self;
     }
 
@@ -58,43 +66,47 @@ pub const Encoder = struct {
     /// The accumulator is not reset at intermediate states (e.g. 11), so a full step
     /// (00→01→11→10→00) accumulates +4 before firing. A single jitter bounce
     /// (e.g. 00→01→00) nets zero and is discarded.
-    pub fn update(self: *Encoder) ?EncoderEvent {
-        // Transition vote table indexed by (old_state << 2 | new_state).
-        // CW sequence:  00->01->11->10->00  => +1 per step
-        // CCW sequence: 00->10->11->01->00  => -1 per step
-        // Two-bit jumps and no-change transitions: 0 (ignored)
-        const transition_table: [16]i8 = comptime .{
+    pub fn update(self: *Encoder, current_time: core.TimeSinceBoot) ?EncoderEvent {
+        const new_state = self.read_state();
+
+        const transition_table: [4][4]i8 = comptime .{
             // zig fmt: off
             //  new: 00   01   10   11
-                      0,   1,  -1,   0, // old: 00
-                     -1,   0,   0,   1, // old: 01
-                      1,   0,   0,  -1, // old: 10
-                      0,  -1,   1,   0, // old: 11
+                     .{ 0,   1,  -1,   0}, // old: 00
+                     .{-1,   0,   0,   1}, // old: 01
+                      .{1,   0,   0,  -1}, // old: 10
+                      .{0,  -1,   1,   0}, // old: 11
             // zig fmt: on
         };
 
-        const new_state = self.read_state();
-        if (new_state == self.state) return null;
-
-        const old_state = self.state;
-        self.state = new_state;
-
-        const idx: u4 = (@as(u4, old_state) << 2) | @as(u4, new_state);
-        self.accumulator +|= transition_table[idx]; // saturating add
-
-        // Reset the accumulator at every detent so stale votes from one
-        // half-step never bleed into the next. Only the 00 detent emits events.
-        if (new_state == 0b11) {
-            self.accumulator = 0;
-        } else if (new_state == 0b00) {
-            defer self.accumulator = 0;
-            if (self.accumulator >= 2) {
-                return EncoderEvent{ .direction = .CCW };
-            } else if (self.accumulator <= -2) {
-                return EncoderEvent{ .direction = .CW };
-            }
+        if (new_state != self.last_detected_state) {
+            self.accumulator += transition_table[new_state][self.last_detected_state];
+            self.last_change_detected = current_time;
+            self.last_detected_state = new_state;
         }
 
+        // Wait for 1 ms of quiet before announcing anything (Jitter handling)
+        if (current_time.time_since_boot_us < self.last_change_detected.time_since_boot_us + 1000) {
+            return null; // let 1 ms pass before doing anything
+        }
+
+        // Don't announce more often than 10ms (debounce handling)
+        if (current_time.time_since_boot_us < self.last_announced_change.time_since_boot_us + 10000) {
+            return null;
+        }
+
+        // If sensitivity threshold exceeded, return an event
+        if (self.accumulator >= self.sensitivity) {
+            self.accumulator -= self.sensitivity;
+            self.last_announced_change = current_time;
+            return EncoderEvent{ .direction = .CW };
+        } else if (self.accumulator <= -self.sensitivity) {
+            self.accumulator += self.sensitivity;
+            self.last_announced_change = current_time;
+            return EncoderEvent{ .direction = .CCW };
+        }
+
+        // Not enough change to trigger an announcement yet.
         return null;
     }
 };
