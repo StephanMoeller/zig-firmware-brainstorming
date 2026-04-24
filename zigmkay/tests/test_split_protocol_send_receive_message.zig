@@ -65,7 +65,7 @@ test "receiveMessage - Mixed data" {
 
     try std.testing.expectEqual(null, uart_helper.receiveByte(p.DELIMITER));
     try std.testing.expectEqual(null, uart_helper.receiveByte(2)); // key released
-    try std.testing.expectEqual(p.ProtocolMessage{ .MatrixStateChange = .{ .key_index = 112, .pressed = true } }, uart_helper.receiveByte(112));
+    try std.testing.expectEqual(p.ProtocolMessage{ .MatrixStateChange = .{ .key_index = 112, .pressed = false } }, uart_helper.receiveByte(112));
 
     try std.testing.expectEqual(null, uart_helper.receiveByte(p.DELIMITER));
     try std.testing.expectEqual(null, uart_helper.receiveByte(3)); // encoder val changed
@@ -88,7 +88,7 @@ test "receiveMessage - Mixed data - with errors in it" {
     try std.testing.expectEqual(null, uart_helper.receiveByte(p.DELIMITER));
     try std.testing.expectEqual(p.UartReceiveHelper.ExpectedData.MessageId, uart_helper.expected_next);
     try std.testing.expectEqual(null, uart_helper.receiveByte(2)); // key released
-    try std.testing.expectEqual(p.ProtocolMessage{ .MatrixStateChange = .{ .key_index = 112, .pressed = true } }, uart_helper.receiveByte(112));
+    try std.testing.expectEqual(p.ProtocolMessage{ .MatrixStateChange = .{ .key_index = 112, .pressed = false } }, uart_helper.receiveByte(112));
 
     // INVALID
     try std.testing.expectEqual(null, uart_helper.receiveByte(p.DELIMITER));

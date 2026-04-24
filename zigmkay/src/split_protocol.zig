@@ -31,9 +31,14 @@ pub const UartReceiveHelper = struct {
                     // Let the expected next stay at message id
                     return null;
                 }
-                self.cached_message_type = @enumFromInt(byte);
+                const val_or_null: ?MessageType = std.enums.fromInt(MessageType, byte);
+                if (val_or_null) |val| {
+                    self.cached_message_type = val;
+                    self.expected_next = .Payload;
+                } else {
+                    self.expected_next = .Delimiter;
+                }
 
-                self.expected_next = .Payload;
                 return null;
             },
             .Payload => {
@@ -89,13 +94,17 @@ pub fn serialize(msg: ProtocolMessage) [2]u8 {
 }
 
 pub fn deserialize(buffer: [2]u8) DeserializeError!ProtocolMessage {
-    const message_type: MessageType = @enumFromInt(buffer[0]);
-    const payload = buffer[1];
-    switch (message_type) {
-        .KeyPressed => return .{ .MatrixStateChange = .{ .key_index = try u8_to_u7(payload), .pressed = true } },
-        .KeyReleased => return .{ .MatrixStateChange = .{ .key_index = try u8_to_u7(payload), .pressed = false } },
-        .EncoderValueChanged => return .{ .EncoderValueChanged = try u8_to_u2(payload) },
-        else => return DeserializeError.UnknownMessageType,
+    const message_type_or_null: ?MessageType = std.enums.fromInt(MessageType, buffer[0]);
+    if (message_type_or_null) |message_type| {
+        const payload = buffer[1];
+        switch (message_type) {
+            .KeyPressed => return .{ .MatrixStateChange = .{ .key_index = try u8_to_u7(payload), .pressed = true } },
+            .KeyReleased => return .{ .MatrixStateChange = .{ .key_index = try u8_to_u7(payload), .pressed = false } },
+            .EncoderValueChanged => return .{ .EncoderValueChanged = try u8_to_u2(payload) },
+            else => return DeserializeError.UnknownMessageType,
+        }
+    } else {
+        return DeserializeError.UnknownMessageType;
     }
 }
 
@@ -110,4 +119,5 @@ pub const DeserializeError = error{
     U7notConvertibleToU2,
     U8notConvertibleToU7,
     UnknownMessageType,
+    InvalidMessageType,
 };
