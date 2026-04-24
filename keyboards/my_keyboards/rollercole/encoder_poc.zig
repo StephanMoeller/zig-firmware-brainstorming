@@ -57,9 +57,11 @@ pub fn run() !void {
     var usb_command_queue = core.OutputCommandQueue.Create();
     const usb_command_executor = usb.CreateAndInitUsbCommandExecutor();
 
-    var encoder = encoder_lib.Encoder.init(p.data1, p.data2, 2, core.TimeSinceBoot{
+    var encoder = encoder_lib.Encoder.init(p.data1, p.data2, 3, core.TimeSinceBoot{
         .time_since_boot_us = time.get_time_since_boot().to_us(),
     });
+    const max_len = 2000;
+    var buf: [max_len]u8 = undefined;
 
     while (true) {
         const current_time = core.TimeSinceBoot{ .time_since_boot_us = time.get_time_since_boot().to_us() };
@@ -71,10 +73,15 @@ pub fn run() !void {
                 .CW => {
                     try usb_command_queue.queue.enqueue(.{ .ConsumerKeyPressed = .VolumeUp });
                     try usb_command_queue.queue.enqueue(.{ .ConsumerKeyReleased = .VolumeUp });
+
+                    const numAsString = try std.fmt.bufPrint(&buf, "{}", .{1});
+                    try usb_command_queue.print_string(numAsString);
                 },
                 .CCW => {
                     try usb_command_queue.queue.enqueue(.{ .ConsumerKeyPressed = .VolumeDown });
                     try usb_command_queue.queue.enqueue(.{ .ConsumerKeyReleased = .VolumeDown });
+                    const numAsString = try std.fmt.bufPrint(&buf, "{}", .{0});
+                    try usb_command_queue.print_string(numAsString);
                 },
             }
         }

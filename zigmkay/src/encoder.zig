@@ -69,19 +69,20 @@ pub const Encoder = struct {
     pub fn update(self: *Encoder, current_time: core.TimeSinceBoot) ?EncoderEvent {
         const new_state = self.read_state();
 
-        if (new_state != self.last_detected_state) {
-            self.last_change_detected = current_time;
-            if (new_state == self.last_detected_state + 1 or (new_state == 0 and self.last_detected_state == 3)) {
-                self.last_detected_state = new_state;
-                self.accumulator += 1;
-            } else if (new_state == self.last_detected_state - 1 or (new_state == 3 and self.last_detected_state == 0)) {
-                self.last_detected_state = new_state;
-                self.accumulator -= 1;
-            }
-        }
+        const transition_table: [4][4]i8 = comptime .{
+            // zig fmt: off
+            //  new: 00   01   10   11
+                     .{ 0,   1,  -1,   0}, // old: 00
+                     .{-1,   0,   0,   1}, // old: 01
+                      .{1,   0,   0,  -1}, // old: 10
+                      .{0,  -1,   1,   0}, // old: 11
+            // zig fmt: on
+        };
 
-        if (self.accumulator == 0) {
-            return null;
+        if (new_state != self.last_detected_state) {
+            self.accumulator += transition_table[new_state][self.last_detected_state];
+            self.last_change_detected = current_time;
+            self.last_detected_state = new_state;
         }
 
         // Wait for 1 ms of quiet before announcing anything (Jitter handling)
