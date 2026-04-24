@@ -160,11 +160,8 @@ pub fn receive_from_uart_to_queue(uart: *const rp2xxx.uart.UART, receiver: *spli
     }) |byte| {
         if (receiver.receiveByte(byte)) |msg| {
             switch (msg) {
-                .KeyPressed => |key_index| {
-                    try matrix_change_queue.enqueue(.{ .key_index = key_index, .pressed = true, .time = current_time });
-                },
-                .KeyReleased => |key_index| {
-                    try matrix_change_queue.enqueue(.{ .key_index = key_index, .pressed = false, .time = current_time });
+                .MatrixStateChange => |e| {
+                    try matrix_change_queue.enqueue(.{ .key_index = e.key_index, .pressed = e.pressed, .time = current_time });
                 },
                 .EncoderValueChanged => {},
             }

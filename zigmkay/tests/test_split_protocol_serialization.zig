@@ -4,15 +4,15 @@ const p = zigmkay.split_protocol;
 
 const std = @import("std");
 test "Serialize and deserialize: KeyPress" {
-    const msg = p.ProtocolMessage{ .KeyPressed = 102 };
+    const msg = p.ProtocolMessage{ .MatrixStateChange = .{ .pressed = true, .key_index = 102 } };
     const data: [2]u8 = p.serialize(msg);
     const other_msg = try p.deserialize(data);
 
-    try std.testing.expectEqual(p.ProtocolMessage{ .KeyPressed = 102 }, other_msg);
+    try std.testing.expectEqual(msg, other_msg);
 }
 
 test "Serialize and deserialize: KeyReleased" {
-    const msg = p.ProtocolMessage{ .KeyReleased = 47 };
+    const msg = p.ProtocolMessage{ .MatrixStateChange = .{ .pressed = false, .key_index = 102 } };
     const data: [2]u8 = p.serialize(msg);
 
     // sanity checking
@@ -20,7 +20,7 @@ test "Serialize and deserialize: KeyReleased" {
 
     const other_msg = try p.deserialize(data);
 
-    try std.testing.expectEqual(p.ProtocolMessage{ .KeyReleased = 47 }, other_msg);
+    try std.testing.expectEqual(msg, other_msg);
 }
 
 test "Serialize and deserialize: EncoderValueChanged" {
@@ -28,7 +28,7 @@ test "Serialize and deserialize: EncoderValueChanged" {
     const data: [2]u8 = p.serialize(msg);
     const other_msg = try p.deserialize(data);
 
-    try std.testing.expectEqual(p.ProtocolMessage{ .EncoderValueChanged = 3 }, other_msg);
+    try std.testing.expectEqual(msg, other_msg);
 }
 
 test "Serialize and deserialize: Invalid message type - 0" {

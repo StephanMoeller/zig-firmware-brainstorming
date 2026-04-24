@@ -3,14 +3,14 @@ const core = @import("core.zig");
 const generic_queue = @import("generic_queue.zig");
 
 pub const ProtocolMessage = union(enum) {
-    KeyPressed: core.KeyIndex,
-    KeyReleased: core.KeyIndex,
+    MatrixStateChange: struct { pressed: bool, key_index: core.KeyIndex },
     EncoderValueChanged: u2,
 };
 
 pub const ByteQueue = generic_queue.GenericQueue(u8, 250);
 
 pub const DELIMITER: u8 = 0b11111111;
+pub const MessageType = enum(u8) { Undefined = 0, KeyPressed = 1, KeyReleased = 2, EncoderValueChanged = 3 };
 
 pub const UartReceiveHelper = struct {
     pub const ExpectedData = enum { Delimiter, MessageId, Payload };
@@ -76,29 +76,28 @@ fn u8_to_u7(val: u8) DeserializeError!u7 {
     return @intCast(val);
 }
 
-//pub fn sendMessage(uart_write_word: fn (word: u8) void, msg: ProtocolMessage) void {}
-
 pub fn serialize(msg: ProtocolMessage) [2]u8 {
     switch (msg) {
-        .KeyPressed => |key_index_pressed| {
-            return .{ 1, key_index_pressed };
-        },
-        .KeyReleased => |key_index_released| {
-            return .{ 2, key_index_released };
+        .MatrixStateChange => |state_change| {
+            if (state_change.pressed) {
+                return .{ @intFromEnum(MessageType.KeyPressed), state_change.key_index };
+            } else {
+                return .{ @intFromEnum(MessageType.KeyReleased), state_change.key_index };
+            }
         },
         .EncoderValueChanged => |encoder_value| {
-            return .{ 3, encoder_value };
+            return .{ @intFromEnum(MessageType.EncoderValueChanged), encoder_value };
         },
     }
 }
 
 pub fn deserialize(buffer: [2]u8) DeserializeError!ProtocolMessage {
-    const message_type = buffer[0];
+    const message_type: MessageType = @enumFromInt(buffer[0]);
     const payload = buffer[1];
     switch (message_type) {
-        1 => return .{ .KeyPressed = try u8_to_u7(payload) },
-        2 => return .{ .KeyReleased = try u8_to_u7(payload) },
-        3 => return .{ .EncoderValueChanged = try u8_to_u2(payload) },
+        .KeyPressed => return .{ .MatrixStateChange = .{ .key_index = try u8_to_u7(payload), .pressed = true } },
+        .KeyReleased => return .{ .MatrixStateChange = .{ .key_index = try u8_to_u7(payload), .pressed = false } },
+        .EncoderValueChanged => return .{ .EncoderValueChanged = try u8_to_u2(payload) },
         else => return DeserializeError.UnknownMessageType,
     }
 }
