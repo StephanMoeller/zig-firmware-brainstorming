@@ -13,12 +13,11 @@ pub fn build(b: *std.Build) void {
         },
     });
 
-    add_test_steps(b, zigmkay_mod, "zigmkay/tests");
+    const test_run_step = b.step("test", "Run unit tests");
+    add_test_steps(b, zigmkay_mod, test_run_step, "zigmkay/tests");
 }
 
-pub fn add_test_steps(b: *std.Build, zigmkay_module: *std.Build.Module, test_dir: []const u8) void {
-    const global_test_compile_step = b.step("test_compile_only", "Compile unit tests");
-    const global_test_run_step = b.step("test", "Run unit tests");
+pub fn add_test_steps(b: *std.Build, zigmkay_module: *std.Build.Module, test_step: *std.Build.Step, test_dir: []const u8) void {
     const target = b.standardTargetOptions(.{});
 
     // START: Create test file iterator
@@ -45,10 +44,8 @@ pub fn add_test_steps(b: *std.Build, zigmkay_module: *std.Build.Module, test_dir
             current_test_file_module.addImport("zigmkay", zigmkay_module);
 
             const current_test_exe = b.addTest(.{ .root_module = current_test_file_module });
-            global_test_compile_step.dependOn(&current_test_exe.step);
-
             const current_test_run = b.addRunArtifact(current_test_exe);
-            global_test_run_step.dependOn(&current_test_run.step);
+            test_step.dependOn(&current_test_run.step);
         }
     }
 }
