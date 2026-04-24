@@ -262,6 +262,7 @@ pub const OutputCommandQueue = struct {
 };
 pub const TimeSinceBoot = struct {
     time_since_boot_us: u64,
+
     pub fn from_absolute_us(time_us: u64) TimeSinceBoot {
         return .{ .time_since_boot_us = time_us };
     }

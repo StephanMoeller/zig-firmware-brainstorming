@@ -95,6 +95,7 @@ pub const Encoder = struct {
             return null;
         }
 
+        // If sensitivity threshold exceeded, return an event
         if (self.accumulator >= self.sensitivity) {
             self.accumulator -= self.sensitivity;
             self.last_announced_change = current_time;
