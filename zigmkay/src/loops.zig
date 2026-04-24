@@ -160,11 +160,8 @@ pub fn receive_from_uart_to_queue(uart: *const rp2xxx.uart.UART, receiver: *spli
     }) |byte| {
         if (receiver.receiveByte(byte)) |msg| {
             switch (msg) {
-                .KeyPressed => |key_index| {
-                    try matrix_change_queue.enqueue(.{ .key_index = key_index, .pressed = true, .time = current_time });
-                },
-                .KeyReleased => |key_index| {
-                    try matrix_change_queue.enqueue(.{ .key_index = key_index, .pressed = false, .time = current_time });
+                .MatrixStateChange => |e| {
+                    try matrix_change_queue.enqueue(.{ .key_index = e.key_index, .pressed = e.pressed, .time = current_time });
                 },
                 .EncoderValueChanged => {},
             }
@@ -175,11 +172,7 @@ pub fn receive_from_uart_to_queue(uart: *const rp2xxx.uart.UART, receiver: *spli
 pub fn send_from_queue_to_uart(uart: *const rp2xxx.uart.UART, uart_sender: *split_protocol.UartSendHelper, matrix_change_queue: *core.MatrixStateChangeQueue) !void {
     while (matrix_change_queue.Count() > 0) {
         const matrix_change = try matrix_change_queue.dequeue();
-        if (matrix_change.pressed) {
-            try uart_sender.sendMessage(.{ .KeyPressed = matrix_change.key_index });
-        } else {
-            try uart_sender.sendMessage(.{ .KeyReleased = matrix_change.key_index });
-        }
+        try uart_sender.sendMessage(.{ .MatrixStateChange = .{ .key_index = matrix_change.key_index, .pressed = matrix_change.pressed } });
 
         while (uart_sender.byte_queue.Count() > 0) {
             const uart_send_buffer = [1]u8{try uart_sender.byte_queue.dequeue()};
