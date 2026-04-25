@@ -14,6 +14,7 @@ const time = rp2xxx.time;
 pub const EncoderPins = struct {
     pin_a: rp2xxx.gpio.Pin,
     pin_b: rp2xxx.gpio.Pin,
+    sensitivity: i8, // lower number get higher sensitivity
 };
 
 pub const EncoderState = struct {
@@ -22,39 +23,36 @@ pub const EncoderState = struct {
 
     last_change_detected: core.TimeSinceBoot,
     last_announced_change: core.TimeSinceBoot,
-    sensitivity: i8, // lower number get higher sensitivity
 };
 
 /// Represents a physical rotary encoder connected to two GPIO pins.
 ///
-pub const Encoder = struct {
+pub const EncoderConfig = struct {
     pins: EncoderPins,
     actions: core.EncoderDef,
+};
+pub const Encoder = struct {
+    config: EncoderConfig,
     state: EncoderState,
 
     /// Initializes a new Encoder instance, setting the given pins as input with pull-ups enabled.
     /// Reads the initial internal state of the pins.
-    pub fn init(pin_a: rp2xxx.gpio.Pin, pin_b: rp2xxx.gpio.Pin, sensitivity: i8, current_time: core.TimeSinceBoot) Encoder {
-        pin_a.set_function(.sio);
-        pin_b.set_function(.sio);
-        pin_a.set_direction(.in);
-        pin_b.set_direction(.in);
-        pin_a.set_pull(.up);
-        pin_b.set_pull(.up);
+    pub fn init(pins: EncoderPins, current_time: core.TimeSinceBoot) Encoder {
+        pins.pin_a.set_function(.sio);
+        pins.pin_b.set_function(.sio);
+        pins.pin_a.set_direction(.in);
+        pins.pin_b.set_direction(.in);
+        pins.pin_a.set_pull(.up);
+        pins.pin_b.set_pull(.up);
 
         var self = Encoder{
-            .pins = .{
-                .pin_a = pin_a,
-                .pin_b = pin_b,
-            },
+            .config = .{ .pins = pins, .actions = .{} },
             .state = .{
-                .sensitivity = sensitivity,
                 .last_announced_change = current_time,
                 .last_change_detected = current_time,
             },
-            .actions = .{},
         };
-        self.state.last_detected_state = read_state(self.pins);
+        self.state.last_detected_state = read_state(self.config.pins);
 
         return self;
     }
@@ -75,7 +73,7 @@ pub const Encoder = struct {
     /// (00→01→11→10→00) accumulates +4 before firing. A single jitter bounce
     /// (e.g. 00→01→00) nets zero and is discarded.
     pub fn update(self: *Encoder, current_time: core.TimeSinceBoot) ?core.EncoderEvent {
-        const new_state = read_state(self.pins);
+        const new_state = read_state(self.config.pins);
 
         const transition_table: [4][4]i8 = comptime .{
             // zig fmt: off
@@ -106,14 +104,14 @@ pub const Encoder = struct {
         }
 
         // If sensitivity threshold exceeded, return an event
-        if (state.accumulator >= state.sensitivity) {
-            state.accumulator -= state.sensitivity;
+        if (state.accumulator >= self.config.pins.sensitivity) {
+            state.accumulator -= self.config.pins.sensitivity;
             state.last_announced_change = current_time;
-            return core.EncoderEvent{ .direction = .CW, .actions = self.actions };
-        } else if (state.accumulator <= -state.sensitivity) {
-            state.accumulator += state.sensitivity;
+            return core.EncoderEvent{ .direction = .CW, .actions = self.config.actions };
+        } else if (state.accumulator <= -self.config.pins.sensitivity) {
+            state.accumulator += self.config.pins.sensitivity;
             state.last_announced_change = current_time;
-            return core.EncoderEvent{ .direction = .CCW, .actions = self.actions };
+            return core.EncoderEvent{ .direction = .CCW, .actions = self.config.actions };
         }
 
         // Not enough change to trigger an announcement yet.

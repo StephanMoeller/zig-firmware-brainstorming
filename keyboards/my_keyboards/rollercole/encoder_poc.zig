@@ -59,9 +59,7 @@ pub fn run() !void {
 
     var current_time = get_current_time();
     var encoder = encoder_lib.Encoder.init(
-        p.data1,
-        p.data2,
-        4,
+        .{ .pin_a = p.data1, .pin_b = p.data2, .sensitivity = 4 },
         current_time,
     );
     const max_len = 2000;
