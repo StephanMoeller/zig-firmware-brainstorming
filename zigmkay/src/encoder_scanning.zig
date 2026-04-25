@@ -17,21 +17,31 @@ pub const EncoderEvent = struct {
     },
 };
 
-pub const EncoderPinConfig = struct {
+pub const EncoderPins = struct {
     pin_a: rp2xxx.gpio.Pin,
     pin_b: rp2xxx.gpio.Pin,
 };
 
-/// Represents a physical rotary encoder connected to two GPIO pins.
-///
-pub const Encoder = struct {
-    pins: EncoderPinConfig,
+pub const EncoderConfig = struct {
+    tap_cw: ?core.TapDef = null,
+    tap_ccw: ?core.TapDef = null,
+};
+
+pub const EncoderState = struct {
     last_detected_state: u2 = 0,
     accumulator: i8 = 0,
 
     last_change_detected: core.TimeSinceBoot,
     last_announced_change: core.TimeSinceBoot,
     sensitivity: i8, // lower number get higher sensitivity
+};
+
+/// Represents a physical rotary encoder connected to two GPIO pins.
+///
+pub const Encoder = struct {
+    pins: EncoderPins,
+    config: EncoderConfig,
+    state: EncoderState,
 
     /// Initializes a new Encoder instance, setting the given pins as input with pull-ups enabled.
     /// Reads the initial internal state of the pins.
@@ -48,11 +58,14 @@ pub const Encoder = struct {
                 .pin_a = pin_a,
                 .pin_b = pin_b,
             },
-            .sensitivity = sensitivity,
-            .last_announced_change = current_time,
-            .last_change_detected = current_time,
+            .state = .{
+                .sensitivity = sensitivity,
+                .last_announced_change = current_time,
+                .last_change_detected = current_time,
+            },
+            .config = .{},
         };
-        self.last_detected_state = self.read_state();
+        self.state.last_detected_state = self.read_state();
 
         return self;
     }
@@ -85,30 +98,32 @@ pub const Encoder = struct {
             // zig fmt: on
         };
 
-        if (new_state != self.last_detected_state) {
-            self.accumulator += transition_table[new_state][self.last_detected_state];
-            self.last_change_detected = current_time;
-            self.last_detected_state = new_state;
+        var state = &self.state;
+
+        if (new_state != state.last_detected_state) {
+            state.accumulator += transition_table[new_state][state.last_detected_state];
+            state.last_change_detected = current_time;
+            state.last_detected_state = new_state;
         }
 
         // Wait for 1 ms of quiet before announcing anything (Jitter handling)
-        if (current_time.time_since_boot_us < self.last_change_detected.time_since_boot_us + 1000) {
+        if (current_time.time_since_boot_us < state.last_change_detected.time_since_boot_us + 1000) {
             return null; // let 1 ms pass before doing anything
         }
 
         // Don't announce more often than 10ms (debounce handling)
-        if (current_time.time_since_boot_us < self.last_announced_change.time_since_boot_us + 10000) {
+        if (current_time.time_since_boot_us < state.last_announced_change.time_since_boot_us + 10000) {
             return null;
         }
 
         // If sensitivity threshold exceeded, return an event
-        if (self.accumulator >= self.sensitivity) {
-            self.accumulator -= self.sensitivity;
-            self.last_announced_change = current_time;
+        if (state.accumulator >= state.sensitivity) {
+            state.accumulator -= state.sensitivity;
+            state.last_announced_change = current_time;
             return EncoderEvent{ .direction = .CW };
-        } else if (self.accumulator <= -self.sensitivity) {
-            self.accumulator += self.sensitivity;
-            self.last_announced_change = current_time;
+        } else if (state.accumulator <= -state.sensitivity) {
+            state.accumulator += state.sensitivity;
+            state.last_announced_change = current_time;
             return EncoderEvent{ .direction = .CCW };
         }
 
