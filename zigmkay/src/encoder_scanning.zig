@@ -29,7 +29,7 @@ pub const EncoderState = struct {
 ///
 pub const Encoder = struct {
     pins: EncoderPins,
-    config: core.EncoderDef,
+    actions: core.EncoderDef,
     state: EncoderState,
 
     /// Initializes a new Encoder instance, setting the given pins as input with pull-ups enabled.
@@ -52,7 +52,7 @@ pub const Encoder = struct {
                 .last_announced_change = current_time,
                 .last_change_detected = current_time,
             },
-            .config = .{},
+            .actions = .{},
         };
         self.state.last_detected_state = read_state(self.pins);
 
@@ -109,11 +109,11 @@ pub const Encoder = struct {
         if (state.accumulator >= state.sensitivity) {
             state.accumulator -= state.sensitivity;
             state.last_announced_change = current_time;
-            return core.EncoderEvent{ .direction = .CW, .def = self.config };
+            return core.EncoderEvent{ .direction = .CW, .actions = self.actions };
         } else if (state.accumulator <= -state.sensitivity) {
             state.accumulator += state.sensitivity;
             state.last_announced_change = current_time;
-            return core.EncoderEvent{ .direction = .CCW, .def = self.config };
+            return core.EncoderEvent{ .direction = .CCW, .actions = self.actions };
         }
 
         // Not enough change to trigger an announcement yet.

@@ -32,7 +32,7 @@ pub const EncoderDef = struct {
     tap_ccw: ?TapDef = null,
 };
 pub const EncoderEvent = struct {
-    def: EncoderDef,
+    actions: EncoderDef,
     direction: enum(u8) {
         CW = 1,
         CCW = 2,
