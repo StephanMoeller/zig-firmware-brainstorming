@@ -17,11 +17,15 @@ pub const EncoderEvent = struct {
     },
 };
 
+pub const EncoderPinConfig = struct {
+    pin_a: rp2xxx.gpio.Pin,
+    pin_b: rp2xxx.gpio.Pin,
+};
+
 /// Represents a physical rotary encoder connected to two GPIO pins.
 ///
 pub const Encoder = struct {
-    pin_a: rp2xxx.gpio.Pin,
-    pin_b: rp2xxx.gpio.Pin,
+    pins: EncoderPinConfig,
     last_detected_state: u2 = 0,
     accumulator: i8 = 0,
 
@@ -40,8 +44,10 @@ pub const Encoder = struct {
         pin_b.set_pull(.up);
 
         var self = Encoder{
-            .pin_a = pin_a,
-            .pin_b = pin_b,
+            .pins = .{
+                .pin_a = pin_a,
+                .pin_b = pin_b,
+            },
             .sensitivity = sensitivity,
             .last_announced_change = current_time,
             .last_change_detected = current_time,
@@ -52,8 +58,8 @@ pub const Encoder = struct {
     }
 
     fn read_state(self: Encoder) u2 {
-        const a = self.pin_a.read();
-        const b = self.pin_b.read();
+        const a = self.pins.pin_a.read();
+        const b = self.pins.pin_b.read();
         return (@as(u2, a) << 1) | @as(u2, b);
     }
 
