@@ -3,7 +3,7 @@ const zigmkay = @import("zigmkay");
 const core = zigmkay.core;
 
 const helpers = @import("test_processing_helpers.zig");
-const init_test = helpers.init_test;
+const init_with_config = helpers.init_with_config;
 
 const a = 0x04;
 const b = 0x05;
@@ -25,7 +25,7 @@ test "TAP - single key press" {
     const current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
     const base_layer = comptime [_]core.KeyDef{ A, B, C, D };
     const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
-    var o = init_test(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap){};
+    var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = true, .key_index = 1 });
 
     try o.process(current_time);
@@ -43,7 +43,7 @@ test "TAP - single key release - expect nothing as key is not held" {
     const current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
     const base_layer = comptime [_]core.KeyDef{ A, B, C, D };
     const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
-    var o = init_test(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap){};
+    var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = false, .key_index = 1 });
 
     try o.process(current_time);
@@ -55,7 +55,7 @@ test "TAP - multiple simple tap events" {
     const current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
     const base_layer = comptime [_]core.KeyDef{ A, B, C, D };
     const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
-    var o = init_test(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap){};
+    var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = true, .key_index = 1 });
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = false, .key_index = 1 });
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = true, .key_index = 2 });
@@ -82,7 +82,7 @@ test "TAP_WITH_MOD - single key press" {
     const shiftedA = comptime helpers.TAP_WITH_MOD(0x04, .{ .left_shift = true });
     const base_layer = comptime [_]core.KeyDef{ shiftedA, B, C, D };
     const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
-    var o = init_test(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap){};
+    var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
     // define some input events
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = true, .key_index = 0 });
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = false, .key_index = 0 });
@@ -108,7 +108,7 @@ test "TAP_WITH_MOD - with other keys" {
     const normalB = comptime helpers.TAP(0x05);
     const base_layer = comptime [_]core.KeyDef{ shiftedA, normalB, C, D };
     const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
-    var o = init_test(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap){};
+    var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = true, .key_index = 0 }); // Press A + shift
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = true, .key_index = 1 }); // Press B
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = false, .key_index = 0 }); // Release A + shift

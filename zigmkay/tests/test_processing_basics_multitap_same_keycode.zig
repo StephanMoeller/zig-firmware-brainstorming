@@ -3,7 +3,7 @@ const zigmkay = @import("zigmkay");
 const core = zigmkay.core;
 
 const helpers = @import("test_processing_helpers.zig");
-const init_test = helpers.init_test;
+const init_with_config = helpers.init_with_config;
 
 const a = 0x04;
 const b = 0x05;
@@ -26,7 +26,7 @@ test "Multitap - case A" {
     const current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
     const base_layer = comptime [_]core.KeyDef{ A, A };
     const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
-    var o = init_test(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap){};
+    var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
 
     try o.press_key(0, current_time);
     try o.release_key(0, current_time);
@@ -49,7 +49,7 @@ test "Multitap - case B" {
     const current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
     const base_layer = comptime [_]core.KeyDef{ A, A };
     const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
-    var o = init_test(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap){};
+    var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
 
     try o.press_key(0, current_time);
     try o.press_key(1, current_time);

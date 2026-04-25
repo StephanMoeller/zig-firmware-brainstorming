@@ -32,7 +32,7 @@ test "activate, key1, key2" {
     const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, layer_1 };
     const combos = comptime [_]core.Combo2Def{.{ .key_indexes = .{ 1, 2 }, .layer = 0, .timeout = combo_timeout, .key_def = G }};
 
-    var o = helpers.init_test_with_combos(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap, &combos){};
+    var o = helpers.init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap, .combos = &combos }){};
     try o.press_key(1, current_time);
     current_time = current_time.add_us(1);
     try o.process(current_time);
@@ -72,7 +72,7 @@ test "different layer from current" {
     const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, layer_1 };
     const combos = comptime [_]core.Combo2Def{.{ .key_indexes = .{ 1, 2 }, .layer = 1, .timeout = combo_timeout, .key_def = G }};
 
-    var o = helpers.init_test_with_combos(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap, &combos){};
+    var o = helpers.init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap, .combos = &combos }){};
     try o.press_key(1, current_time);
     try o.press_key(0, current_time);
     try o.press_key(2, current_time);
@@ -105,7 +105,7 @@ test "activate, key2, key1" {
     const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, layer_1 };
     const combos = comptime [_]core.Combo2Def{.{ .key_indexes = .{ 1, 2 }, .layer = 0, .timeout = combo_timeout, .key_def = G }};
 
-    var o = helpers.init_test_with_combos(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap, &combos){};
+    var o = helpers.init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap, .combos = &combos }){};
     try o.press_key(2, current_time);
     current_time = current_time.add_us(1);
     try o.process(current_time);
@@ -145,7 +145,7 @@ test "tap-only: key1 timeout" {
     const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, layer_1 };
     const combos = comptime [_]core.Combo2Def{.{ .key_indexes = .{ 1, 2 }, .layer = 0, .timeout = combo_timeout, .key_def = G }};
 
-    var o = helpers.init_test_with_combos(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap, &combos){};
+    var o = helpers.init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap, .combos = &combos }){};
     try o.press_key(1, current_time);
     current_time = current_time.add_us(1);
     try o.process(current_time);
@@ -172,7 +172,7 @@ test "key2 timeout" {
     const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, layer_1 };
     const combos = comptime [_]core.Combo2Def{.{ .key_indexes = .{ 1, 2 }, .layer = 0, .timeout = combo_timeout, .key_def = G }};
 
-    var o = helpers.init_test_with_combos(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap, &combos){};
+    var o = helpers.init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap, .combos = &combos }){};
     try o.press_key(2, current_time);
     current_time = current_time.add_us(1);
     try o.process(current_time);
@@ -199,7 +199,7 @@ test "other key inbetween" {
     const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, layer_1 };
     const combos = comptime [_]core.Combo2Def{.{ .key_indexes = .{ 1, 2 }, .layer = 0, .timeout = combo_timeout, .key_def = G }};
 
-    var o = helpers.init_test_with_combos(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap, &combos){};
+    var o = helpers.init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap, .combos = &combos }){};
     try o.press_key(1, current_time);
     try o.press_key(0, current_time);
     try o.press_key(2, current_time);
@@ -239,7 +239,7 @@ test "activate with tap/hold on one of the keys, key1, key2" {
     const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, layer_1 };
     const combos = comptime [_]core.Combo2Def{.{ .key_indexes = .{ 1, 2 }, .layer = 0, .timeout = combo_timeout, .key_def = G }};
 
-    var o = helpers.init_test_with_combos(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap, &combos){};
+    var o = helpers.init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap, .combos = &combos }){};
     try o.press_key(1, current_time);
     current_time = current_time.add_us(1);
 
@@ -287,7 +287,7 @@ test "ensure correct layers combo is chosen" {
         .{ .key_indexes = .{ 0, 1 }, .layer = 2, .timeout = combo_timeout, .key_def = F },
     };
 
-    var o = helpers.init_test_with_combos(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap, &combos){};
+    var o = helpers.init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap, .combos = &combos }){};
 
     try o.press_key(2, current_time); // to switch layer to layer 1
     current_time = current_time.add_ms(1000);
@@ -346,7 +346,7 @@ test "custom code activate another layer - ensure combo works" {
     const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, layer_1, layer_2, layer_3 };
     const combos = comptime [_]core.Combo2Def{.{ .key_indexes = .{ 0, 3 }, .layer = 3, .timeout = combo_timeout, .key_def = G }};
 
-    var o = helpers.init_test_full(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap, &combos, &custom_functions, @splat(.X)){};
+    var o = helpers.init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap, .combos = &combos, .custom_functions = &custom_functions }){};
     try o.press_key(1, current_time);
     try o.press_key(2, current_time);
     try std.testing.expectEqual(false, MyFunctions.layer3_is_active);
@@ -383,7 +383,7 @@ test "combo is hold/tap: combo released slowly => hold" {
     const layer_1 = comptime [_]core.KeyDef{ D, E, F };
     const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, layer_1 };
 
-    var o = helpers.init_test_with_combos(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap, &combos){};
+    var o = helpers.init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap, .combos = &combos }){};
     try o.press_key(1, current_time);
     current_time = current_time.add_us(1);
     try o.press_key(2, current_time);
@@ -417,7 +417,7 @@ test "Ensure waiting on combos" {
     const base_layer = comptime [_]core.KeyDef{ _A, _B };
     const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
 
-    var o = helpers.init_test_with_combos(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap, &combos){};
+    var o = helpers.init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap, .combos = &combos }){};
     try o.press_key(0, current_time);
     try o.process(current_time);
     try o.press_key(1, current_time);

@@ -4,7 +4,7 @@ const zigmkay = @import("zigmkay");
 const core = zigmkay.core;
 
 const helpers = @import("test_processing_helpers.zig");
-const init_test = helpers.init_test;
+const init_with_config = helpers.init_with_config;
 
 const TestObjects = struct {
     matrix_change_queue: core.MatrixStateChangeQueue,
@@ -98,7 +98,7 @@ fn run(events: []TestEvent, expect: TestExpectation) !void {
     const base_layer = comptime [_]core.KeyDef{ a_with_tap_hold, b_tap };
     const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
 
-    var o = init_test(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap){};
+    var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
 
     for (events) |e| {
         switch (e) {

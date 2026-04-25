@@ -3,7 +3,7 @@ const zigmkay = @import("zigmkay");
 const core = zigmkay.core;
 
 const helpers = @import("test_processing_helpers.zig");
-const init_test = helpers.init_test;
+const init_with_config = helpers.init_with_config;
 
 const a = 0x04;
 const b = 0x05;
@@ -34,7 +34,7 @@ test "Simple one-shot" {
     const base_layer = comptime [_]core.KeyDef{ A, one_shot_shift, C, D };
     const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
 
-    var o = init_test(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap){};
+    var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = true, .key_index = 0 }); // Press A
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = false, .key_index = 0 }); // Release A
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = true, .key_index = 1 }); // Press OneShot
@@ -67,7 +67,7 @@ test "one-shot in a rolling manner" {
     const base_layer = comptime [_]core.KeyDef{ A, B, one_shot_shift, C, D };
     const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
 
-    var o = init_test(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap){};
+    var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = true, .key_index = 0 }); // Press A
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = true, .key_index = 1 }); // Press B
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = false, .key_index = 0 }); // Release A

@@ -3,7 +3,7 @@ const zigmkay = @import("zigmkay");
 const core = zigmkay.core;
 
 const helpers = @import("test_processing_helpers.zig");
-const init_test = helpers.init_test;
+const init_with_config = helpers.init_with_config;
 
 const a = 4;
 const b = 5;
@@ -29,7 +29,7 @@ test "MT tap within tapping term - process with both in queue" {
     const layer_1 = comptime [_]core.KeyDef{ D, E, F };
     const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, layer_1 };
 
-    var o = init_test(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap){};
+    var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
     // Ensure nothing happens at first press when the key has multiple functions (both tap and hold)
     try o.press_key(0, current_time);
 
@@ -53,7 +53,7 @@ test "MT tap within tapping term - process with multiple calls" {
     const layer_1 = comptime [_]core.KeyDef{ D, E, F };
     const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, layer_1 };
 
-    var o = init_test(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap){};
+    var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
     // Ensure nothing happens at first press when the key has multiple functions (both tap and hold)
     try o.press_key(0, current_time);
 
@@ -79,7 +79,7 @@ test "MT hold case: release after tapping term => hold" {
     const layer_1 = comptime [_]core.KeyDef{ D, E, F };
     const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, layer_1 };
 
-    var o = init_test(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap){};
+    var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
     // Ensure nothing happens at first press when the key has multiple functions (both tap and hold)
     try o.press_key(0, current_time);
 
@@ -105,7 +105,7 @@ test "MT hold case: timeout => hold" {
     const layer_1 = comptime [_]core.KeyDef{ D, E, F };
     const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, layer_1 };
 
-    var o = init_test(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap){};
+    var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
     // Ensure nothing happens at first press when the key has multiple functions (both tap and hold)
     try o.press_key(0, current_time);
 
