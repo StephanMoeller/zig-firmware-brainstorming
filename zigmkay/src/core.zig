@@ -31,6 +31,13 @@ pub const EncoderDef = struct {
     tap_cw: ?TapDef = null,
     tap_ccw: ?TapDef = null,
 };
+pub const EncoderEvent = struct {
+    def: EncoderDef,
+    direction: enum(u8) {
+        CW = 1,
+        CCW = 2,
+    },
+};
 pub const KeyCodeFire = struct {
     tap_keycode: u8 = 0,
     tap_modifiers: ?Modifiers = null,

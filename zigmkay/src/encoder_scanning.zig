@@ -10,12 +10,6 @@ const core = @import("core.zig");
 const microzig = @import("microzig");
 const rp2xxx = microzig.hal;
 const time = rp2xxx.time;
-pub const EncoderEvent = struct {
-    direction: enum(u8) {
-        CW = 1,
-        CCW = 2,
-    },
-};
 
 pub const EncoderPins = struct {
     pin_a: rp2xxx.gpio.Pin,
@@ -80,7 +74,7 @@ pub const Encoder = struct {
     /// The accumulator is not reset at intermediate states (e.g. 11), so a full step
     /// (00→01→11→10→00) accumulates +4 before firing. A single jitter bounce
     /// (e.g. 00→01→00) nets zero and is discarded.
-    pub fn update(self: *Encoder, current_time: core.TimeSinceBoot) ?EncoderEvent {
+    pub fn update(self: *Encoder, current_time: core.TimeSinceBoot) ?core.EncoderEvent {
         const new_state = read_state(self.pins);
 
         const transition_table: [4][4]i8 = comptime .{
@@ -115,11 +109,11 @@ pub const Encoder = struct {
         if (state.accumulator >= state.sensitivity) {
             state.accumulator -= state.sensitivity;
             state.last_announced_change = current_time;
-            return EncoderEvent{ .direction = .CW };
+            return core.EncoderEvent{ .direction = .CW, .def = self.config };
         } else if (state.accumulator <= -state.sensitivity) {
             state.accumulator += state.sensitivity;
             state.last_announced_change = current_time;
-            return EncoderEvent{ .direction = .CCW };
+            return core.EncoderEvent{ .direction = .CCW, .def = self.config };
         }
 
         // Not enough change to trigger an announcement yet.
