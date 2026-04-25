@@ -46,7 +46,7 @@ pub const Encoder = struct {
         config.pins.pin_b.set_pull(.up);
 
         var self = Encoder{
-            .config = .{ .pins = config.pins, .actions = .{} },
+            .config = config,
             .state = .{
                 .last_announced_change = current_time,
                 .last_change_detected = current_time,
@@ -107,11 +107,15 @@ pub const Encoder = struct {
         if (state.accumulator >= self.config.pins.sensitivity) {
             state.accumulator -= self.config.pins.sensitivity;
             state.last_announced_change = current_time;
-            return core.EncoderEvent{ .direction = .CW, .actions = self.config.actions };
+            if(self.config.actions.tap_cw)|tap|{
+                return core.EncoderEvent{ .tap = tap };
+            } 
         } else if (state.accumulator <= -self.config.pins.sensitivity) {
             state.accumulator += self.config.pins.sensitivity;
             state.last_announced_change = current_time;
-            return core.EncoderEvent{ .direction = .CCW, .actions = self.config.actions };
+            if(self.config.actions.tap_ccw)|tap|{
+                return core.EncoderEvent{ .tap = tap };
+            }
         }
 
         // Not enough change to trigger an announcement yet.

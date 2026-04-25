@@ -73,8 +73,6 @@ pub fn run() !void {
 
         current_time,
     );
-    const max_len = 2000;
-    var buf: [max_len]u8 = undefined;
 
     p.click.set_function(.sio);
     p.click.set_direction(.in);
@@ -86,27 +84,10 @@ pub fn run() !void {
 
         const event = encoder.update(current_time);
         if (event) |e| {
-            switch (e.direction) {
-                .CW => {
-                    try usb_command_queue.queue.enqueue(.{ .ConsumerKeyPressed = .VolumeUp });
-                    try usb_command_queue.queue.enqueue(.{ .ConsumerKeyReleased = .VolumeUp });
-
-                    const numAsString = try std.fmt.bufPrint(&buf, "{}", .{1});
-                    try usb_command_queue.print_string(numAsString);
-
-                    //p.led.put(1);
-                },
-                .CCW => {
-                    try usb_command_queue.queue.enqueue(.{ .ConsumerKeyPressed = .VolumeDown });
-                    try usb_command_queue.queue.enqueue(.{ .ConsumerKeyReleased = .VolumeDown });
-                    const numAsString = try std.fmt.bufPrint(&buf, "{}", .{0});
-                    try usb_command_queue.print_string(numAsString);
-                    //p.led.put(0);
-                },
-            }
+            try usb_command_queue.queue.enqueue(.{ .ConsumerKeyPressed = e.tap.media_key.? });
+            try usb_command_queue.queue.enqueue(.{ .ConsumerKeyReleased = e.tap.media_key.? });
         }
 
-        p.led.put(p.click.read());
         //runner.run_unibody() catch {
         //    blink_led(10000000, 500); // in case of an error, let the keyboard start blinking
         //};
