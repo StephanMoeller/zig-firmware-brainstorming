@@ -10,7 +10,7 @@ const us = zigmkay.keycodes.us;
 const time = rp2xxx.time;
 
 const usb = zigmkay.usb;
-const encoder_lib = zigmkay.encoder;
+const encoder_lib = zigmkay.encoder_scanning;
 
 // zig fmt: off
 pub const pin_config = rp2xxx.pins.GlobalConfiguration{

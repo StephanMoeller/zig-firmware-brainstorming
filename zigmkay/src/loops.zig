@@ -4,7 +4,7 @@ pub const core = @import("core.zig");
 pub const matrix_scanning = @import("matrix_scanning.zig");
 pub const processing = @import("processing.zig");
 pub const usb = @import("usb_command_executor.zig");
-pub const encoder = @import("encoder_scanning.zig");
+pub const encoder_scanning = @import("encoder_scanning.zig");
 
 const std = @import("std");
 const microzig = @import("microzig");
