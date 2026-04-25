@@ -9,19 +9,13 @@ fn on_event(e: core.ProcessorEvent, layers: *core.LayerActivations, output_queue
 }
 
 const no_functions: core.CustomFunctions = .{ .on_event = on_event };
-pub fn init_test_full(
-    comptime keymap_dimensions: core.KeymapDimensions,
-    comptime keymap: *const [keymap_dimensions.layer_count][keymap_dimensions.key_count]core.KeyDef,
-    comptime combos: []const core.Combo2Def,
-    comptime custom_functions: *const core.CustomFunctions,
-    comptime sides: [keymap_dimensions.key_count]core.Side,
-) type {
+pub fn init_with_config(comptime keymap_dimensions: core.KeymapDimensions, comptime config: CreateConfig(keymap_dimensions)) type {
     const ProcessorType = zigmkay.processing.CreateProcessorType(
         &keymap_dimensions,
-        keymap,
-        &sides,
-        combos,
-        custom_functions,
+        config.keymap,
+        &config.sides,
+        config.combos,
+        config.custom_functions,
     );
     return struct {
         const Self = @This();
@@ -53,32 +47,6 @@ pub fn CreateConfig(keymap_dimensions: core.KeymapDimensions) type {
         custom_functions: *const core.CustomFunctions = &no_functions,
         sides: [keymap_dimensions.key_count]core.Side = @splat(.X),
     };
-}
-
-pub fn init_test_with_combos(
-    comptime keymap_dimensions: core.KeymapDimensions,
-    comptime keymap: *const [keymap_dimensions.layer_count][keymap_dimensions.key_count]core.KeyDef,
-    comptime combos: []const core.Combo2Def,
-) type {
-    return init_test_full(keymap_dimensions, keymap, combos, &no_functions, @splat(.X));
-}
-pub fn init_test(
-    comptime keymap_dimensions: core.KeymapDimensions,
-    comptime keymap: *const [keymap_dimensions.layer_count][keymap_dimensions.key_count]core.KeyDef,
-) type {
-    return init_test_full(keymap_dimensions, keymap, no_combos[0..], &no_functions, @splat(.X));
-}
-
-pub fn init_test_with_sides(
-    comptime keymap_dimensions: core.KeymapDimensions,
-    comptime keymap: *const [keymap_dimensions.layer_count][keymap_dimensions.key_count]core.KeyDef,
-    comptime sides: [keymap_dimensions.key_count]core.Side,
-) type {
-    return init_test_full(keymap_dimensions, keymap, no_combos[0..], &no_functions, sides);
-}
-
-pub fn init_with_config(comptime keymap_dimensions: core.KeymapDimensions, config: CreateConfig(keymap_dimensions)) type {
-    return init_test_full(keymap_dimensions, config.keymap, config.combos, config.custom_functions, config.sides);
 }
 
 pub fn ONE_SHOT_LAYER(layer: u8) core.TapDef {
