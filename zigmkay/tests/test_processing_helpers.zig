@@ -45,6 +45,16 @@ pub fn init_test_full(
         }
     };
 }
+
+pub fn CreateConfig(keymap_dimensions: core.KeymapDimensions) type {
+    return struct {
+        keymap: *const [keymap_dimensions.layer_count][keymap_dimensions.key_count]core.KeyDef,
+        combos: []const core.Combo2Def = &.{},
+        custom_functions: *const core.CustomFunctions = &no_functions,
+        sides: [keymap_dimensions.key_count]core.Side = @splat(.X),
+    };
+}
+
 pub fn init_test_with_combos(
     comptime keymap_dimensions: core.KeymapDimensions,
     comptime keymap: *const [keymap_dimensions.layer_count][keymap_dimensions.key_count]core.KeyDef,
@@ -65,6 +75,10 @@ pub fn init_test_with_sides(
     comptime sides: [keymap_dimensions.key_count]core.Side,
 ) type {
     return init_test_full(keymap_dimensions, keymap, no_combos[0..], &no_functions, sides);
+}
+
+pub fn init_with_config(comptime keymap_dimensions: core.KeymapDimensions, config: CreateConfig(keymap_dimensions)) type {
+    return init_test_full(keymap_dimensions, config.keymap, config.combos, config.custom_functions, config.sides);
 }
 
 pub fn ONE_SHOT_LAYER(layer: u8) core.TapDef {
