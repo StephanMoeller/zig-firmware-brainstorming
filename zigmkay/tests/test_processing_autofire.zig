@@ -3,7 +3,6 @@ const zigmkay = @import("zigmkay");
 const core = zigmkay.core;
 
 const helpers = @import("test_processing_helpers.zig");
-const init_test = helpers.init_test;
 const init_with_config = helpers.init_with_config;
 const a = 0x04;
 const b = 0x05;
@@ -93,7 +92,7 @@ test "Autofire - case B" {
     var current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
     const base_layer = comptime [_]core.KeyDef{ auto_fire_a, auto_fire_b, C, D };
     const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
-    var o = init_test(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap){};
+    var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
 
     const key_a_idx = 0;
 
@@ -150,7 +149,7 @@ test "Autofire - case C" {
     var current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
     const base_layer = comptime [_]core.KeyDef{ auto_fire_a, auto_fire_b, C, D };
     const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
-    var o = init_test(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap){};
+    var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
 
     const key_a_idx = 0;
     const key_b_idx = 1;
@@ -216,7 +215,7 @@ test "Autofire - case D" {
     var current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
     const base_layer = comptime [_]core.KeyDef{ auto_fire_a, auto_fire_b, C, D };
     const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
-    var o = init_test(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap){};
+    var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
 
     const key_a_idx = 0;
     const key_b_idx = 1;

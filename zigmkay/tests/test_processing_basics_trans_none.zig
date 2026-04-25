@@ -3,7 +3,7 @@ const zigmkay = @import("zigmkay");
 const core = zigmkay.core;
 
 const helpers = @import("test_processing_helpers.zig");
-const init_test = helpers.init_test;
+const init_with_config = helpers.init_with_config;
 
 const a = 0x04;
 const b = 0x05;
@@ -33,7 +33,7 @@ test "TRANSPARENT case 1" {
     const layer_2 = comptime [_]core.KeyDef{ C, C, C, C, C, C };
     const layer_3 = comptime [_]core.KeyDef{ helpers.TRANSPARENT(), helpers.NONE(), D, D, D, D };
     const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, layer_1, layer_2, layer_3 };
-    var o = init_test(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap){};
+    var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
     // Hold for layer switch 1 and 3
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = true, .key_index = 1 });
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = true, .key_index = 3 });
@@ -64,7 +64,7 @@ test "TRANSPARENT case 2" {
     const layer_2 = comptime [_]core.KeyDef{ C, C, C, C, C, C };
     const layer_3 = comptime [_]core.KeyDef{ helpers.TRANSPARENT(), helpers.NONE(), D, D, D, D };
     const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, layer_1, layer_2, layer_3 };
-    var o = init_test(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap){};
+    var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
     // Hold for layer switch 1 and 3
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = true, .key_index = 1 });
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = true, .key_index = 3 });
@@ -96,7 +96,7 @@ test "TRANSPARENT case 3" {
     const layer_2 = comptime [_]core.KeyDef{ C, C, C, C, C, C };
     const layer_3 = comptime [_]core.KeyDef{ helpers.TRANSPARENT(), helpers.NONE(), D, D, D, D };
     const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, layer_1, layer_2, layer_3 };
-    var o = init_test(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap){};
+    var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
     // Hold for layer switch 1 and 3
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = true, .key_index = 1 });
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = true, .key_index = 3 });
@@ -119,7 +119,7 @@ test "NONE key" {
     const base_layer = comptime [_]core.KeyDef{ A, A, mo1_key };
     const layer_1 = comptime [_]core.KeyDef{ helpers.NONE(), D, D };
     const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, layer_1 };
-    var o = init_test(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap){};
+    var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
     // Hold for layer switch 1
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = true, .key_index = 2 });
 

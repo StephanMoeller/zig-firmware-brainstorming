@@ -27,7 +27,7 @@ fn run_test(
     const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
     const dim = core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len };
     const sides: [dim.key_count]core.Side = .{ tap_hold_side, tap_side };
-    var o = helpers.init_test_with_sides(dim, &keymap, sides){};
+    var o = helpers.init_with_config(dim, .{ .keymap = &keymap, .sides = sides }){};
 
     try o.press_key(0, current_time);
     current_time = current_time.add_ms(10); // within tapping term

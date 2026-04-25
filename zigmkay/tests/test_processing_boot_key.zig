@@ -26,7 +26,7 @@ test "boot key test" {
     const base_layer = comptime [_]core.KeyDef{ A, B, boot_key, D };
 
     const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
-    var o = helpers.init_test(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap){};
+    var o = helpers.init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
 
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = true, .key_index = 2 });
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = false, .key_index = 2 });
@@ -48,7 +48,7 @@ test "boot key as a combo test" {
 
     const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
 
-    var o = helpers.init_test_with_combos(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap, &combos){};
+    var o = helpers.init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap, .combos = &combos }){};
 
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = true, .key_index = 1 });
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = true, .key_index = 2 });

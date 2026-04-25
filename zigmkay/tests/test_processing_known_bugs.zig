@@ -3,7 +3,7 @@ const zigmkay = @import("zigmkay");
 const core = zigmkay.core;
 
 const helpers = @import("test_processing_helpers.zig");
-const init_test = helpers.init_test;
+const init_with_config = helpers.init_with_config;
 
 const a = 0x04;
 const b = 0x05;
@@ -27,7 +27,7 @@ test "Exceeding 28 keys - a bug with 28 being hardcoded caused following keys to
 
     const base_layer = comptime [_]core.KeyDef{A} ** 30;
     const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
-    var o = init_test(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap){};
+    var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
 
     try o.press_key(28, current_time);
     try o.release_key(28, current_time);

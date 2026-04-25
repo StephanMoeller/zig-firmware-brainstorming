@@ -30,7 +30,7 @@ test "combo hold, single key press" {
     const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
     const combos = comptime [_]core.Combo2Def{.{ .key_indexes = .{ 0, 1 }, .layer = 0, .timeout = combo_timeout, .key_def = core.KeyDef{ .hold_only = .{ .hold_modifiers = .{ .left_shift = true } } } }};
 
-    var o = helpers.init_test_with_combos(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap, &combos){};
+    var o = helpers.init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap, .combos = &combos }){};
 
     try o.press_key(0, current_time);
     try o.press_key(1, current_time);
@@ -59,7 +59,7 @@ test "single key hold, combo key press" {
         .{ .key_indexes = .{ 1, 2 }, .layer = 0, .timeout = combo_timeout, .key_def = core.KeyDef{ .tap_only = .{ .key_press = .{ .tap_keycode = e } } } },
     };
 
-    var o = helpers.init_test_with_combos(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap, &combos){};
+    var o = helpers.init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap, .combos = &combos }){};
 
     try o.press_key(0, current_time);
     try o.press_key(1, current_time);
@@ -87,7 +87,7 @@ test "combo hold, combo key press" {
         .{ .key_indexes = .{ 2, 3 }, .layer = 0, .timeout = combo_timeout, .key_def = core.KeyDef{ .tap_only = .{ .key_press = .{ .tap_keycode = e } } } },
     };
 
-    var o = helpers.init_test_with_combos(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap, &combos){};
+    var o = helpers.init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap, .combos = &combos }){};
 
     try o.press_key(0, current_time);
     try o.press_key(1, current_time);

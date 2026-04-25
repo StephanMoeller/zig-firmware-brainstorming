@@ -3,7 +3,7 @@ const zigmkay = @import("zigmkay");
 const core = zigmkay.core;
 
 const helpers = @import("test_processing_helpers.zig");
-const init_test = helpers.init_test;
+const init_with_config = helpers.init_with_config;
 
 const a = 0x04;
 const b = 0x05;
@@ -42,7 +42,7 @@ fn run_permissive_hold_test(comptime config: PermissiveHoldParameters) !void {
     const base_layer = comptime [_]core.KeyDef{ key_with_permissive_hold, other_key_def, A };
     const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
 
-    var o = init_test(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap){};
+    var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
 
     const target_key_index = 0;
     const other_key_index = 1;
@@ -110,7 +110,7 @@ test "MT - multiple holds, release in same order" {
     const _c = 2;
     const _d = 3;
 
-    var o = init_test(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap){};
+    var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
     // should be seen as modifiers:
     try o.press_key(_a, current_time);
     try o.press_key(_b, current_time);
@@ -157,7 +157,7 @@ test "MT - multiple holds, release in reverse order" {
     const _c = 2;
     const _d = 3;
 
-    var o = init_test(core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len }, &keymap){};
+    var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
     // should be seen as modifiers:
     current_time = current_time.add_us(1);
     try o.press_key(_a, current_time);
