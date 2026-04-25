@@ -22,11 +22,6 @@ pub const EncoderPins = struct {
     pin_b: rp2xxx.gpio.Pin,
 };
 
-pub const EncoderConfig = struct {
-    tap_cw: ?core.TapDef = null,
-    tap_ccw: ?core.TapDef = null,
-};
-
 pub const EncoderState = struct {
     last_detected_state: u2 = 0,
     accumulator: i8 = 0,
@@ -40,7 +35,7 @@ pub const EncoderState = struct {
 ///
 pub const Encoder = struct {
     pins: EncoderPins,
-    config: EncoderConfig,
+    config: core.EncoderDef,
     state: EncoderState,
 
     /// Initializes a new Encoder instance, setting the given pins as input with pull-ups enabled.

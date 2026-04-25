@@ -27,6 +27,10 @@ pub const KC_PRINT_STATS = KeyCodeFire{ .tap_keycode = special_keycode_PRINT_STA
 pub const KC_COMPANION = KeyCodeFire{ .tap_keycode = special_keycode_COMPANION };
 pub const KC_SHUTDOWN_COMPANION = KeyCodeFire{ .tap_keycode = special_keycode_SHUTDOWN_COMPANION };
 
+pub const EncoderDef = struct {
+    tap_cw: ?TapDef = null,
+    tap_ccw: ?TapDef = null,
+};
 pub const KeyCodeFire = struct {
     tap_keycode: u8 = 0,
     tap_modifiers: ?Modifiers = null,
