@@ -59,7 +59,18 @@ pub fn run() !void {
 
     var current_time = get_current_time();
     var encoder = encoder_lib.Encoder.init(
-        .{ .pin_a = p.data1, .pin_b = p.data2, .sensitivity = 4 },
+        .{
+            .pins = .{
+                .pin_a = p.data1,
+                .pin_b = p.data2,
+                .sensitivity = 4,
+            },
+            .actions = .{
+                .tap_cw = core.TapDef{ .media_key = .VolumeUp },
+                .tap_ccw = core.TapDef{ .media_key = .VolumeDown },
+            },
+        },
+
         current_time,
     );
     const max_len = 2000;

@@ -37,16 +37,16 @@ pub const Encoder = struct {
 
     /// Initializes a new Encoder instance, setting the given pins as input with pull-ups enabled.
     /// Reads the initial internal state of the pins.
-    pub fn init(pins: EncoderPins, current_time: core.TimeSinceBoot) Encoder {
-        pins.pin_a.set_function(.sio);
-        pins.pin_b.set_function(.sio);
-        pins.pin_a.set_direction(.in);
-        pins.pin_b.set_direction(.in);
-        pins.pin_a.set_pull(.up);
-        pins.pin_b.set_pull(.up);
+    pub fn init(config: EncoderConfig, current_time: core.TimeSinceBoot) Encoder {
+        config.pins.pin_a.set_function(.sio);
+        config.pins.pin_b.set_function(.sio);
+        config.pins.pin_a.set_direction(.in);
+        config.pins.pin_b.set_direction(.in);
+        config.pins.pin_a.set_pull(.up);
+        config.pins.pin_b.set_pull(.up);
 
         var self = Encoder{
-            .config = .{ .pins = pins, .actions = .{} },
+            .config = .{ .pins = config.pins, .actions = .{} },
             .state = .{
                 .last_announced_change = current_time,
                 .last_change_detected = current_time,
