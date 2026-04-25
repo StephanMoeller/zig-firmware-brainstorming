@@ -65,14 +65,14 @@ pub const Encoder = struct {
             },
             .config = .{},
         };
-        self.state.last_detected_state = self.read_state();
+        self.state.last_detected_state = read_state(self.pins);
 
         return self;
     }
 
-    fn read_state(self: Encoder) u2 {
-        const a = self.pins.pin_a.read();
-        const b = self.pins.pin_b.read();
+    fn read_state(pins: EncoderPins) u2 {
+        const a = pins.pin_a.read();
+        const b = pins.pin_b.read();
         return (@as(u2, a) << 1) | @as(u2, b);
     }
 
@@ -86,7 +86,7 @@ pub const Encoder = struct {
     /// (00→01→11→10→00) accumulates +4 before firing. A single jitter bounce
     /// (e.g. 00→01→00) nets zero and is discarded.
     pub fn update(self: *Encoder, current_time: core.TimeSinceBoot) ?EncoderEvent {
-        const new_state = self.read_state();
+        const new_state = read_state(self.pins);
 
         const transition_table: [4][4]i8 = comptime .{
             // zig fmt: off
