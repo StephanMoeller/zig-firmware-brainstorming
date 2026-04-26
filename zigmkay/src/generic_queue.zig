@@ -23,13 +23,17 @@ pub fn GenericQueue(comptime T: type, comptime max_capacity: usize) type {
         pub fn dequeue_count(self: *Self, count: u8) DequeueError!void {
             var i = count;
             while (i > 0) {
-                _ = try dequeue(self);
-                i -= 1;
+                const event_or_null = dequeue(self);
+                if (event_or_null) |_| {
+                    i -= 1;
+                } else {
+                    return DequeueError.NoElements;
+                }
             }
         }
-        pub fn dequeue(self: *Self) DequeueError!T {
+        pub fn dequeue(self: *Self) ?T {
             if (self.size == 0) {
-                return DequeueError.NoElements;
+                return null;
             }
             const head_element = self.data[0];
 

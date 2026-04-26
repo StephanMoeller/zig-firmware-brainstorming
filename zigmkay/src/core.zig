@@ -194,8 +194,8 @@ pub const OutputCommandQueue = struct {
     pub fn Create() OutputCommandQueue {
         return OutputCommandQueue{};
     }
-    pub fn dequeue(self: *OutputCommandQueue) !OutputCommand {
-        return try self.queue.dequeue();
+    pub fn dequeue(self: *OutputCommandQueue) ?OutputCommand {
+        return self.queue.dequeue();
     }
     pub fn Count(self: *OutputCommandQueue) usize {
         return self.queue.Count();

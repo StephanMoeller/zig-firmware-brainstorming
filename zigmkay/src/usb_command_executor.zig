@@ -26,9 +26,8 @@ pub const UsbCommandExecutor = struct {
         const diff_us = current_time.time_since_boot_us - prev_action_time.time_since_boot_us;
 
         if (diff_us > next_tick_delay) {
-            if (output_command_queue.has_events()) {
+            if (output_command_queue.dequeue()) |command| {
                 prev_action_time = current_time;
-                const command = output_command_queue.dequeue() catch unreachable;
                 var should_send_keyboard_report = false;
                 switch (command) {
                     .KeyCodePress => |keycode| {

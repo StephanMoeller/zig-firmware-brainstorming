@@ -78,13 +78,13 @@ test "dequeue error" {
     try queue.enqueue(3);
     try queue.enqueue(4);
 
-    _ = try queue.dequeue();
-    _ = try queue.dequeue();
-    _ = try queue.dequeue();
-    _ = try queue.dequeue();
+    _ = queue.dequeue();
+    _ = queue.dequeue();
+    _ = queue.dequeue();
+    _ = queue.dequeue();
 
     const result = queue.dequeue();
-    try std.testing.expectEqual(q.DequeueError.NoElements, result);
+    try std.testing.expectEqual(null, result);
 
     try queue.enqueue(5);
     try std.testing.expectEqual(5, queue.dequeue());
@@ -98,11 +98,11 @@ test "queue ring buffer testing" {
         idx += 1;
     }
 
-    try std.testing.expectEqual(0, try queue.dequeue());
-    try std.testing.expectEqual(1, try queue.dequeue());
-    try std.testing.expectEqual(2, try queue.dequeue());
-    try std.testing.expectEqual(3, try queue.dequeue());
-    try std.testing.expectEqual(4, try queue.dequeue());
+    try std.testing.expectEqual(0, queue.dequeue());
+    try std.testing.expectEqual(1, queue.dequeue());
+    try std.testing.expectEqual(2, queue.dequeue());
+    try std.testing.expectEqual(3, queue.dequeue());
+    try std.testing.expectEqual(4, queue.dequeue());
     try std.testing.expectEqual(0, queue.Count());
 }
 
@@ -129,8 +129,8 @@ test "peek_all" {
         try std.testing.expectEqual(4, all[3]);
     }
 
-    _ = try queue.dequeue();
-    _ = try queue.dequeue();
+    _ = queue.dequeue();
+    _ = queue.dequeue();
 
     const all = queue.peek_all();
     try std.testing.expectEqual(2, queue.Count());
@@ -155,8 +155,8 @@ test "peek" {
 
     try std.testing.expectEqual(1, queue.peek());
 
-    _ = try queue.dequeue();
-    _ = try queue.dequeue();
+    _ = queue.dequeue();
+    _ = queue.dequeue();
 
     try std.testing.expectEqual(2, queue.Count());
     try std.testing.expectEqual(3, queue.peek());

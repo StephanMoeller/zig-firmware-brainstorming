@@ -45,8 +45,8 @@ test "TRANSPARENT case 1" {
     try o.process(current_time);
 
     // Press B expected
-    try std.testing.expectEqual(b, (try o.actions_queue.dequeue()).KeyCodePress);
-    try std.testing.expectEqual(b, (try o.actions_queue.dequeue()).KeyCodeRelease);
+    try std.testing.expectEqual(b, o.actions_queue.dequeue().?.KeyCodePress);
+    try std.testing.expectEqual(b, o.actions_queue.dequeue().?.KeyCodeRelease);
 
     // Expect no more actions
     try std.testing.expectEqual(0, o.matrix_change_queue.Count());
@@ -76,8 +76,8 @@ test "TRANSPARENT case 2" {
     try o.process(current_time);
 
     // Press A expected
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.actions_queue.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, o.actions_queue.dequeue());
 
     // Expect no more actions
     try std.testing.expectEqual(0, o.matrix_change_queue.Count());

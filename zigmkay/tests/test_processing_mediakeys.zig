@@ -36,7 +36,7 @@ test "TAP - single key press" {
     try o.process(current_time);
 
     try std.testing.expectEqual(1, o.actions_queue.Count());
-    try std.testing.expectEqual(core.OutputCommand{ .ConsumerKeyPressed = media_key_code }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .ConsumerKeyPressed = media_key_code }, o.actions_queue.dequeue());
 
     try o.release_key(2, current_time);
     current_time = current_time.add_ms(20);
@@ -44,5 +44,5 @@ test "TAP - single key press" {
     try o.process(current_time);
 
     try std.testing.expectEqual(1, o.actions_queue.Count());
-    try std.testing.expectEqual(core.OutputCommand{ .ConsumerKeyReleased = media_key_code }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .ConsumerKeyReleased = media_key_code }, o.actions_queue.dequeue());
 }
