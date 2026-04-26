@@ -44,7 +44,7 @@ pub fn main() !void {
         p.led.put(1);
     };
 }
-const encoder_config = encoder_scanning.EncoderConfig{
+var encoder_configs = [_]encoder_scanning.EncoderConfig{encoder_scanning.EncoderConfig{
     .pins = .{
         .pin_a = p.data1,
         .pin_b = p.data2,
@@ -54,8 +54,7 @@ const encoder_config = encoder_scanning.EncoderConfig{
         .tap_cw = core.TapDef{ .media_key = .VolumeUp },
         .tap_ccw = core.TapDef{ .media_key = .VolumeDown },
     },
-};
-var encoder_configs = [_]encoder_scanning.EncoderConfig{encoder_config};
+}};
 pub fn run() !void {
     _ = pin_config.apply();
     blink_led(1, 300); // Show the user that the keyboard has actually booted up.

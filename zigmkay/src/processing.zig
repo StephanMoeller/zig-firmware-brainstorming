@@ -31,6 +31,13 @@ pub fn CreateProcessorType(
             _ = self.stats.register_tick(current_time);
             on_event(self, core.ProcessorEvent.Tick);
 
+            while (self.encoder_event_changes.Count() > 0) {
+                if (self.encoder_event_changes.dequeue()) |e| {
+                    try self.execute_tap_press(e.tap);
+                    try self.execute_tap_release(e.tap);
+                }
+            }
+
             while (true) {
                 const data: []core.MatrixStateChange = self.input_matrix_changes.peek_all()[0..];
                 switch (try process_next(self, data, current_time)) {
@@ -42,12 +49,6 @@ pub fn CreateProcessorType(
             }
 
             try tick_autofire(self, current_time);
-
-            while (self.encoder_event_changes.Count() > 0) {
-                const e = try self.encoder_event_changes.dequeue();
-                try self.execute_tap_press(e.tap);
-                try self.execute_tap_release(e.tap);
-            }
         }
 
         fn process_next(self: *Self, data: []core.MatrixStateChange, current_time: core.TimeSinceBoot) !ProcessContinuation {
