@@ -32,8 +32,8 @@ test "Exceeding 28 keys - a bug with 28 being hardcoded caused following keys to
     try o.press_key(28, current_time);
     try o.release_key(28, current_time);
     try o.process(current_time);
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.actions_queue.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, o.actions_queue.dequeue());
     try std.testing.expectEqual(0, o.actions_queue.Count());
 }
 

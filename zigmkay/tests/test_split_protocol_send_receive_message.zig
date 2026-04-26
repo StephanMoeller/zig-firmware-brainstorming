@@ -108,9 +108,9 @@ test "sendMessage/receive - KeyPressed example" {
     const msg = p.ProtocolMessage{ .MatrixStateChange = .{ .key_index = 54, .pressed = true } };
     try uart_sender.sendMessage(msg);
 
-    try std.testing.expectEqual(null, uart_receiver.receiveByte(try uart_sender.byte_queue.dequeue()));
-    try std.testing.expectEqual(null, uart_receiver.receiveByte(try uart_sender.byte_queue.dequeue()));
-    try std.testing.expectEqual(msg, uart_receiver.receiveByte(try uart_sender.byte_queue.dequeue()));
+    try std.testing.expectEqual(null, uart_receiver.receiveByte(uart_sender.byte_queue.dequeue().?));
+    try std.testing.expectEqual(null, uart_receiver.receiveByte(uart_sender.byte_queue.dequeue().?));
+    try std.testing.expectEqual(msg, uart_receiver.receiveByte(uart_sender.byte_queue.dequeue().?));
     try std.testing.expectEqual(0, uart_sender.byte_queue.Count());
 }
 
@@ -121,9 +121,9 @@ test "sendMessage/receive - KeyReleased example" {
     const msg = p.ProtocolMessage{ .MatrixStateChange = .{ .key_index = 54, .pressed = false } };
     try uart_sender.sendMessage(msg);
 
-    try std.testing.expectEqual(null, uart_receiver.receiveByte(try uart_sender.byte_queue.dequeue()));
-    try std.testing.expectEqual(null, uart_receiver.receiveByte(try uart_sender.byte_queue.dequeue()));
-    try std.testing.expectEqual(msg, uart_receiver.receiveByte(try uart_sender.byte_queue.dequeue()));
+    try std.testing.expectEqual(null, uart_receiver.receiveByte(uart_sender.byte_queue.dequeue().?));
+    try std.testing.expectEqual(null, uart_receiver.receiveByte(uart_sender.byte_queue.dequeue().?));
+    try std.testing.expectEqual(msg, uart_receiver.receiveByte(uart_sender.byte_queue.dequeue().?));
     try std.testing.expectEqual(0, uart_sender.byte_queue.Count());
 }
 
@@ -132,9 +132,9 @@ test "sendMessage/receive - EncoderValueChanged example" {
     var uart_sender = p.UartSendHelper{};
     try uart_sender.sendMessage(p.ProtocolMessage{ .EncoderValueChanged = 2 });
 
-    try std.testing.expectEqual(null, uart_receiver.receiveByte(try uart_sender.byte_queue.dequeue()));
-    try std.testing.expectEqual(null, uart_receiver.receiveByte(try uart_sender.byte_queue.dequeue()));
-    try std.testing.expectEqual(p.ProtocolMessage{ .EncoderValueChanged = 2 }, uart_receiver.receiveByte(try uart_sender.byte_queue.dequeue()));
+    try std.testing.expectEqual(null, uart_receiver.receiveByte(uart_sender.byte_queue.dequeue().?));
+    try std.testing.expectEqual(null, uart_receiver.receiveByte(uart_sender.byte_queue.dequeue().?));
+    try std.testing.expectEqual(p.ProtocolMessage{ .EncoderValueChanged = 2 }, uart_receiver.receiveByte(uart_sender.byte_queue.dequeue().?));
     try std.testing.expectEqual(0, uart_sender.byte_queue.Count());
 }
 
@@ -151,18 +151,18 @@ test "sendMessage/receive - multiple values example" {
     try uart_sender.byte_queue.enqueue(p.DELIMITER); // add some noise!
     try uart_sender.sendMessage(msg3);
 
-    try std.testing.expectEqual(null, uart_receiver.receiveByte(try uart_sender.byte_queue.dequeue()));
-    try std.testing.expectEqual(null, uart_receiver.receiveByte(try uart_sender.byte_queue.dequeue()));
-    try std.testing.expectEqual(msg1, uart_receiver.receiveByte(try uart_sender.byte_queue.dequeue()));
+    try std.testing.expectEqual(null, uart_receiver.receiveByte(uart_sender.byte_queue.dequeue().?));
+    try std.testing.expectEqual(null, uart_receiver.receiveByte(uart_sender.byte_queue.dequeue().?));
+    try std.testing.expectEqual(msg1, uart_receiver.receiveByte(uart_sender.byte_queue.dequeue().?));
 
-    try std.testing.expectEqual(null, uart_receiver.receiveByte(try uart_sender.byte_queue.dequeue()));
-    try std.testing.expectEqual(null, uart_receiver.receiveByte(try uart_sender.byte_queue.dequeue()));
-    try std.testing.expectEqual(msg2, uart_receiver.receiveByte(try uart_sender.byte_queue.dequeue()));
+    try std.testing.expectEqual(null, uart_receiver.receiveByte(uart_sender.byte_queue.dequeue().?));
+    try std.testing.expectEqual(null, uart_receiver.receiveByte(uart_sender.byte_queue.dequeue().?));
+    try std.testing.expectEqual(msg2, uart_receiver.receiveByte(uart_sender.byte_queue.dequeue().?));
 
-    try std.testing.expectEqual(null, uart_receiver.receiveByte(try uart_sender.byte_queue.dequeue()));
-    try std.testing.expectEqual(null, uart_receiver.receiveByte(try uart_sender.byte_queue.dequeue()));
-    try std.testing.expectEqual(null, uart_receiver.receiveByte(try uart_sender.byte_queue.dequeue()));
-    try std.testing.expectEqual(msg3, uart_receiver.receiveByte(try uart_sender.byte_queue.dequeue()));
+    try std.testing.expectEqual(null, uart_receiver.receiveByte(uart_sender.byte_queue.dequeue().?));
+    try std.testing.expectEqual(null, uart_receiver.receiveByte(uart_sender.byte_queue.dequeue().?));
+    try std.testing.expectEqual(null, uart_receiver.receiveByte(uart_sender.byte_queue.dequeue().?));
+    try std.testing.expectEqual(msg3, uart_receiver.receiveByte(uart_sender.byte_queue.dequeue().?));
 
     try std.testing.expectEqual(0, uart_sender.byte_queue.Count());
 }

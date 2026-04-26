@@ -119,10 +119,10 @@ fn run(events: []TestEvent, expect: TestExpectation) !void {
             try std.testing.expectEqual(0, o.actions_queue.Count());
         },
         .tap => {
-            try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = KC_A }, try o.actions_queue.dequeue());
+            try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = KC_A }, o.actions_queue.dequeue());
         },
         .hold => {
-            try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{ .left_shift = true } }, try o.actions_queue.dequeue());
+            try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{ .left_shift = true } }, o.actions_queue.dequeue());
         },
     }
 }
