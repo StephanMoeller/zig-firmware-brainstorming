@@ -32,15 +32,33 @@ pub const EncoderConfig = struct {
     actions: core.EncoderDef,
 };
 
-pub fn CreateEncoderScanner() EncoderScanner {
-    return EncoderScanner{};
+pub fn CreateEncoderScanner(comptime encoder_configs: []EncoderConfig) EncoderScanner {
+    const scanner = EncoderScanner{
+        .encoders = undefined,
+        .encoder_configs = encoder_configs,
+    };
+
+    return scanner;
 }
 
 pub const EncoderScanner = struct {
-    //encoders: []EncoderConfig,
-    pub fn detectEncoderChanges(self: *const EncoderScanner, encoder_event_queue: core.EncoderEventQueue) !void {
-        _ = self;
-        _ = encoder_event_queue;
+    encoder_configs: []EncoderConfig,
+    encoders: []Encoder,
+    first_run: bool = true,
+    pub fn detectEncoderChanges(self: *EncoderScanner, encoder_event_queue: *core.EncoderEventQueue, current_time: core.TimeSinceBoot) !void {
+        if (self.first_run) {
+            for (self.encoder_configs, 0..) |enc_config, idx| {
+                const encoder = Encoder.init(&enc_config, current_time);
+                self.encoders[idx] = encoder;
+            }
+            self.first_run = false;
+        }
+        for (self.encoders) |enc| {
+            var e = enc;
+            if (e.update(current_time)) |event| {
+                try encoder_event_queue.enqueue(event);
+            }
+        }
     }
 };
 
@@ -50,7 +68,7 @@ pub const Encoder = struct {
 
     /// Initializes a new Encoder instance, setting the given pins as input with pull-ups enabled.
     /// Reads the initial internal state of the pins.
-    pub fn init(config: EncoderConfig, current_time: core.TimeSinceBoot) Encoder {
+    pub fn init(config: *EncoderConfig, current_time: core.TimeSinceBoot) Encoder {
         config.pins.pin_a.set_function(.sio);
         config.pins.pin_b.set_function(.sio);
         config.pins.pin_a.set_direction(.in);

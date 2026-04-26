@@ -46,6 +46,7 @@ pub fn CreateProcessorType(
             while (self.encoder_event_changes.Count() > 0) {
                 const e = try self.encoder_event_changes.dequeue();
                 try self.execute_tap_press(e.tap);
+                try self.execute_tap_release(e.tap);
             }
         }
 

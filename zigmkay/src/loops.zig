@@ -32,6 +32,7 @@ pub fn GetConfigType(comptime dimensions: *const core.KeymapDimensions) type {
             .on_event = null,
         },
         side_definition: *const [dimensions.key_count]core.Side = &[_]core.Side{core.Side.X} ** dimensions.key_count,
+        encoder_configs: []encoder_scanning.EncoderConfig = &.{},
         pub fn init() Self {
             return .{
                 .dimensions = dimensions,
@@ -63,6 +64,9 @@ pub fn GetConfigType(comptime dimensions: *const core.KeymapDimensions) type {
         }
         pub fn set_side_definitions(comptime self: *Self, side_definition: *const [dimensions.key_count]core.Side) void {
             self.side_definition = side_definition;
+        }
+        pub fn set_encoders(comptime self: *Self, encoder_configs: []encoder_scanning.EncoderConfig) void {
+            self.encoder_configs = encoder_configs;
         }
 
         pub fn build(comptime self: Self) Runner {
@@ -105,7 +109,7 @@ pub fn run_primary_internal(
 
     // Input scanning
     const matrix_scanner = comptime matrix_scanning.CreateMatrixScannerType(dimensions, config.pin_cols, config.pin_rows, config.pin_mappings, config.scanner_settings){};
-    const encoder_scanner = comptime encoder_scanning.CreateEncoderScanner();
+    var encoder_scanner = comptime encoder_scanning.CreateEncoderScanner(config.encoder_configs);
 
     // Processing
     var processor = processing.CreateProcessorType(dimensions, config.keymap, config.side_definition, config.combos, config.custom_functions){
@@ -123,7 +127,7 @@ pub fn run_primary_internal(
         // Detect local changes
         const current_time = core.TimeSinceBoot{ .time_since_boot_us = time.get_time_since_boot().to_us() };
         try matrix_scanner.DetectKeyboardChanges(&matrix_change_queue, current_time); // Scan local matrix changes
-        try encoder_scanner.detectEncoderChanges(encoder_change_queue);
+        try encoder_scanner.detectEncoderChanges(&encoder_change_queue, current_time);
 
         // Receive from remote side
         if (uart_or_null) |uart| {
