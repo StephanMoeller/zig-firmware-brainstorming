@@ -1,17 +1,23 @@
 .{
-    .name = .zigmkay,
+    .name = .zigmkay_firmware,
     .version = "0.1.0",
-    .fingerprint = 0x96c3db5c7cca4e4,
+    .fingerprint = 0x8c0e26838b84acee,
     .minimum_zig_version = "0.15.2",
     .dependencies = .{
         .microzig = .{
             .url = "git+https://github.com/ZigEmbeddedGroup/microzig.git#bd650e87a808385d3f05d365d128c58956b91bfe",
             .hash = "microzig-0.15.2-D20YSYdJ3gA04LTZlTUs3OdwmdTokw7tj61C_nzDt7Ub",
         },
+        .zig_flash = .{
+            .url = "git+https://codeberg.org/BSF/zig-flash.git#da54a2e130e1ed4aaa8cb1fb0854e532ed497cb7",
+            .hash = "zig_flash-0.1.0-yRHpSekrAADcupveamI9vg9WqtYIaaG8Vylnvix1G0Cx",
+        },
     },
     .paths = .{
         "build.zig",
         "build.zig.zon",
-        "src",
+        "keyboards",
+        "zigmkay",
+        "zkeycodes",
     },
 }

@@ -1,8 +1,12 @@
 const std = @import("std");
 
-pub fn add_test_steps(b: *std.Build, zigmkay_module: *std.Build.Module, test_step: *std.Build.Step, test_dir: []const u8) void {
-    const target = b.standardTargetOptions(.{});
-
+pub fn add_test_steps(
+    b: *std.Build,
+    zigmkay_module: *std.Build.Module,
+    test_step: *std.Build.Step,
+    target: std.Build.ResolvedTarget,
+    test_dir: []const u8,
+) void {
     // START: Create test file iterator
     var src_dir = b.build_root.handle.openDir(test_dir, .{ .iterate = true }) catch |err|
         std.debug.panic("Failed to open '{s}': {}", .{ test_dir, err });

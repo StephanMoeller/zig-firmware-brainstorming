@@ -98,7 +98,7 @@ const B_ = macros.OptionsBasicKeydef{ .tapping_term = tapping_term };
 // Use this to create keycodes with explicit modifiers attached.
 //
 // EXAMPLE: kcm.L_ALT(kc.F4) creates an Alt+F4 keycode
-const kcm = zkeycodes.core; //TODO: wow this is ugly. remove later when L_ALT is obsolete trough fn on kcf
+const kcm = zigmkay.core; //TODO: now everything exports out of core. use methods in kcf struct once ready
 
 // T = "Tap" - Creates a simple tap-only key that sends a keycode when pressed.
 // This is the most basic key type - just sends the keycode on press.

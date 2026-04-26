@@ -4,7 +4,7 @@ const keycodes = @import("test_data/keycodes.zig");
 const us = @import("test_data/us_international.zig");
 const german_mac_iso = @import("test_data/german_mac_iso.zig");
 
-const core2 = @import("src/core.zig");
+const core = @import("zigmkay_shared");
 
 test "basic keycode labels" {
     try std.testing.expectEqualStrings("L", keycodes.getLabel(keycodes.kcf.L, false).?);
@@ -78,22 +78,22 @@ test "us international shift+algr labels" {
 
 test "modifier bit logic" {
     // S() sets left_shift modifier
-    try std.testing.expectEqual(core2.L_SFT(german_mac_iso.N1), german_mac_iso.EXLM);
-    try std.testing.expectEqual(core2.L_SFT(us.N1), us.EXLM);
+    try std.testing.expectEqual(core.L_SFT(german_mac_iso.N1), german_mac_iso.EXLM);
+    try std.testing.expectEqual(core.L_SFT(us.N1), us.EXLM);
     // ALGR() sets right_alt modifier
-    try std.testing.expectEqual(core2.R_ALT(us.N1), us.IEXL);
-    try std.testing.expectEqual(core2.R_ALT(us.Z), us.AE);
+    try std.testing.expectEqual(core.R_ALT(us.N1), us.IEXL);
+    try std.testing.expectEqual(core.R_ALT(us.Z), us.AE);
     // A() sets left_alt modifier
-    try std.testing.expectEqual(core2.L_ALT(german_mac_iso.N1), german_mac_iso.IEXL);
+    try std.testing.expectEqual(core.L_ALT(german_mac_iso.N1), german_mac_iso.IEXL);
     // S(A()) sets both left_shift and left_alt
-    try std.testing.expectEqual(core2.L_SFT(core2.L_ALT(german_mac_iso.N1)), german_mac_iso.NOT);
+    try std.testing.expectEqual(core.L_SFT(core.L_ALT(german_mac_iso.N1)), german_mac_iso.NOT);
     // S(ALGR()) sets both left_shift and right_alt
-    try std.testing.expectEqual(core2.L_SFT(core2.R_ALT(us.N1)), us.SUP1);
+    try std.testing.expectEqual(core.L_SFT(core.R_ALT(us.N1)), us.SUP1);
 }
 
 test "unknown keycode returns null" {
     // 0xFB (251) is not present in the test tables
-    const unknown = core2.KeyCodeFire{ .tap_keycode = 0xFB };
+    const unknown = core.KeyCodeFire{ .tap_keycode = 0xFB };
     try std.testing.expect(keycodes.getLabel(unknown, false) == null);
     try std.testing.expect(german_mac_iso.getLabel(unknown, false) == null);
     try std.testing.expect(us.getLabel(unknown, false) == null);

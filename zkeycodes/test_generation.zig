@@ -4,7 +4,7 @@ const keycodes = @import("test_data/keycodes.zig");
 const us = @import("test_data/us_international.zig");
 const german = @import("test_data/german_mac_iso.zig");
 
-const core = @import("src/core.zig");
+const core = @import("zigmkay_shared");
 
 test "basic keycode hex values" {
     try std.testing.expectEqual(core.KeyCodeFire{ .tap_keycode = 15 }, keycodes.kcf.L);

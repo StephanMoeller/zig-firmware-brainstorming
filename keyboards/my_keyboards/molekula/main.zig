@@ -18,7 +18,7 @@ const std = @import("std");
 
 const zigmkay = @import("zigmkay");
 const core = zigmkay.core;
-const microzig = zigmkay.microzig;
+const microzig = @import("microzig");
 
 // rp2xxx = "RP2040" - The Raspberry Pi Pico's microcontroller
 // This is the hardware abstraction layer provided by microzig

@@ -1,47 +1,65 @@
 const std = @import("std");
 
-pub fn build(b: *std.Build) void {
-    const target = b.standardTargetOptions(.{});
-    const optimize = b.standardOptimizeOption(.{});
+pub const PublishOptions = struct {
+    zigmkay_shared_module: *std.Build.Module,
+    module_name: []const u8 = "zkeycodes",
+    project_root: []const u8 = ".",
+    test_step_name: []const u8 = "test",
+    convert_step_name: []const u8 = "convert",
+    convert_all_step_name: []const u8 = "convert-all",
+    target: ?std.Build.ResolvedTarget = null,
+    optimize: ?std.builtin.OptimizeMode = null,
+};
 
-    const mod = b.addModule("zkeycodes", .{
-        .root_source_file = b.path("root.zig"),
+pub const Published = struct {
+    zkeycodes_module: *std.Build.Module,
+    test_step: *std.Build.Step,
+    convert_step: *std.Build.Step,
+    convert_all_step: *std.Build.Step,
+};
+
+pub fn publish(b: *std.Build, options: PublishOptions) Published {
+    const target = options.target orelse b.standardTargetOptions(.{});
+    const optimize = options.optimize orelse b.standardOptimizeOption(.{});
+
+    const module_root_path = joinProjectPath(b, options.project_root, "root.zig");
+    const labels_root_path = joinProjectPath(b, options.project_root, "src/labels.zig");
+
+    const labels_mod = b.createModule(.{
+        .root_source_file = b.path(labels_root_path),
+        .target = target,
+        .imports = &.{
+            .{ .name = "zigmkay_shared", .module = options.zigmkay_shared_module },
+        },
+    });
+
+    const mod = b.addModule(options.module_name, .{
+        .root_source_file = b.path(module_root_path),
         .target = target,
     });
-    const zigmkay_dep = b.dependency("zigmkay", .{});
-    const zigmkay_mod = zigmkay_dep.module("zigmkay");
+    mod.addImport("zigmkay_shared", options.zigmkay_shared_module);
+    mod.addImport("zkeycodes_labels", labels_mod);
 
-    mod.addImport("zigmkay", zigmkay_mod);
+    const exe_root_path = joinProjectPath(b, options.project_root, "src/main.zig");
 
     const exe = b.addExecutable(.{
         .name = "zkeycodes",
         .root_module = b.createModule(.{
-            .root_source_file = b.path("src/main.zig"),
+            .root_source_file = b.path(exe_root_path),
             .target = target,
             .optimize = optimize,
             .imports = &.{
-                .{ .name = "zkeycodes", .module = mod },
+                .{ .name = options.module_name, .module = mod },
+                .{ .name = "zigmkay_shared", .module = options.zigmkay_shared_module },
+                .{ .name = "zkeycodes_labels", .module = labels_mod },
             },
         }),
     });
 
     b.installArtifact(exe);
 
-    const run_step = b.step("run", "Run the app");
-
-    const run_cmd = b.addRunArtifact(exe);
-    run_step.dependOn(&run_cmd.step);
-
-    run_cmd.step.dependOn(b.getInstallStep());
-
-    // This allows the user to pass arguments to the application in the build
-    // command itself, like this: `zig build run -- arg1 arg2 etc`
-    if (b.args) |args| {
-        run_cmd.addArgs(args);
-    }
-
     // Convert Step
-    const convert_step = b.step("convert", "Convert a QMK hjson keymap to a Zig keymap file");
+    const convert_step = b.step(options.convert_step_name, "Convert a QMK hjson keymap to a Zig keymap file");
     const infile_opt = b.option([]const u8, "infile", "Input hjson file to convert") orelse "";
     const outfile_opt = b.option([]const u8, "outfile", "Output Zig keymap file") orelse "";
 
@@ -58,9 +76,11 @@ pub fn build(b: *std.Build) void {
     // convert-all: read every .hjson from input/ and write the result to keycodes/.
     // Also generates keycodes/all.zig — a re-export file listing every generated layout.
     // If input/ does not exist the step is registered but does nothing.
-    const convert_all_step = b.step("convert-all", "Convert all HJSON files in qmk_imports/ to Zig files in keycodes/");
+    const convert_all_step = b.step(options.convert_all_step_name, "Convert all HJSON files in qmk_imports/ to Zig files in keycodes/");
     convert_all: {
-        var input_dir = std.fs.cwd().openDir("qmk_imports", .{ .iterate = true }) catch break :convert_all;
+        const input_dir_path = joinProjectPath(b, options.project_root, "qmk_imports");
+        const keycodes_dir_path = joinProjectPath(b, options.project_root, "keycodes");
+        var input_dir = std.fs.cwd().openDir(input_dir_path, .{ .iterate = true }) catch break :convert_all;
         defer input_dir.close();
 
         // Collect output filenames so we can write the all.zig export file afterward.
@@ -95,8 +115,8 @@ pub fn build(b: *std.Build) void {
             };
 
             const cmd = b.addRunArtifact(exe);
-            cmd.addArg(b.fmt("qmk_imports/{s}", .{entry.name}));
-            cmd.addArg(b.fmt("keycodes/{s}", .{out_name}));
+            cmd.addArg(b.fmt("{s}/{s}", .{ input_dir_path, entry.name }));
+            cmd.addArg(b.fmt("{s}/{s}", .{ keycodes_dir_path, out_name }));
             convert_all_step.dependOn(&cmd.step);
 
             out_names.append(b.allocator, out_name) catch {};
@@ -113,7 +133,8 @@ pub fn build(b: *std.Build) void {
         // This file is written at build-graph-construction time (i.e. when `zig build
         // convert-all` is evaluated), which is the right moment since we know all names.
         if (ordered_names.len > 0) {
-            var all_file = std.fs.cwd().createFile("keycodes/all.zig", .{}) catch break :convert_all;
+            const all_file_path = joinProjectPath(b, options.project_root, "keycodes/all.zig");
+            var all_file = std.fs.cwd().createFile(all_file_path, .{}) catch break :convert_all;
             defer all_file.close();
             all_file.writeAll("// Auto-generated by zkeycodes (zig build convert-all). Do not edit by hand.\n") catch {};
             for (ordered_names) |name| {
@@ -148,19 +169,32 @@ pub fn build(b: *std.Build) void {
     // A run step that will run the second test executable.
     // Conversion generation tests
     const test_keycodes_cmd = b.addRunArtifact(exe);
-    test_keycodes_cmd.addArgs(&.{ "test_data/keycodes_0.0.1_basic.hjson", "test_data/keycodes.zig" });
 
     const test_us_cmd = b.addRunArtifact(exe);
-    test_us_cmd.addArgs(&.{ "test_data/keycodes_us_international_0.0.1.hjson", "test_data/us_international.zig" });
 
     const test_ger_mac_iso_cmd = b.addRunArtifact(exe);
-    test_ger_mac_iso_cmd.addArgs(&.{ "test_data/keycodes_german_mac_iso_0.0.1.hjson", "test_data/german_mac_iso.zig" });
+    test_ger_mac_iso_cmd.addArgs(&.{
+        joinProjectPath(b, options.project_root, "test_data/keycodes_german_mac_iso_0.0.1.hjson"),
+        joinProjectPath(b, options.project_root, "test_data/german_mac_iso.zig"),
+    });
+
+    const test_keycodes_hjson = joinProjectPath(b, options.project_root, "test_data/keycodes_0.0.1_basic.hjson");
+    const test_keycodes_out = joinProjectPath(b, options.project_root, "test_data/keycodes.zig");
+    const test_us_hjson = joinProjectPath(b, options.project_root, "test_data/keycodes_us_international_0.0.1.hjson");
+    const test_us_out = joinProjectPath(b, options.project_root, "test_data/us_international.zig");
+
+    test_keycodes_cmd.addArgs(&.{ test_keycodes_hjson, test_keycodes_out });
+    test_us_cmd.addArgs(&.{ test_us_hjson, test_us_out });
 
     const gen_tests = b.addTest(.{
         .root_module = b.createModule(.{
-            .root_source_file = b.path("test_generation.zig"),
+            .root_source_file = b.path(joinProjectPath(b, options.project_root, "test_generation.zig")),
             .target = target,
             .optimize = optimize,
+            .imports = &.{
+                .{ .name = "zigmkay_shared", .module = options.zigmkay_shared_module },
+                .{ .name = "zkeycodes_labels", .module = labels_mod },
+            },
         }),
     });
 
@@ -170,9 +204,13 @@ pub fn build(b: *std.Build) void {
 
     const label_tests = b.addTest(.{
         .root_module = b.createModule(.{
-            .root_source_file = b.path("test_labels.zig"),
+            .root_source_file = b.path(joinProjectPath(b, options.project_root, "test_labels.zig")),
             .target = target,
             .optimize = optimize,
+            .imports = &.{
+                .{ .name = "zigmkay_shared", .module = options.zigmkay_shared_module },
+                .{ .name = "zkeycodes_labels", .module = labels_mod },
+            },
         }),
     });
     label_tests.step.dependOn(&test_keycodes_cmd.step);
@@ -184,11 +222,41 @@ pub fn build(b: *std.Build) void {
     const run_exe_tests = b.addRunArtifact(exe_tests);
 
     // A top level step for running all tests.
-    const test_step = b.step("test", "Run tests");
+    const test_step = b.step(options.test_step_name, "Run tests");
+    test_step.dependOn(convert_all_step);
     test_step.dependOn(&run_mod_tests.step);
     test_step.dependOn(&run_exe_tests.step);
     test_step.dependOn(&run_gen_tests.step);
     test_step.dependOn(&run_label_tests.step);
+
+    return .{
+        .zkeycodes_module = mod,
+        .test_step = test_step,
+        .convert_step = convert_step,
+        .convert_all_step = convert_all_step,
+    };
+}
+
+pub fn build(b: *std.Build) void {
+    const zigmkay_dep = b.dependency("zigmkay", .{});
+    const target = b.standardTargetOptions(.{});
+    const optimize = b.standardOptimizeOption(.{});
+    const zigmkay_shared_mod = b.createModule(.{
+        .root_source_file = zigmkay_dep.path("src/shared_types.zig"),
+        .target = target,
+    });
+    _ = publish(b, .{
+        .zigmkay_shared_module = zigmkay_shared_mod,
+        .target = target,
+        .optimize = optimize,
+    });
+}
+
+fn joinProjectPath(b: *std.Build, project_root: []const u8, sub_path: []const u8) []const u8 {
+    if (project_root.len == 0 or std.mem.eql(u8, project_root, ".")) {
+        return sub_path;
+    }
+    return b.pathJoin(&.{ project_root, sub_path });
 }
 
 // these two wer found here: https://stackoverflow.com/questions/79012210/sorting-array-of-strings-alphabetically-in-ascendending-order-in-zig
