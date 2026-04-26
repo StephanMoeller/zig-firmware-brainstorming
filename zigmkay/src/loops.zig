@@ -1,9 +1,10 @@
 pub const split_protocol = @import("split_protocol.zig");
 pub const generic_queue = @import("generic_queue.zig");
 pub const core = @import("core.zig");
-pub const matrix_scanning = @import("matrix_scanning.zig");
 pub const processing = @import("processing.zig");
 pub const usb = @import("usb_command_executor.zig");
+
+pub const matrix_scanning = @import("matrix_scanning.zig");
 pub const encoder_scanning = @import("encoder_scanning.zig");
 
 const std = @import("std");
@@ -99,15 +100,18 @@ pub fn run_primary_internal(
 ) !void {
     // Data queues
     var matrix_change_queue = core.MatrixStateChangeQueue.Create();
+    var encoder_change_queue = core.EncoderEventQueue.Create();
     var usb_command_queue = core.OutputCommandQueue.Create();
 
-    // Matrix scanning
+    // Input scanning
     const matrix_scanner = comptime matrix_scanning.CreateMatrixScannerType(dimensions, config.pin_cols, config.pin_rows, config.pin_mappings, config.scanner_settings){};
+    const encoder_scanner = comptime encoder_scanning.CreateEncoderScanner();
 
     // Processing
     var processor = processing.CreateProcessorType(dimensions, config.keymap, config.side_definition, config.combos, config.custom_functions){
         .input_matrix_changes = &matrix_change_queue,
         .output_usb_commands = &usb_command_queue,
+        .encoder_event_changes = &encoder_change_queue,
     };
 
     // uart byte queue
@@ -119,6 +123,7 @@ pub fn run_primary_internal(
         // Detect local changes
         const current_time = core.TimeSinceBoot{ .time_since_boot_us = time.get_time_since_boot().to_us() };
         try matrix_scanner.DetectKeyboardChanges(&matrix_change_queue, current_time); // Scan local matrix changes
+        try encoder_scanner.detectEncoderChanges(encoder_change_queue);
 
         // Receive from remote side
         if (uart_or_null) |uart| {

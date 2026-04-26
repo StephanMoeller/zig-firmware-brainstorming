@@ -31,6 +31,19 @@ pub const EncoderConfig = struct {
     pins: EncoderPins,
     actions: core.EncoderDef,
 };
+
+pub fn CreateEncoderScanner() EncoderScanner {
+    return EncoderScanner{};
+}
+
+pub const EncoderScanner = struct {
+    //encoders: []EncoderConfig,
+    pub fn detectEncoderChanges(self: *const EncoderScanner, encoder_event_queue: core.EncoderEventQueue) !void {
+        _ = self;
+        _ = encoder_event_queue;
+    }
+};
+
 pub const Encoder = struct {
     config: EncoderConfig,
     state: EncoderState,

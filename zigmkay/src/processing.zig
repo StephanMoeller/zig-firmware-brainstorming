@@ -13,6 +13,7 @@ pub fn CreateProcessorType(
         const Self = @This();
 
         input_matrix_changes: *core.MatrixStateChangeQueue,
+        encoder_event_changes: *core.EncoderEventQueue,
         output_usb_commands: *core.OutputCommandQueue,
 
         layers_activations: core.LayerActivations = .{},
@@ -41,6 +42,11 @@ pub fn CreateProcessorType(
             }
 
             try tick_autofire(self, current_time);
+
+            while (self.encoder_event_changes.Count() > 0) {
+                const e = try self.encoder_event_changes.dequeue();
+                try self.execute_tap_press(e.tap);
+            }
         }
 
         fn process_next(self: *Self, data: []core.MatrixStateChange, current_time: core.TimeSinceBoot) !ProcessContinuation {

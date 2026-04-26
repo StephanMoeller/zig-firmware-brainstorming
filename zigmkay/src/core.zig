@@ -27,19 +27,6 @@ pub const KC_PRINT_STATS = KeyCodeFire{ .tap_keycode = special_keycode_PRINT_STA
 pub const KC_COMPANION = KeyCodeFire{ .tap_keycode = special_keycode_COMPANION };
 pub const KC_SHUTDOWN_COMPANION = KeyCodeFire{ .tap_keycode = special_keycode_SHUTDOWN_COMPANION };
 
-pub const EncoderDef = struct {
-    tap_cw: ?TapDef = null,
-    tap_ccw: ?TapDef = null,
-};
-pub const EncoderEvent = struct {
-    tap: TapDef,
-};
-pub const KeyCodeFire = struct {
-    tap_keycode: u8 = 0,
-    tap_modifiers: ?Modifiers = null,
-    dead: bool = false,
-};
-
 pub const Modifiers = packed struct {
     left_ctrl: bool = false,
     left_shift: bool = false,
@@ -172,6 +159,20 @@ pub const LogMessage = extern struct {
 };
 pub const MatrixStateChange = struct { pressed: bool, key_index: KeyIndex, time: TimeSinceBoot };
 pub const MatrixStateChangeQueue = generic_queue.GenericQueue(MatrixStateChange, queue_capacities);
+pub const EncoderEventQueue = generic_queue.GenericQueue(EncoderEvent, queue_capacities);
+
+pub const EncoderDef = struct {
+    tap_cw: ?TapDef = null,
+    tap_ccw: ?TapDef = null,
+};
+pub const EncoderEvent = struct {
+    tap: TapDef,
+};
+pub const KeyCodeFire = struct {
+    tap_keycode: u8 = 0,
+    tap_modifiers: ?Modifiers = null,
+    dead: bool = false,
+};
 
 // Media Key Codes (Consumer Page)
 pub const MEDIA_VOLUME_UP: u16 = 0xE9;
