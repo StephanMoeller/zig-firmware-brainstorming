@@ -59,8 +59,8 @@ test "custom code - tap events" {
         pub fn get_event_count() usize {
             return events_received.Count();
         }
-        pub fn dequeue_next_event() !core.ProcessorEvent {
-            return try events_received.dequeue();
+        pub fn dequeue_next_event() ?core.ProcessorEvent {
+            return events_received.dequeue();
         }
     };
 
@@ -96,13 +96,13 @@ test "custom code - tap events" {
     try std.testing.expectEqual(core.ProcessorEvent{ .OnTapExitBefore = .{ .tap = .{ .key_press = .{ .tap_keycode = a } } } }, MyFunctions.dequeue_next_event());
     try std.testing.expectEqual(core.ProcessorEvent{ .OnTapExitAfter = .{ .tap = .{ .key_press = .{ .tap_keycode = a } } } }, MyFunctions.dequeue_next_event());
 
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, try o.actions_queue.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, try o.actions_queue.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = c }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = a }, o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = c }, o.actions_queue.dequeue());
 
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = d }, try o.actions_queue.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, try o.actions_queue.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = e }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = d }, o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodeRelease = a }, o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = e }, o.actions_queue.dequeue());
 
     try std.testing.expectEqual(0, o.actions_queue.Count());
 }
@@ -143,8 +143,8 @@ test "custom code - hold events" {
         pub fn get_event_count() usize {
             return events_received.Count();
         }
-        pub fn dequeue_next_event() !core.ProcessorEvent {
-            return try events_received.dequeue();
+        pub fn dequeue_next_event() ?core.ProcessorEvent {
+            return events_received.dequeue();
         }
     };
 
@@ -180,13 +180,13 @@ test "custom code - hold events" {
     try std.testing.expectEqual(core.ProcessorEvent{ .OnHoldExitBefore = .{ .hold = .{ .hold_modifiers = .{ .left_shift = true } } } }, MyFunctions.dequeue_next_event());
     try std.testing.expectEqual(core.ProcessorEvent{ .OnHoldExitAfter = .{ .hold = .{ .hold_modifiers = .{ .left_shift = true } } } }, MyFunctions.dequeue_next_event());
 
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, try o.actions_queue.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{ .left_shift = true } }, try o.actions_queue.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = c }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{ .left_shift = true } }, o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = c }, o.actions_queue.dequeue());
 
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = d }, try o.actions_queue.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{} }, try o.actions_queue.dequeue());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = e }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = d }, o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .ModifiersChanged = .{} }, o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = e }, o.actions_queue.dequeue());
 
     try std.testing.expectEqual(0, o.actions_queue.Count());
 }
@@ -208,8 +208,8 @@ test "custom code - ensure tick event" {
         pub fn get_event_count() usize {
             return events_received.Count();
         }
-        pub fn dequeue_next_event() !core.ProcessorEvent {
-            return try events_received.dequeue();
+        pub fn dequeue_next_event() ?core.ProcessorEvent {
+            return events_received.dequeue();
         }
     };
 
@@ -234,6 +234,6 @@ test "custom code - ensure tick event" {
     // ensure all 4 tap events are fired and in the correct order
     try std.testing.expectEqual(1, MyFunctions.get_event_count());
 
-    try std.testing.expectEqual(core.ProcessorEvent.Tick, MyFunctions.dequeue_next_event());
+    try std.testing.expectEqual(core.ProcessorEvent.Tick, MyFunctions.dequeue_next_event().?);
     try std.testing.expectEqual(0, o.actions_queue.Count());
 }
