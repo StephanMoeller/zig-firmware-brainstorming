@@ -15,8 +15,8 @@ pub const EncoderPinConfig = struct {
     pin_a: rp2xxx.gpio.Pin,
     pin_b: rp2xxx.gpio.Pin,
     sensitivity: i8, // lower number get higher sensitivity
-    action_index_cw: ?usize,
-    action_index_ccw: ?usize,
+    action_index_cw: ?u8,
+    action_index_ccw: ?u8,
 };
 
 pub const EncoderState = struct {

@@ -165,7 +165,7 @@ pub const EncoderAction = struct {
     tap: TapDef,
 };
 pub const EncoderEvent = struct {
-    encoder_action_index: usize,
+    encoder_action_index: u8,
 };
 pub const KeyCodeFire = struct {
     tap_keycode: u8 = 0,

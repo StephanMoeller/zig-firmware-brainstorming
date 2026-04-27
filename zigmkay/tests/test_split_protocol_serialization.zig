@@ -23,8 +23,8 @@ test "Serialize and deserialize: KeyReleased" {
     try std.testing.expectEqual(msg, other_msg);
 }
 
-test "Serialize and deserialize: EncoderValueChanged" {
-    const msg = p.ProtocolMessage{ .EncoderValueChanged = 3 };
+test "Serialize and deserialize: EncoderActionIndexTriggered" {
+    const msg = p.ProtocolMessage{ .EncoderActionIndexTriggered = 3 };
     const data: [2]u8 = p.serialize(msg);
     const other_msg = try p.deserialize(data);
 
@@ -45,8 +45,8 @@ test "Serialize and deserialize: Invalid message type - 4" {
     try std.testing.expectEqual(err, p.DeserializeError.UnknownMessageType);
 }
 
-test "Serialize and deserialize: EncoderValueChanged (invalid u2 value) - 4" {
-    const msg = p.ProtocolMessage{ .EncoderValueChanged = 3 };
+test "Serialize and deserialize: EncoderActionIndexTriggered (invalid u2 value) - 4" {
+    const msg = p.ProtocolMessage{ .EncoderActionIndexTriggered = 3 };
     var data: [2]u8 = p.serialize(msg);
     try std.testing.expectEqual(3, data[1]); // sanity checking that the actual value is currently at this position
 
@@ -58,8 +58,8 @@ test "Serialize and deserialize: EncoderValueChanged (invalid u2 value) - 4" {
     try std.testing.expectEqual(err, p.DeserializeError.U7notConvertibleToU2);
 }
 
-test "Serialize and deserialize: EncoderValueChanged (invalid u2 value) - 127" {
-    const msg = p.ProtocolMessage{ .EncoderValueChanged = 3 };
+test "Serialize and deserialize: EncoderActionIndexTriggered (invalid u2 value) - 127" {
+    const msg = p.ProtocolMessage{ .EncoderActionIndexTriggered = 3 };
     var data: [2]u8 = p.serialize(msg);
     try std.testing.expectEqual(3, data[1]); // sanity checking that the actual value is currently at this position
 
