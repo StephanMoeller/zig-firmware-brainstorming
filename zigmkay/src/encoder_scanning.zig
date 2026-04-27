@@ -11,10 +11,12 @@ const microzig = @import("microzig");
 const rp2xxx = microzig.hal;
 const time = rp2xxx.time;
 
-pub const EncoderPins = struct {
+pub const EncoderPinConfig = struct {
     pin_a: rp2xxx.gpio.Pin,
     pin_b: rp2xxx.gpio.Pin,
     sensitivity: i8, // lower number get higher sensitivity
+    action_index_cw: ?usize,
+    action_index_ccw: ?usize,
 };
 
 pub const EncoderState = struct {
@@ -27,21 +29,16 @@ pub const EncoderState = struct {
 
 /// Represents a physical rotary encoder connected to two GPIO pins.
 ///
-pub const EncoderConfig = struct {
-    pins: EncoderPins,
-    actions: core.EncoderDef,
-};
-
-pub fn CreateEncoderScannerType(comptime encoder_configs: []const EncoderConfig) type {
+pub fn CreateEncoderScannerType(comptime encoder_pin_configs: []const EncoderPinConfig) type {
     return struct {
         const Self = @This();
-        states: [encoder_configs.len]EncoderState = @splat(.{}),
+        states: [encoder_pin_configs.len]EncoderState = @splat(.{}),
 
         pub fn detectEncoderChanges(self: *Self, encoder_event_queue: *core.EncoderEventQueue, current_time: core.TimeSinceBoot) !void {
             comptime var i: usize = 0;
-            const config_count = encoder_configs.len;
+            const config_count = encoder_pin_configs.len;
             inline while (i < config_count) {
-                const config = &encoder_configs[i];
+                const config = &encoder_pin_configs[i];
                 if (update(config, &self.states[i], current_time)) |event| {
                     try encoder_event_queue.enqueue(event);
                 }
@@ -50,14 +47,14 @@ pub fn CreateEncoderScannerType(comptime encoder_configs: []const EncoderConfig)
             }
         }
 
-        fn read_state(pins: EncoderPins) u2 {
+        fn read_state(pins: *const EncoderPinConfig) u2 {
             const a = pins.pin_a.read();
             const b = pins.pin_b.read();
             return (@as(u2, a) << 1) | @as(u2, b);
         }
 
-        fn update(config: *const EncoderConfig, state: *EncoderState, current_time: core.TimeSinceBoot) ?core.EncoderEvent {
-            const new_state = read_state(config.pins);
+        fn update(config: *const EncoderPinConfig, state: *EncoderState, current_time: core.TimeSinceBoot) ?core.EncoderEvent {
+            const new_state = read_state(config);
 
             const transition_table: [4][4]i8 = comptime .{
                 // zig fmt: off
@@ -85,18 +82,20 @@ pub fn CreateEncoderScannerType(comptime encoder_configs: []const EncoderConfig)
             return null;
         }
 
+            // todo: events should raise the index, not the actual tapping
+
         // If sensitivity threshold exceeded, return an event
-        if (state.accumulator >= config.pins.sensitivity) {
-            state.accumulator -= config.pins.sensitivity;
+        if (state.accumulator >= config.sensitivity) {
+            state.accumulator -= config.sensitivity;
             state.last_announced_change = current_time;
-            if(config.actions.tap_cw)|tap|{
-                return core.EncoderEvent{ .tap = tap };
+            if(config.action_index_cw)|action_index|{
+                return core.EncoderEvent{ .encoder_action_index = action_index };
             } 
-        } else if (state.accumulator <= -config.pins.sensitivity) {
-            state.accumulator += config.pins.sensitivity;
+        } else if (state.accumulator <= -config.sensitivity) {
+            state.accumulator += config.sensitivity;
             state.last_announced_change = current_time;
-            if(config.actions.tap_ccw)|tap|{
-                return core.EncoderEvent{ .tap = tap };
+            if(config.action_index_ccw)|action_index|{
+                return core.EncoderEvent{ .encoder_action_index = action_index };
             }
         }
 

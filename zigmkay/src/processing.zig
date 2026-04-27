@@ -31,9 +31,11 @@ pub fn CreateProcessorType(
             _ = self.stats.register_tick(current_time);
             on_event(self, core.ProcessorEvent.Tick);
 
-            while (self.encoder_event_changes.dequeue()) |e| {
-                try self.execute_tap_press(e.tap);
-                try self.execute_tap_release(e.tap);
+            while (self.encoder_event_changes.dequeue()) |event| {
+                _ = event;
+                try self.output_usb_commands.tap_key(.{ .tap_keycode = 31 });
+                //try self.execute_tap_press(e.tap);
+                //try self.execute_tap_release(e.tap);
             }
 
             while (true) {

@@ -31,7 +31,8 @@ fn CreatePrimaryConfig(comptime dimensions: *const core.KeymapDimensions) type {
             .on_event = null,
         },
         side_definition: *const [dimensions.key_count]core.Side = &[_]core.Side{core.Side.X} ** dimensions.key_count,
-        encoder_configs: []encoder_scanning.EncoderConfig = &.{},
+        encoder_pin_configs: []encoder_scanning.EncoderPinConfig = &.{},
+        encoder_acions: []core.EncoderAction = &.{},
     };
 }
 
@@ -85,7 +86,7 @@ fn run_primary_internal(
 
     // Input scanning
     const matrix_scanner = comptime matrix_scanning.CreateMatrixScannerType(dimensions, config.pin_cols, config.pin_rows, config.pin_mappings, config.scanner_settings){};
-    var encoder_scanner = comptime encoder_scanning.CreateEncoderScannerType(config.encoder_configs){};
+    var encoder_scanner = comptime encoder_scanning.CreateEncoderScannerType(config.encoder_pin_configs){};
 
     // Processing
     var processor = processing.CreateProcessorType(dimensions, config.keymap, config.side_definition, config.combos, config.custom_functions){
@@ -129,6 +130,7 @@ fn CreateSecondaryConfig(comptime dimensions: *const core.KeymapDimensions) type
 
         // Extras (both sides)
         scanner_settings: *const matrix_scanning.ScannerSettings = &.{},
+        encoder_pin_configs: []encoder_scanning.EncoderPinConfig = &.{},
     };
 }
 
