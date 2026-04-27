@@ -1,10 +1,11 @@
 pub const split_protocol = @import("split_protocol.zig");
 pub const generic_queue = @import("generic_queue.zig");
 pub const core = @import("core.zig");
-pub const matrix_scanning = @import("matrix_scanning.zig");
 pub const processing = @import("processing.zig");
 pub const usb = @import("usb_command_executor.zig");
-pub const encoder = @import("encoder.zig");
+
+pub const matrix_scanning = @import("matrix_scanning.zig");
+pub const encoder_scanning = @import("encoder_scanning.zig");
 
 const std = @import("std");
 const microzig = @import("microzig");
@@ -31,6 +32,7 @@ pub fn GetConfigType(comptime dimensions: *const core.KeymapDimensions) type {
             .on_event = null,
         },
         side_definition: *const [dimensions.key_count]core.Side = &[_]core.Side{core.Side.X} ** dimensions.key_count,
+        encoder_configs: []encoder_scanning.EncoderConfig = &.{},
         pub fn init() Self {
             return .{
                 .dimensions = dimensions,
@@ -62,6 +64,9 @@ pub fn GetConfigType(comptime dimensions: *const core.KeymapDimensions) type {
         }
         pub fn set_side_definitions(comptime self: *Self, side_definition: *const [dimensions.key_count]core.Side) void {
             self.side_definition = side_definition;
+        }
+        pub fn set_encoders(comptime self: *Self, encoder_configs: []encoder_scanning.EncoderConfig) void {
+            self.encoder_configs = encoder_configs;
         }
 
         pub fn build(comptime self: Self) Runner {
@@ -99,15 +104,20 @@ pub fn run_primary_internal(
 ) !void {
     // Data queues
     var matrix_change_queue = core.MatrixStateChangeQueue.Create();
+    var encoder_change_queue = core.EncoderEventQueue.Create();
     var usb_command_queue = core.OutputCommandQueue.Create();
 
-    // Matrix scanning
+    // Input scanning
     const matrix_scanner = comptime matrix_scanning.CreateMatrixScannerType(dimensions, config.pin_cols, config.pin_rows, config.pin_mappings, config.scanner_settings){};
+    var encoder_scanner = comptime encoder_scanning.CreateEncoderScannerType(config.encoder_configs){
+        .configs = config.encoder_configs,
+    };
 
     // Processing
     var processor = processing.CreateProcessorType(dimensions, config.keymap, config.side_definition, config.combos, config.custom_functions){
         .input_matrix_changes = &matrix_change_queue,
         .output_usb_commands = &usb_command_queue,
+        .encoder_event_changes = &encoder_change_queue,
     };
 
     // uart byte queue
@@ -119,6 +129,7 @@ pub fn run_primary_internal(
         // Detect local changes
         const current_time = core.TimeSinceBoot{ .time_since_boot_us = time.get_time_since_boot().to_us() };
         try matrix_scanner.DetectKeyboardChanges(&matrix_change_queue, current_time); // Scan local matrix changes
+        try encoder_scanner.detectEncoderChanges(&encoder_change_queue, current_time);
 
         // Receive from remote side
         if (uart_or_null) |uart| {
