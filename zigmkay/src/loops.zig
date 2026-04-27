@@ -123,7 +123,6 @@ fn CreateSecondaryConfig(comptime dimensions: *const core.KeymapDimensions) type
         dimensions: *const core.KeymapDimensions = dimensions,
 
         // Mandatory
-        keymap: *const [dimensions.layer_count][dimensions.key_count]core.KeyDef,
         pin_mappings: *const [dimensions.key_count]?[2]usize,
         pin_cols: []const rp2xxx.gpio.Pin,
         pin_rows: []const rp2xxx.gpio.Pin,
