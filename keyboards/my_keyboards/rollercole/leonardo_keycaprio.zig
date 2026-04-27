@@ -50,8 +50,7 @@ pub fn main() !void {
 
     // Mandatory
     comptime var config = zigmkay.loops.GetConfigType(&rollercole_shared_keymap.dimensions).init();
-    comptime config.set_keymap(&rollercole_shared_keymap.keymap);
-    comptime config.set_pins(clacky_pin_cols[0..], clacky_pin_rows[0..], &pin_mappings);
+    comptime config.set_keymap(&rollercole_shared_keymap.keymap, clacky_pin_cols[0..], clacky_pin_rows[0..], &pin_mappings);
 
     // Optionals
     comptime config.set_combos(rollercole_shared_keymap.combos[0..]);

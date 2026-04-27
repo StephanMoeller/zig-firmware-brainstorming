@@ -36,13 +36,12 @@ pub fn CreateEncoderScannerType(comptime encoder_configs: []const EncoderConfig)
     return struct {
         const Self = @This();
         states: [encoder_configs.len]EncoderState = @splat(.{}),
-        configs: []const EncoderConfig,
 
         pub fn detectEncoderChanges(self: *Self, encoder_event_queue: *core.EncoderEventQueue, current_time: core.TimeSinceBoot) !void {
             comptime var i: usize = 0;
             const config_count = encoder_configs.len;
             inline while (i < config_count) {
-                const config = &self.configs[i];
+                const config = &encoder_configs[i];
                 if (update(config, &self.states[i], current_time)) |event| {
                     try encoder_event_queue.enqueue(event);
                 }

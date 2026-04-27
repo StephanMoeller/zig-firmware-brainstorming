@@ -65,7 +65,6 @@ pub fn main() !void {
 
     // Mandatory
     comptime var config = zigmkay.loops.GetConfigType(&rollercole_shared_keymap.dimensions).init();
-    comptime config.set_keymap(&rollercole_shared_keymap.keymap);
 
     // Optionals
     comptime config.set_combos(rollercole_shared_keymap.combos[0..]);
@@ -74,13 +73,13 @@ pub fn main() !void {
     comptime config.set_side_definitions(&rollercole_shared_keymap.sides);
 
     if (primary) {
-        comptime config.set_pins(clacky_pin_cols[0..], clacky_pin_rows[0..], &pin_mappings_right);
+        comptime config.set_keymap(&rollercole_shared_keymap.keymap, clacky_pin_cols[0..], clacky_pin_rows[0..], &pin_mappings_right);
         comptime var runner = config.build();
         runner.run_primary(uart) catch {
             blink_led(10000000, 500); // in case of an error, let the keyboard start blinking
         };
     } else {
-        comptime config.set_pins(clacky_pin_cols[0..], clacky_pin_rows[0..], &pin_mappings_left);
+        comptime config.set_keymap(&rollercole_shared_keymap.keymap, clacky_pin_cols[0..], clacky_pin_rows[0..], &pin_mappings_left);
         comptime var runner = config.build();
         runner.run_secondary(uart) catch {
             blink_led(10000000, 500); // in case of an error, let the keyboard start blinking

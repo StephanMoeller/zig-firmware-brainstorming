@@ -175,8 +175,7 @@ pub fn main() !void {
 
     // Mandatory
     comptime var config = zigmkay.loops.GetConfigType(&keymap.dimensions).init();
-    comptime config.set_keymap(&keymap.keymap);
-    comptime config.set_pins(molekula_pin_cols[0..], molekula_pin_rows[0..], &pin_mappings);
+    comptime config.set_keymap(&keymap.keymap, molekula_pin_cols[0..], molekula_pin_rows[0..], &pin_mappings);
 
     // Optionals
     comptime config.set_combos(keymap.combos[0..]);

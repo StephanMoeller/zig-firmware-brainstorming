@@ -61,8 +61,7 @@ pub fn run() !void {
 
     // Mandatory
     comptime var config = zigmkay.loops.GetConfigType(&dimensions).init();
-    comptime config.set_keymap(&keymap);
-    comptime config.set_pins(pins_cols[0..], pins_rows[0..], &no_pin_mappings);
+    comptime config.set_keymap(&keymap, pins_cols[0..], pins_rows[0..], &no_pin_mappings);
     comptime config.set_encoders(encoder_configs[0..]);
 
     comptime var runner = config.build();
