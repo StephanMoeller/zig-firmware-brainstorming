@@ -82,8 +82,6 @@ pub fn CreateEncoderScannerType(comptime encoder_pin_configs: []const EncoderPin
             return null;
         }
 
-            // todo: events should raise the index, not the actual tapping
-
         // If sensitivity threshold exceeded, return an event
         if (state.accumulator >= config.sensitivity) {
             state.accumulator -= config.sensitivity;
