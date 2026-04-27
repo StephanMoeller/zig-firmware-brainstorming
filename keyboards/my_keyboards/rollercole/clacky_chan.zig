@@ -84,7 +84,6 @@ pub fn main() !void {
     } else {
         comptime var config = zigmkay.loops.GetSecondarySideConfigType(&rollercole_shared_keymap.dimensions){
             .config = .{
-                .keymap = &rollercole_shared_keymap.keymap,
                 .pin_cols = clacky_pin_cols[0..],
                 .pin_rows = clacky_pin_rows[0..],
                 .pin_mappings = &pin_mappings_left,
