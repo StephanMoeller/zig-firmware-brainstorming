@@ -14,8 +14,7 @@ const KeyboardSample = struct {
 const keyboard_samples = [_]KeyboardSample{
     .{ .name = "clacky_chan", .root_source_file = "my_keyboards/rollercole/clacky_chan.zig" },
     .{ .name = "leonardo_keycaprio", .root_source_file = "my_keyboards/rollercole/leonardo_keycaprio.zig" },
-    .{ .name = "enc_poc", .root_source_file = "my_keyboards/rollercole/encoder_poc.zig" },
-    .{ .name = "enc_demo", .root_source_file = "my_keyboards/rollercole/encoder_demo.zig" },
+    .{ .name = "encoder_demo", .root_source_file = "my_keyboards/rollercole/encoder_demo.zig" },
     .{ .name = "molekula", .root_source_file = "my_keyboards/molekula/main.zig" },
 };
 
