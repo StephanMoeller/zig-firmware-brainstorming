@@ -50,13 +50,7 @@ var encoder_actions = [_]core.EncoderAction{
         .tap_ccw = core.TapDef{ .media_key = .VolumeDown },
     },
 };
-var encoder_pin_configs = [_]encoder_scanning.EncoderPinConfig{encoder_scanning.EncoderPinConfig{
-    .pin_a = p.data1,
-    .pin_b = p.data2,
-    .sensitivity = 4,
-    .action_index_cw = 0,
-    .action_index_ccw = 1
-}};
+var encoder_pin_configs = [_]encoder_scanning.EncoderPinConfig{encoder_scanning.EncoderPinConfig{ .pin_a = p.data1, .pin_b = p.data2, .sensitivity = 4, .action_index_cw = 0, .action_index_ccw = 1 }};
 pub fn run() !void {
     _ = pin_config.apply();
     blink_led(1, 300); // Show the user that the keyboard has actually booted up.
@@ -69,7 +63,7 @@ pub fn run() !void {
             .pin_rows = pins_rows[0..],
             .pin_mappings = &no_pin_mappings,
             .encoder_pin_configs = encoder_pin_configs[0..],
-            .encoder_acions = encoder_actions[0..],
+            .encoder_actions = encoder_actions[0..],
         },
     };
 

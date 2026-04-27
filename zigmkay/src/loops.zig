@@ -31,7 +31,8 @@ fn CreatePrimaryConfig(comptime dimensions: *const core.KeymapDimensions) type {
             .on_event = null,
         },
         side_definition: *const [dimensions.key_count]core.Side = &[_]core.Side{core.Side.X} ** dimensions.key_count,
-        encoder_pin_configs: []encoder_scanning.EncoderPinConfig = &.{},
+
+        encoder_actionsnfigs: []encoder_scanning.EncoderPinConfig = &.{},
         encoder_acions: []core.EncoderAction = &.{},
     };
 }

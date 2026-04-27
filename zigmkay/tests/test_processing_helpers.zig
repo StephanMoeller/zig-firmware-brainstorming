@@ -16,6 +16,7 @@ pub fn init_with_config(comptime keymap_dimensions: core.KeymapDimensions, compt
         &config.sides,
         config.combos,
         config.custom_functions,
+        config.encoder_actions,
     );
     return struct {
         const Self = @This();
@@ -52,6 +53,7 @@ pub fn CreateConfig(keymap_dimensions: core.KeymapDimensions) type {
         combos: []const core.Combo2Def = &.{},
         custom_functions: *const core.CustomFunctions = &no_functions,
         sides: [keymap_dimensions.key_count]core.Side = @splat(.X),
+        encoder_actions: []const core.EncoderAction = &.{},
     };
 }
 

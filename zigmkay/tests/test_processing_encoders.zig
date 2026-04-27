@@ -20,21 +20,68 @@ const D = helpers.TAP(d);
 const E = helpers.TAP(e);
 const F = helpers.TAP(f);
 const G = helpers.TAP(g);
-// test stuff
-test "Encoders" {
+test "Encoders - encoder action event raised - expect tap fired" {
+    const current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
+    const base_layer = comptime [_]core.KeyDef{ A, B, C, D };
+    const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
+
+    const a_tap = core.TapDef{ .key_press = .{ .tap_keycode = a } };
+    const b_tap = core.TapDef{ .key_press = .{ .tap_keycode = b } };
+    const c_tap = core.TapDef{ .key_press = .{ .tap_keycode = c } };
+
+    const encoder_actions = [_]core.EncoderAction{ .{ .tap = a_tap }, .{ .tap = b_tap }, .{ .tap = c_tap } };
+    var o = init_with_config(
+        .{ .key_count = base_layer.len, .layer_count = keymap.len },
+        .{
+            .keymap = &keymap,
+            .encoder_actions = &encoder_actions,
+        },
+    ){};
+
+    try o.encoder_event_queue.enqueue(.{ .encoder_action_index = 1 }); // b fired
+    try o.process(current_time);
+
+    try std.testing.expectEqual(2, o.actions_queue.Count());
+    try std.testing.expectEqual(b, o.actions_queue.dequeue().?.KeyCodePress);
+    //try std.testing.expectEqual(b, o.actions_queue.dequeue().?.KeyCodeRelease);
+
+    try std.testing.expectEqual(0, o.encoder_event_queue.Count());
+}
+
+test "Encoders - no encoder actions defined - ensure not breaking when encoder event raised" {
     const current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
     const base_layer = comptime [_]core.KeyDef{ A, B, C, D };
     const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
     var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
-    try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = true, .key_index = 1 });
 
+    try o.encoder_event_queue.enqueue(.{ .encoder_action_index = 1 });
     try o.process(current_time);
 
-    // expect B to be fired as press
-    try std.testing.expectEqual(1, o.actions_queue.Count());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, o.actions_queue.dequeue());
-
-    // expect event removed from input_events
     try std.testing.expectEqual(0, o.actions_queue.Count());
-    try std.testing.expectEqual(0, o.matrix_change_queue.Count());
+    try std.testing.expectEqual(0, o.encoder_event_queue.Count());
+}
+
+test "Encoders - action index out of bounds - ensure not breaking when encoder event raised" {
+    const current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
+    const base_layer = comptime [_]core.KeyDef{ A, B, C, D };
+    const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
+
+    const a_tap = core.TapDef{ .key_press = .{ .tap_keycode = a } };
+    const b_tap = core.TapDef{ .key_press = .{ .tap_keycode = a } };
+    const c_tap = core.TapDef{ .key_press = .{ .tap_keycode = a } };
+
+    const encoder_actions = [_]core.EncoderAction{ .{ .tap = a_tap }, .{ .tap = b_tap }, .{ .tap = c_tap } };
+    var o = init_with_config(
+        .{ .key_count = base_layer.len, .layer_count = keymap.len },
+        .{
+            .keymap = &keymap,
+            .encoder_actions = &encoder_actions,
+        },
+    ){};
+
+    try o.encoder_event_queue.enqueue(.{ .encoder_action_index = 3 });
+    try o.process(current_time);
+
+    try std.testing.expectEqual(0, o.actions_queue.Count());
+    try std.testing.expectEqual(0, o.encoder_event_queue.Count());
 }
