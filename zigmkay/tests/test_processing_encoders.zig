@@ -32,7 +32,7 @@ test "Encoders" {
 
     // expect B to be fired as press
     try std.testing.expectEqual(1, o.actions_queue.Count());
-    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, try o.actions_queue.dequeue());
+    try std.testing.expectEqual(core.OutputCommand{ .KeyCodePress = b }, o.actions_queue.dequeue());
 
     // expect event removed from input_events
     try std.testing.expectEqual(0, o.actions_queue.Count());
