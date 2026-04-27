@@ -50,14 +50,16 @@ pub fn main() !void {
 
     // Mandatory
     comptime var config = zigmkay.loops.GetPrimarySideConfigType(&rollercole_shared_keymap.dimensions){
-        .keymap = &rollercole_shared_keymap.keymap,
-        .pin_mappings = &pin_mappings,
-        .pin_cols = clacky_pin_cols[0..],
-        .pin_rows = clacky_pin_rows[0..],
-        .combos = rollercole_shared_keymap.combos[0..],
-        .scanner_settings = &scanner_settings,
-        .custom_functions = &rollercole_shared_keymap.custom_functions,
-        .side_definition = &rollercole_shared_keymap.sides,
+        .config = .{
+            .keymap = &rollercole_shared_keymap.keymap,
+            .pin_mappings = &pin_mappings,
+            .pin_cols = clacky_pin_cols[0..],
+            .pin_rows = clacky_pin_rows[0..],
+            .combos = rollercole_shared_keymap.combos[0..],
+            .scanner_settings = &scanner_settings,
+            .custom_functions = &rollercole_shared_keymap.custom_functions,
+            .side_definition = &rollercole_shared_keymap.sides,
+        },
     };
 
     // Optionals

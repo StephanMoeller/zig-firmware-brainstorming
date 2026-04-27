@@ -12,10 +12,8 @@ const microzig = @import("microzig");
 const rp2xxx = microzig.hal;
 const time = rp2xxx.time;
 
-pub fn GetPrimarySideConfigType(comptime dimensions: *const core.KeymapDimensions) type {
+pub fn CreatePrimaryConfig(comptime dimensions: *const core.KeymapDimensions) type {
     return struct {
-        const Self = @This();
-
         dimensions: *const core.KeymapDimensions = dimensions,
 
         // Mandatory
@@ -34,13 +32,21 @@ pub fn GetPrimarySideConfigType(comptime dimensions: *const core.KeymapDimension
         },
         side_definition: *const [dimensions.key_count]core.Side = &[_]core.Side{core.Side.X} ** dimensions.key_count,
         encoder_configs: []encoder_scanning.EncoderConfig = &.{},
+    };
+}
+
+pub fn GetPrimarySideConfigType(comptime dimensions: *const core.KeymapDimensions) type {
+    const ConfigType = CreatePrimaryConfig(dimensions);
+    return struct {
+        const Self = @This();
+        config: ConfigType,
 
         pub fn build(comptime self: Self) Runner {
-            return Runner{ .config = self };
+            return Runner{ .config = self.config };
         }
 
         pub const Runner = struct {
-            config: Self,
+            config: ConfigType,
             pub fn run_unibody(comptime self: Runner) !void {
                 try run_primary_internal(self.config, null);
             }
@@ -51,7 +57,7 @@ pub fn GetPrimarySideConfigType(comptime dimensions: *const core.KeymapDimension
         };
 
         fn run_primary_internal(
-            comptime config: Self,
+            comptime config: ConfigType,
             uart_or_null: ?rp2xxx.uart.UART,
         ) !void {
             // Data queues

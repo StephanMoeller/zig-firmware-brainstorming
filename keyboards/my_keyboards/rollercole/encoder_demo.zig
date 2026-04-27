@@ -61,11 +61,13 @@ pub fn run() !void {
 
     // Mandatory
     comptime var config = zigmkay.loops.GetPrimarySideConfigType(&dimensions){
-        .keymap = &keymap,
-        .pin_cols = pins_cols[0..],
-        .pin_rows = pins_rows[0..],
-        .pin_mappings = &no_pin_mappings,
-        .encoder_configs = encoder_configs[0..],
+        .config = .{
+            .keymap = &keymap,
+            .pin_cols = pins_cols[0..],
+            .pin_rows = pins_rows[0..],
+            .pin_mappings = &no_pin_mappings,
+            .encoder_configs = encoder_configs[0..],
+        },
     };
 
     comptime var runner = config.build();
