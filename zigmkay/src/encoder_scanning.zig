@@ -36,7 +36,7 @@ pub fn CreateEncoderScannerType(comptime encoder_configs: []const EncoderConfig)
     return struct {
         const Self = @This();
         states: [encoder_configs.len]EncoderState = @splat(.{}),
-        configs: [encoder_configs.len]EncoderConfig,
+        configs: []const EncoderConfig,
 
         pub fn detectEncoderChanges(self: *Self, encoder_event_queue: *core.EncoderEventQueue, current_time: core.TimeSinceBoot) !void {
             var i: usize = 0;

@@ -73,7 +73,7 @@ pub fn run() !void {
 
     var encoder_change_queue = core.EncoderEventQueue.Create();
     var encoder_scanner = comptime encoder_scanning.CreateEncoderScannerType(configs_slice){
-        .configs = configs,
+        .configs = configs_slice,
     };
     while (true) {
         current_time = get_current_time();
