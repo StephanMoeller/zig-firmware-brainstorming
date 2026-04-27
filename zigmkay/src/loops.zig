@@ -12,7 +12,7 @@ const microzig = @import("microzig");
 const rp2xxx = microzig.hal;
 const time = rp2xxx.time;
 
-pub fn CreatePrimaryConfig(comptime dimensions: *const core.KeymapDimensions) type {
+fn CreatePrimaryConfig(comptime dimensions: *const core.KeymapDimensions) type {
     return struct {
         dimensions: *const core.KeymapDimensions = dimensions,
 
@@ -118,7 +118,7 @@ fn run_primary_internal(
     }
 }
 
-pub fn CreateSecondaryConfig(comptime dimensions: *const core.KeymapDimensions) type {
+fn CreateSecondaryConfig(comptime dimensions: *const core.KeymapDimensions) type {
     return struct {
         dimensions: *const core.KeymapDimensions = dimensions,
 
@@ -147,29 +147,30 @@ pub fn GetSecondarySideConfigType(comptime dimensions: *const core.KeymapDimensi
             config: ConfigType,
 
             pub fn run_secondary(comptime self: Runner, uart: rp2xxx.uart.UART) !void {
-                try run_secondary_internal(self.config, uart);
-            }
-
-            fn run_secondary_internal(
-                comptime config: ConfigType,
-                uart: rp2xxx.uart.UART,
-            ) !void {
-                var matrix_change_queue = core.MatrixStateChangeQueue.Create();
-                const matrix_scanner = comptime matrix_scanning.CreateMatrixScannerType(dimensions, config.pin_cols, config.pin_rows, config.pin_mappings, config.scanner_settings){};
-
-                var uart_sender = split_protocol.UartSendHelper{};
-                while (true) {
-                    const current_time = core.TimeSinceBoot{ .time_since_boot_us = time.get_time_since_boot().to_us() };
-
-                    // Detect local changes
-                    try matrix_scanner.DetectKeyboardChanges(&matrix_change_queue, current_time);
-
-                    // Send to primary side
-                    try send_from_queue_to_uart(&uart, &uart_sender, &matrix_change_queue);
-                }
+                try run_secondary_internal(dimensions, self.config, uart);
             }
         };
     };
+}
+
+fn run_secondary_internal(
+    comptime dimensions: *const core.KeymapDimensions,
+    comptime config: CreateSecondaryConfig(dimensions),
+    uart: rp2xxx.uart.UART,
+) !void {
+    var matrix_change_queue = core.MatrixStateChangeQueue.Create();
+    const matrix_scanner = comptime matrix_scanning.CreateMatrixScannerType(dimensions, config.pin_cols, config.pin_rows, config.pin_mappings, config.scanner_settings){};
+
+    var uart_sender = split_protocol.UartSendHelper{};
+    while (true) {
+        const current_time = core.TimeSinceBoot{ .time_since_boot_us = time.get_time_since_boot().to_us() };
+
+        // Detect local changes
+        try matrix_scanner.DetectKeyboardChanges(&matrix_change_queue, current_time);
+
+        // Send to primary side
+        try send_from_queue_to_uart(&uart, &uart_sender, &matrix_change_queue);
+    }
 }
 
 fn receive_from_uart_to_queue(uart: *const rp2xxx.uart.UART, receiver: *split_protocol.UartReceiveHelper, matrix_change_queue: *core.MatrixStateChangeQueue, current_time: core.TimeSinceBoot) !void {
