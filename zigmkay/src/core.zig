@@ -161,12 +161,11 @@ pub const MatrixStateChange = struct { pressed: bool, key_index: KeyIndex, time:
 pub const MatrixStateChangeQueue = generic_queue.GenericQueue(MatrixStateChange, queue_capacities);
 pub const EncoderEventQueue = generic_queue.GenericQueue(EncoderEvent, queue_capacities);
 
-pub const EncoderDef = struct {
-    tap_cw: ?TapDef = null,
-    tap_ccw: ?TapDef = null,
+pub const EncoderAction = struct {
+    tap: TapDef,
 };
 pub const EncoderEvent = struct {
-    tap: TapDef,
+    encoder_action_index: u8,
 };
 pub const KeyCodeFire = struct {
     tap_keycode: u8 = 0,

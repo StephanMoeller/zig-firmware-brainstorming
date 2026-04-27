@@ -4,7 +4,7 @@ const generic_queue = @import("generic_queue.zig");
 
 pub const ProtocolMessage = union(enum) {
     MatrixStateChange: struct { pressed: bool, key_index: core.KeyIndex },
-    EncoderValueChanged: u2,
+    EncoderActionIndexTriggered: u8,
 };
 
 pub const ByteQueue = generic_queue.GenericQueue(u8, 250);
@@ -87,7 +87,7 @@ pub fn serialize(msg: ProtocolMessage) [2]u8 {
                 return .{ @intFromEnum(MessageType.KeyReleased), state_change.key_index };
             }
         },
-        .EncoderValueChanged => |encoder_value| {
+        .EncoderActionIndexTriggered => |encoder_value| {
             return .{ @intFromEnum(MessageType.EncoderValueChanged), encoder_value };
         },
     }
@@ -100,7 +100,7 @@ pub fn deserialize(buffer: [2]u8) DeserializeError!ProtocolMessage {
         switch (message_type) {
             .KeyPressed => return .{ .MatrixStateChange = .{ .key_index = try u8_to_u7(payload), .pressed = true } },
             .KeyReleased => return .{ .MatrixStateChange = .{ .key_index = try u8_to_u7(payload), .pressed = false } },
-            .EncoderValueChanged => return .{ .EncoderValueChanged = try u8_to_u2(payload) },
+            .EncoderValueChanged => return .{ .EncoderActionIndexTriggered = try u8_to_u2(payload) },
             else => return DeserializeError.UnknownMessageType,
         }
     } else {

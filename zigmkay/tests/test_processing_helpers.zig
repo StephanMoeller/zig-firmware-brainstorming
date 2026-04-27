@@ -16,26 +16,33 @@ pub fn init_with_config(comptime keymap_dimensions: core.KeymapDimensions, compt
         &config.sides,
         config.combos,
         config.custom_functions,
+        config.encoder_actions,
     );
     return struct {
         const Self = @This();
         matrix_change_queue: zigmkay.core.MatrixStateChangeQueue = zigmkay.core.MatrixStateChangeQueue.Create(),
+        encoder_event_queue: zigmkay.core.EncoderEventQueue = zigmkay.core.EncoderEventQueue.Create(),
         actions_queue: zigmkay.core.OutputCommandQueue = zigmkay.core.OutputCommandQueue.Create(),
         _inner_processor: ?ProcessorType = null,
         pub fn press_key(self: *Self, key_index: zigmkay.core.KeyIndex, time: core.TimeSinceBoot) !void {
-            if (self._inner_processor == null)
-                self._inner_processor = ProcessorType{ .input_matrix_changes = &self.matrix_change_queue, .output_usb_commands = &self.actions_queue };
+            ensure_processor(self);
             try self.matrix_change_queue.enqueue(.{ .time = time, .pressed = true, .key_index = key_index });
         }
         pub fn release_key(self: *Self, key_index: zigmkay.core.KeyIndex, time: core.TimeSinceBoot) !void {
-            if (self._inner_processor == null)
-                self._inner_processor = ProcessorType{ .input_matrix_changes = &self.matrix_change_queue, .output_usb_commands = &self.actions_queue };
+            ensure_processor(self);
             try self.matrix_change_queue.enqueue(.{ .time = time, .pressed = false, .key_index = key_index });
         }
         pub fn process(self: *Self, time: core.TimeSinceBoot) !void {
-            if (self._inner_processor == null)
-                self._inner_processor = ProcessorType{ .input_matrix_changes = &self.matrix_change_queue, .output_usb_commands = &self.actions_queue };
+            ensure_processor(self);
             try self._inner_processor.?.Process(time);
+        }
+        fn ensure_processor(self: *Self) void {
+            if (self._inner_processor == null)
+                self._inner_processor = ProcessorType{
+                    .input_matrix_changes = &self.matrix_change_queue,
+                    .output_usb_commands = &self.actions_queue,
+                    .encoder_event_changes = &self.encoder_event_queue,
+                };
         }
     };
 }
@@ -46,6 +53,7 @@ pub fn CreateConfig(keymap_dimensions: core.KeymapDimensions) type {
         combos: []const core.Combo2Def = &.{},
         custom_functions: *const core.CustomFunctions = &no_functions,
         sides: [keymap_dimensions.key_count]core.Side = @splat(.X),
+        encoder_actions: []const core.EncoderAction = &.{},
     };
 }
 

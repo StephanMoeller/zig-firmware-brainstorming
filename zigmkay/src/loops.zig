@@ -31,7 +31,9 @@ fn CreatePrimaryConfig(comptime dimensions: *const core.KeymapDimensions) type {
             .on_event = null,
         },
         side_definition: *const [dimensions.key_count]core.Side = &[_]core.Side{core.Side.X} ** dimensions.key_count,
-        encoder_configs: []encoder_scanning.EncoderConfig = &.{},
+
+        encoder_pin_configs: []encoder_scanning.EncoderPinConfig = &.{},
+        encoder_actions: []core.EncoderAction = &.{},
     };
 }
 
@@ -85,10 +87,10 @@ fn run_primary_internal(
 
     // Input scanning
     const matrix_scanner = comptime matrix_scanning.CreateMatrixScannerType(dimensions, config.pin_cols, config.pin_rows, config.pin_mappings, config.scanner_settings){};
-    var encoder_scanner = comptime encoder_scanning.CreateEncoderScannerType(config.encoder_configs){};
+    var encoder_scanner = comptime encoder_scanning.CreateEncoderScannerType(config.encoder_pin_configs){};
 
     // Processing
-    var processor = processing.CreateProcessorType(dimensions, config.keymap, config.side_definition, config.combos, config.custom_functions){
+    var processor = processing.CreateProcessorType(dimensions, config.keymap, config.side_definition, config.combos, config.custom_functions, config.encoder_actions){
         .input_matrix_changes = &matrix_change_queue,
         .output_usb_commands = &usb_command_queue,
         .encoder_event_changes = &encoder_change_queue,
@@ -107,7 +109,7 @@ fn run_primary_internal(
 
         // Receive from remote side
         if (uart_or_null) |uart| {
-            try receive_from_uart_to_queue(&uart, &uart_receiver, &matrix_change_queue, current_time);
+            try receive_from_uart_to_queue(&uart, &uart_receiver, &matrix_change_queue, &encoder_change_queue, current_time);
         }
 
         // Processing: decide actions
@@ -129,6 +131,7 @@ fn CreateSecondaryConfig(comptime dimensions: *const core.KeymapDimensions) type
 
         // Extras (both sides)
         scanner_settings: *const matrix_scanning.ScannerSettings = &.{},
+        encoder_pin_configs: []encoder_scanning.EncoderPinConfig = &.{},
     };
 }
 
@@ -158,7 +161,10 @@ fn run_secondary_internal(
     uart: rp2xxx.uart.UART,
 ) !void {
     var matrix_change_queue = core.MatrixStateChangeQueue.Create();
+    var encoder_change_queue = core.EncoderEventQueue.Create();
+
     const matrix_scanner = comptime matrix_scanning.CreateMatrixScannerType(dimensions, config.pin_cols, config.pin_rows, config.pin_mappings, config.scanner_settings){};
+    var encoder_scanner = comptime encoder_scanning.CreateEncoderScannerType(config.encoder_pin_configs){};
 
     var uart_sender = split_protocol.UartSendHelper{};
     while (true) {
@@ -166,13 +172,14 @@ fn run_secondary_internal(
 
         // Detect local changes
         try matrix_scanner.DetectKeyboardChanges(&matrix_change_queue, current_time);
+        try encoder_scanner.detectEncoderChanges(&encoder_change_queue, current_time);
 
         // Send to primary side
-        try send_from_queue_to_uart(&uart, &uart_sender, &matrix_change_queue);
+        try send_from_queue_to_uart(&uart, &uart_sender, &matrix_change_queue, &encoder_change_queue);
     }
 }
 
-fn receive_from_uart_to_queue(uart: *const rp2xxx.uart.UART, receiver: *split_protocol.UartReceiveHelper, matrix_change_queue: *core.MatrixStateChangeQueue, current_time: core.TimeSinceBoot) !void {
+fn receive_from_uart_to_queue(uart: *const rp2xxx.uart.UART, receiver: *split_protocol.UartReceiveHelper, matrix_change_queue: *core.MatrixStateChangeQueue, encoder_change_queue: *core.EncoderEventQueue, current_time: core.TimeSinceBoot) !void {
     while (uart.read_word() catch {
         uart.clear_errors();
         return;
@@ -182,21 +189,26 @@ fn receive_from_uart_to_queue(uart: *const rp2xxx.uart.UART, receiver: *split_pr
                 .MatrixStateChange => |e| {
                     try matrix_change_queue.enqueue(.{ .key_index = e.key_index, .pressed = e.pressed, .time = current_time });
                 },
-                .EncoderValueChanged => {},
+                .EncoderActionIndexTriggered => |e| {
+                    try encoder_change_queue.enqueue(.{ .encoder_action_index = e });
+                },
             }
         }
     }
 }
 
-fn send_from_queue_to_uart(uart: *const rp2xxx.uart.UART, uart_sender: *split_protocol.UartSendHelper, matrix_change_queue: *core.MatrixStateChangeQueue) !void {
+fn send_from_queue_to_uart(uart: *const rp2xxx.uart.UART, uart_sender: *split_protocol.UartSendHelper, matrix_change_queue: *core.MatrixStateChangeQueue, encoder_event_queue: *core.EncoderEventQueue) !void {
     while (matrix_change_queue.dequeue()) |matrix_change| {
         try uart_sender.sendMessage(.{ .MatrixStateChange = .{ .key_index = matrix_change.key_index, .pressed = matrix_change.pressed } });
+    }
+    while (encoder_event_queue.dequeue()) |encoder_event| {
+        try uart_sender.sendMessage(.{ .EncoderActionIndexTriggered = encoder_event.encoder_action_index });
+    }
 
-        while (uart_sender.byte_queue.dequeue()) |msg| {
-            const uart_send_buffer = [1]u8{msg};
-            uart.write_blocking(&uart_send_buffer, microzig.drivers.time.Deadline{ .timeout = microzig.drivers.time.Absolute.from_us(100 * 1000) }) catch {
-                uart.clear_errors();
-            };
-        }
+    while (uart_sender.byte_queue.dequeue()) |msg| {
+        const uart_send_buffer = [1]u8{msg};
+        uart.write_blocking(&uart_send_buffer, microzig.drivers.time.Deadline{ .timeout = microzig.drivers.time.Absolute.from_us(100 * 1000) }) catch {
+            uart.clear_errors();
+        };
     }
 }

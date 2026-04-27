@@ -8,6 +8,7 @@ pub fn CreateProcessorType(
     comptime sides: *const [keymap_dimensions.key_count]core.Side,
     comptime combos: []const core.Combo2Def,
     comptime custom: *const core.CustomFunctions,
+    comptime encoder_actions: []const core.EncoderAction,
 ) type {
     return struct {
         const Self = @This();
@@ -31,9 +32,14 @@ pub fn CreateProcessorType(
             _ = self.stats.register_tick(current_time);
             on_event(self, core.ProcessorEvent.Tick);
 
-            while (self.encoder_event_changes.dequeue()) |e| {
-                try self.execute_tap_press(e.tap);
-                try self.execute_tap_release(e.tap);
+            while (self.encoder_event_changes.dequeue()) |event| {
+                if (event.encoder_action_index < encoder_actions.len) {
+                    const tap = encoder_actions[event.encoder_action_index].tap;
+                    try self.execute_tap_press(tap);
+                    try self.execute_tap_release(tap);
+                } else {
+                    // out of encoder actions bounds - ignore
+                }
             }
 
             while (true) {

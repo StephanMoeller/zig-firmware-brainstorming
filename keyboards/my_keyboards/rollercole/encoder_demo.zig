@@ -44,16 +44,17 @@ pub fn main() !void {
         p.led.put(1);
     };
 }
-var encoder_configs = [_]encoder_scanning.EncoderConfig{encoder_scanning.EncoderConfig{
-    .pins = .{
-        .pin_a = p.data1,
-        .pin_b = p.data2,
-        .sensitivity = 4,
-    },
-    .actions = .{
-        .tap_cw = core.TapDef{ .media_key = .VolumeUp },
-        .tap_ccw = core.TapDef{ .media_key = .VolumeDown },
-    },
+
+var encoder_actions = [_]core.EncoderAction{
+    .{ .tap = core.TapDef{ .media_key = .VolumeUp } },
+    .{ .tap = core.TapDef{ .media_key = .VolumeDown } },
+};
+var encoder_pin_configs = [_]encoder_scanning.EncoderPinConfig{encoder_scanning.EncoderPinConfig{
+    .pin_a = p.data1,
+    .pin_b = p.data2,
+    .sensitivity = 4,
+    .action_index_cw = 0,
+    .action_index_ccw = 1,
 }};
 pub fn run() !void {
     _ = pin_config.apply();
@@ -66,7 +67,8 @@ pub fn run() !void {
             .pin_cols = pins_cols[0..],
             .pin_rows = pins_rows[0..],
             .pin_mappings = &no_pin_mappings,
-            .encoder_configs = encoder_configs[0..],
+            .encoder_pin_configs = encoder_pin_configs[0..],
+            .encoder_actions = encoder_actions[0..],
         },
     };
 
