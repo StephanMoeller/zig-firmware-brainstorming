@@ -63,9 +63,6 @@ pub fn main() !void {
     blink_led(1, 300); // Show the user that the keyboard has actually booted up.
     const uart = init_uart();
 
-    // Mandatory
-
-    // Optionals
     if (primary) {
         comptime var config = zigmkay.loops.GetPrimarySideConfigType(&rollercole_shared_keymap.dimensions){
             .keymap = &rollercole_shared_keymap.keymap,
