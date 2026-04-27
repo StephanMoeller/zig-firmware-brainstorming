@@ -18,9 +18,9 @@ pub const pin_config = rp2xxx.pins.GlobalConfiguration{
 
     .GPIO0 = .{ .name = "col", .direction = .out },
     .GPIO1 = .{ .name = "row", .direction = .in },
-    .GPIO23 = .{ .name = "data1", .direction = .in },
-    .GPIO21 = .{ .name = "data2", .direction = .in },
-    .GPIO8 = .{ .name = "click", .direction = .in },
+    .GPIO23 = .{ .name = "data1", .direction = .in, .pull = .up, .function = .SIO },
+    .GPIO21 = .{ .name = "data2", .direction = .in, .pull = .up , .function = .SIO},
+    .GPIO8 = .{ .name = "click", .direction = .in, .pull = .up, .function = .SIO },
 };
 pub const p = pin_config.pins();
 

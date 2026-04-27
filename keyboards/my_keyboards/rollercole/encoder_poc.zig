@@ -10,7 +10,7 @@ const us = zigmkay.keycodes.us;
 const time = rp2xxx.time;
 
 const usb = zigmkay.usb;
-const encoder_lib = zigmkay.encoder_scanning;
+const encoder_scanning = zigmkay.encoder_scanning;
 
 // zig fmt: off
 pub const pin_config = rp2xxx.pins.GlobalConfiguration{
@@ -57,19 +57,21 @@ pub fn run() !void {
     var usb_command_queue = core.OutputCommandQueue.Create();
     const usb_command_executor = usb.CreateAndInitUsbCommandExecutor();
 
-    var current_time = get_current_time();
-    var encoder = encoder_lib.Encoder.init(
-        .{
-            .pins = .{
-                .pin_a = p.data1,
-                .pin_b = p.data2,
-                .sensitivity = 4,
-            },
-            .actions = .{
-                .tap_cw = core.TapDef{ .media_key = .VolumeUp },
-                .tap_ccw = core.TapDef{ .media_key = .VolumeDown },
-            },
+    const enc_config = encoder_scanning.EncoderConfig{
+        .pins = .{
+            .pin_a = p.data1,
+            .pin_b = p.data2,
+            .sensitivity = 4,
         },
+        .actions = .{
+            .tap_cw = core.TapDef{ .media_key = .VolumeUp },
+            .tap_ccw = core.TapDef{ .media_key = .VolumeDown },
+        },
+    };
+
+    var current_time = get_current_time();
+    var encoder = encoder_scanning.Encoder.init(
+        &enc_config,
 
         current_time,
     );
