@@ -12,19 +12,23 @@ const microzig = @import("microzig");
 const rp2xxx = microzig.hal;
 const time = rp2xxx.time;
 
-pub fn GetConfigType(comptime dimensions: *const core.KeymapDimensions) type {
+pub fn GetPrimarySideConfigType(comptime dimensions: *const core.KeymapDimensions) type {
     return struct {
         const Self = @This();
 
         dimensions: *const core.KeymapDimensions = dimensions,
 
+        // Mandatory
         keymap: *const [dimensions.layer_count][dimensions.key_count]core.KeyDef,
         pin_mappings: *const [dimensions.key_count]?[2]usize,
         pin_cols: []const rp2xxx.gpio.Pin,
         pin_rows: []const rp2xxx.gpio.Pin,
 
-        combos: []const core.Combo2Def = &.{},
+        // Extras (both sides)
         scanner_settings: *const matrix_scanning.ScannerSettings = &.{},
+
+        // Extras (primary side only)
+        combos: []const core.Combo2Def = &.{},
         custom_functions: *const core.CustomFunctions = &core.CustomFunctions{
             .on_event = null,
         },
@@ -44,6 +48,31 @@ pub fn GetConfigType(comptime dimensions: *const core.KeymapDimensions) type {
             pub fn run_primary(comptime self: Runner, uart: rp2xxx.uart.UART) !void {
                 try run_primary_internal(self.config.dimensions, self.config, uart);
             }
+        };
+    };
+}
+
+pub fn GetSecondarySideConfigType(comptime dimensions: *const core.KeymapDimensions) type {
+    return struct {
+        const Self = @This();
+
+        dimensions: *const core.KeymapDimensions = dimensions,
+
+        // Mandatory
+        keymap: *const [dimensions.layer_count][dimensions.key_count]core.KeyDef,
+        pin_mappings: *const [dimensions.key_count]?[2]usize,
+        pin_cols: []const rp2xxx.gpio.Pin,
+        pin_rows: []const rp2xxx.gpio.Pin,
+
+        // Extras (both sides)
+        scanner_settings: *const matrix_scanning.ScannerSettings = &.{},
+
+        pub fn build(comptime self: Self) Runner {
+            return Runner{ .config = self };
+        }
+
+        pub const Runner = struct {
+            config: Self,
 
             pub fn run_secondary(comptime self: Runner, uart: rp2xxx.uart.UART) !void {
                 try run_secondary_internal(self.config.dimensions, self.config, uart);
@@ -54,7 +83,7 @@ pub fn GetConfigType(comptime dimensions: *const core.KeymapDimensions) type {
 
 pub fn run_primary_internal(
     comptime dimensions: *const core.KeymapDimensions,
-    comptime config: GetConfigType(dimensions),
+    comptime config: GetPrimarySideConfigType(dimensions),
     uart_or_null: ?rp2xxx.uart.UART,
 ) !void {
     // Data queues
@@ -99,7 +128,7 @@ pub fn run_primary_internal(
 
 pub fn run_secondary_internal(
     comptime dimensions: *const core.KeymapDimensions,
-    comptime config: GetConfigType(dimensions),
+    comptime config: GetSecondarySideConfigType(dimensions),
     uart: rp2xxx.uart.UART,
 ) !void {
     var matrix_change_queue = core.MatrixStateChangeQueue.Create();

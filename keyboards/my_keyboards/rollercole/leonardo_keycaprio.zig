@@ -49,7 +49,7 @@ pub fn main() !void {
     blink_led(1, 300); // Show the user that the keyboard has actually booted up.
 
     // Mandatory
-    comptime var config = zigmkay.loops.GetConfigType(&rollercole_shared_keymap.dimensions){
+    comptime var config = zigmkay.loops.GetPrimarySideConfigType(&rollercole_shared_keymap.dimensions){
         .keymap = &rollercole_shared_keymap.keymap,
         .pin_mappings = &pin_mappings,
         .pin_cols = clacky_pin_cols[0..],

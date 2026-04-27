@@ -174,7 +174,7 @@ pub fn main() !void {
     //   - Raw HID communication (companion app telemetry)
 
     // Mandatory
-    comptime var config = zigmkay.loops.GetConfigType(&keymap.dimensions){
+    comptime var config = zigmkay.loops.GetPrimarySideConfigType(&keymap.dimensions){
         .keymap = &keymap.keymap,
         .pin_cols = molekula_pin_cols[0..],
         .pin_rows = molekula_pin_rows[0..],
