@@ -49,15 +49,18 @@ pub fn main() !void {
     blink_led(1, 300); // Show the user that the keyboard has actually booted up.
 
     // Mandatory
-    comptime var config = zigmkay.loops.GetConfigType(&rollercole_shared_keymap.dimensions).init();
-    comptime config.set_keymap(&rollercole_shared_keymap.keymap, clacky_pin_cols[0..], clacky_pin_rows[0..], &pin_mappings);
+    comptime var config = zigmkay.loops.GetConfigType(&rollercole_shared_keymap.dimensions){
+        .keymap = &rollercole_shared_keymap.keymap,
+        .pin_mappings = &pin_mappings,
+        .pin_cols = clacky_pin_cols[0..],
+        .pin_rows = clacky_pin_rows[0..],
+        .combos = rollercole_shared_keymap.combos[0..],
+        .scanner_settings = &scanner_settings,
+        .custom_functions = &rollercole_shared_keymap.custom_functions,
+        .side_definition = &rollercole_shared_keymap.sides,
+    };
 
     // Optionals
-    comptime config.set_combos(rollercole_shared_keymap.combos[0..]);
-    comptime config.set_scanner_settings(&scanner_settings);
-    comptime config.set_custom_functions(&rollercole_shared_keymap.custom_functions);
-    comptime config.set_side_definitions(&rollercole_shared_keymap.sides);
-
     comptime var runner = config.build();
     runner.run_unibody() catch {
         blink_led(10000000, 500); // in case of an error, let the keyboard start blinking

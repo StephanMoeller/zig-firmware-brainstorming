@@ -16,14 +16,12 @@ pub fn GetConfigType(comptime dimensions: *const core.KeymapDimensions) type {
     return struct {
         const Self = @This();
 
-        _keymap_defined: bool = false,
+        dimensions: *const core.KeymapDimensions = dimensions,
 
-        dimensions: *const core.KeymapDimensions,
-
-        keymap: *const [dimensions.layer_count][dimensions.key_count]core.KeyDef = undefined,
-        pin_mappings: *const [dimensions.key_count]?[2]usize = undefined,
-        pin_cols: []const rp2xxx.gpio.Pin = undefined,
-        pin_rows: []const rp2xxx.gpio.Pin = undefined,
+        keymap: *const [dimensions.layer_count][dimensions.key_count]core.KeyDef,
+        pin_mappings: *const [dimensions.key_count]?[2]usize,
+        pin_cols: []const rp2xxx.gpio.Pin,
+        pin_rows: []const rp2xxx.gpio.Pin,
 
         combos: []const core.Combo2Def = &.{},
         scanner_settings: *const matrix_scanning.ScannerSettings = &.{},
@@ -32,49 +30,8 @@ pub fn GetConfigType(comptime dimensions: *const core.KeymapDimensions) type {
         },
         side_definition: *const [dimensions.key_count]core.Side = &[_]core.Side{core.Side.X} ** dimensions.key_count,
         encoder_configs: []encoder_scanning.EncoderConfig = &.{},
-        pub fn init() Self {
-            return .{
-                .dimensions = dimensions,
-            };
-        }
-
-        pub fn set_keymap(
-            comptime self: *Self,
-            keymap: *const [dimensions.layer_count][dimensions.key_count]core.KeyDef,
-            pin_cols: []const rp2xxx.gpio.Pin,
-            pin_rows: []const rp2xxx.gpio.Pin,
-            pin_mappings: *const [dimensions.key_count]?[2]usize,
-        ) void {
-            self.keymap = keymap;
-            self.pin_cols = pin_cols;
-            self.pin_rows = pin_rows;
-            self.pin_mappings = pin_mappings;
-            self._keymap_defined = true;
-        }
-
-        pub fn set_combos(comptime self: *Self, combos: []const core.Combo2Def) void {
-            self.combos = combos;
-        }
-
-        pub fn set_scanner_settings(comptime self: *Self, scanner_settings: *const matrix_scanning.ScannerSettings) void {
-            self.scanner_settings = scanner_settings;
-        }
-
-        pub fn set_custom_functions(comptime self: *Self, custom_functions: *const core.CustomFunctions) void {
-            self.custom_functions = custom_functions;
-        }
-        pub fn set_side_definitions(comptime self: *Self, side_definition: *const [dimensions.key_count]core.Side) void {
-            self.side_definition = side_definition;
-        }
-        pub fn set_encoders(comptime self: *Self, encoder_configs: []encoder_scanning.EncoderConfig) void {
-            self.encoder_configs = encoder_configs;
-        }
 
         pub fn build(comptime self: Self) Runner {
-            if (self._keymap_defined == false) {
-                @compileError(std.fmt.comptimePrint("set_keymap must be calld on the config prior to calling run", .{}));
-            }
-
             return Runner{ .config = self };
         }
 
@@ -177,12 +134,11 @@ pub fn receive_from_uart_to_queue(uart: *const rp2xxx.uart.UART, receiver: *spli
 }
 
 pub fn send_from_queue_to_uart(uart: *const rp2xxx.uart.UART, uart_sender: *split_protocol.UartSendHelper, matrix_change_queue: *core.MatrixStateChangeQueue) !void {
-    while (matrix_change_queue.Count() > 0) {
-        const matrix_change = try matrix_change_queue.dequeue();
+    while (matrix_change_queue.dequeue()) |matrix_change| {
         try uart_sender.sendMessage(.{ .MatrixStateChange = .{ .key_index = matrix_change.key_index, .pressed = matrix_change.pressed } });
 
-        while (uart_sender.byte_queue.Count() > 0) {
-            const uart_send_buffer = [1]u8{try uart_sender.byte_queue.dequeue()};
+        while (uart_sender.byte_queue.dequeue()) |msg| {
+            const uart_send_buffer = [1]u8{msg};
             uart.write_blocking(&uart_send_buffer, microzig.drivers.time.Deadline{ .timeout = microzig.drivers.time.Absolute.from_us(100 * 1000) }) catch {
                 uart.clear_errors();
             };
