@@ -44,11 +44,23 @@ pub fn main() !void {
         p.led.put(1);
     };
 }
-
+const enc_config = encoder_scanning.EncoderConfig{
+    .pins = .{
+        .pin_a = p.data1,
+        .pin_b = p.data2,
+        .sensitivity = 4,
+    },
+    .actions = .{
+        .tap_cw = core.TapDef{ .media_key = .VolumeUp },
+        .tap_ccw = core.TapDef{ .media_key = .VolumeDown },
+    },
+};
+const configs: [1]encoder_scanning.EncoderConfig = .{enc_config};
 pub fn run() !void {
     _ = pin_config.apply();
     blink_led(1, 300); // Show the user that the keyboard has actually booted up.
 
+    const configs_slice: []const encoder_scanning.EncoderConfig = configs[0..];
     // Mandatory
     //comptime var config = zigmkay.loops.GetConfigType(&dimensions).init();
     //comptime config.set_keymap(&keymap);
@@ -57,43 +69,22 @@ pub fn run() !void {
     var usb_command_queue = core.OutputCommandQueue.Create();
     const usb_command_executor = usb.CreateAndInitUsbCommandExecutor();
 
-    const enc_config = encoder_scanning.EncoderConfig{
-        .pins = .{
-            .pin_a = p.data1,
-            .pin_b = p.data2,
-            .sensitivity = 4,
-        },
-        .actions = .{
-            .tap_cw = core.TapDef{ .media_key = .VolumeUp },
-            .tap_ccw = core.TapDef{ .media_key = .VolumeDown },
-        },
-    };
-
     var current_time = get_current_time();
-    var encoder = encoder_scanning.Encoder.init(
-        &enc_config,
 
-        current_time,
-    );
-
-    p.click.set_function(.sio);
-    p.click.set_direction(.in);
-    p.click.set_pull(.up);
-
+    var encoder_change_queue = core.EncoderEventQueue.Create();
+    var encoder_scanner = comptime encoder_scanning.CreateEncoderScannerType(configs_slice){
+        .configs = configs,
+    };
+    encoder_scanner.init();
     while (true) {
         current_time = get_current_time();
         try usb_command_executor.HouseKeepAndProcessCommands(&usb_command_queue, current_time);
+        try encoder_scanner.detectEncoderChanges(&encoder_change_queue, current_time);
 
-        const event = encoder.update(current_time);
-        if (event) |e| {
+        while (encoder_change_queue.dequeue()) |e| {
             try usb_command_queue.queue.enqueue(.{ .ConsumerKeyPressed = e.tap.media_key.? });
             try usb_command_queue.queue.enqueue(.{ .ConsumerKeyReleased = e.tap.media_key.? });
         }
-
-        //runner.run_unibody() catch {
-        //    blink_led(10000000, 500); // in case of an error, let the keyboard start blinking
-        //};
-
     }
 }
 

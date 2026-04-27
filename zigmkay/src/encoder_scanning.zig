@@ -32,52 +32,40 @@ pub const EncoderConfig = struct {
     actions: core.EncoderDef,
 };
 
-pub fn CreateEncoderScanner(comptime encoder_configs: []EncoderConfig) EncoderScanner {
-    const scanner = EncoderScanner{
-        .encoders = undefined,
-        .encoder_configs = encoder_configs,
-    };
+pub fn CreateEncoderScannerType(comptime encoder_configs: []const EncoderConfig) type {
+    return struct {
+        const Self = @This();
+        encoders: [encoder_configs.len]Encoder = @splat(.{}),
+        configs: [encoder_configs.len]EncoderConfig,
+        pub fn init(self: *Self) void {
+            const current_time = core.TimeSinceBoot{ .time_since_boot_us = 0 };
+            for (self.configs, 0..) |enc_config, idx| {
+                self.encoders[idx] = Encoder{
+                    .config = enc_config,
+                    .state = .{
+                        .last_announced_change = current_time,
+                        .last_change_detected = current_time,
+                    },
+                };
+            }
+        }
+        pub fn detectEncoderChanges(self: *Self, encoder_event_queue: *core.EncoderEventQueue, current_time: core.TimeSinceBoot) !void {
+            var i: usize = 0;
+            while (i < self.encoders.len) {
+                var enc = &self.encoders[i];
+                if (enc.update(current_time)) |event| {
+                    try encoder_event_queue.enqueue(event);
+                }
 
-    return scanner;
+                i += 1;
+            }
+        }
+    };
 }
 
-pub const EncoderScanner = struct {
-    encoder_configs: []EncoderConfig,
-    encoders: []Encoder,
-    first_run: bool = true,
-    pub fn detectEncoderChanges(self: *EncoderScanner, encoder_event_queue: *core.EncoderEventQueue, current_time: core.TimeSinceBoot) !void {
-        if (self.first_run) {
-            for (self.encoder_configs, 0..) |enc_config, idx| {
-                self.encoders[idx] = Encoder.init(&enc_config, current_time);
-            }
-            self.first_run = false;
-        }
-        for (self.encoders) |*enc| {
-            if (enc.update(current_time)) |event| {
-                try encoder_event_queue.enqueue(event);
-            }
-        }
-    }
-};
-
 pub const Encoder = struct {
-    config: *const EncoderConfig,
-    state: EncoderState,
-
-    /// Initializes a new Encoder instance, setting the given pins as input with pull-ups enabled.
-    /// Reads the initial internal state of the pins.
-    pub fn init(config: *const EncoderConfig, current_time: core.TimeSinceBoot) Encoder {
-        var self = Encoder{
-            .config = config,
-            .state = .{
-                .last_announced_change = current_time,
-                .last_change_detected = current_time,
-            },
-        };
-        self.state.last_detected_state = read_state(self.config.pins);
-
-        return self;
-    }
+    config: EncoderConfig = undefined,
+    state: EncoderState = undefined,
 
     fn read_state(pins: EncoderPins) u2 {
         const a = pins.pin_a.read();
