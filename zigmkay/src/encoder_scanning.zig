@@ -41,7 +41,7 @@ pub fn CreateEncoderScannerType(comptime encoder_configs: []const EncoderConfig)
             comptime var i: usize = 0;
             const config_count = encoder_configs.len;
             inline while (i < config_count) {
-                const config = &self.configs[i];
+                const config = &encoder_configs[i];
                 if (update(config, &self.states[i], current_time)) |event| {
                     try encoder_event_queue.enqueue(event);
                 }

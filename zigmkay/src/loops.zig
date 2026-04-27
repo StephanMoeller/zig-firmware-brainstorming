@@ -17,7 +17,6 @@ pub fn GetConfigType(comptime dimensions: *const core.KeymapDimensions) type {
         const Self = @This();
 
         _keymap_defined: bool = false,
-        _pins_defined: bool = false,
 
         dimensions: *const core.KeymapDimensions,
 
@@ -39,15 +38,17 @@ pub fn GetConfigType(comptime dimensions: *const core.KeymapDimensions) type {
             };
         }
 
-        pub fn set_pins(comptime self: *Self, pin_cols: []const rp2xxx.gpio.Pin, pin_rows: []const rp2xxx.gpio.Pin, pin_mappings: *const [dimensions.key_count]?[2]usize) void {
+        pub fn set_keymap(
+            comptime self: *Self,
+            keymap: *const [dimensions.layer_count][dimensions.key_count]core.KeyDef,
+            pin_cols: []const rp2xxx.gpio.Pin,
+            pin_rows: []const rp2xxx.gpio.Pin,
+            pin_mappings: *const [dimensions.key_count]?[2]usize,
+        ) void {
+            self.keymap = keymap;
             self.pin_cols = pin_cols;
             self.pin_rows = pin_rows;
             self.pin_mappings = pin_mappings;
-            self._pins_defined = true;
-        }
-
-        pub fn set_keymap(comptime self: *Self, keymap: *const [dimensions.layer_count][dimensions.key_count]core.KeyDef) void {
-            self.keymap = keymap;
             self._keymap_defined = true;
         }
 
@@ -72,9 +73,6 @@ pub fn GetConfigType(comptime dimensions: *const core.KeymapDimensions) type {
         pub fn build(comptime self: Self) Runner {
             if (self._keymap_defined == false) {
                 @compileError(std.fmt.comptimePrint("set_keymap must be calld on the config prior to calling run", .{}));
-            }
-            if (self._pins_defined == false) {
-                @compileError(std.fmt.comptimePrint("set_pins must be calld on the config prior to calling run", .{}));
             }
 
             return Runner{ .config = self };
