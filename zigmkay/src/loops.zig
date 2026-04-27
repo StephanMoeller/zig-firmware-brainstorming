@@ -102,10 +102,8 @@ pub fn GetPrimarySideConfigType(comptime dimensions: *const core.KeymapDimension
     };
 }
 
-pub fn GetSecondarySideConfigType(comptime dimensions: *const core.KeymapDimensions) type {
+pub fn CreateSecondaryConfig(comptime dimensions: *const core.KeymapDimensions) type {
     return struct {
-        const Self = @This();
-
         dimensions: *const core.KeymapDimensions = dimensions,
 
         // Mandatory
@@ -116,20 +114,28 @@ pub fn GetSecondarySideConfigType(comptime dimensions: *const core.KeymapDimensi
 
         // Extras (both sides)
         scanner_settings: *const matrix_scanning.ScannerSettings = &.{},
+    };
+}
+
+pub fn GetSecondarySideConfigType(comptime dimensions: *const core.KeymapDimensions) type {
+    const ConfigType = CreateSecondaryConfig(dimensions);
+    return struct {
+        const Self = @This();
+        config: ConfigType,
 
         pub fn build(comptime self: Self) Runner {
-            return Runner{ .config = self };
+            return Runner{ .config = self.config };
         }
 
         pub const Runner = struct {
-            config: Self,
+            config: ConfigType,
 
             pub fn run_secondary(comptime self: Runner, uart: rp2xxx.uart.UART) !void {
                 try run_secondary_internal(self.config, uart);
             }
 
             fn run_secondary_internal(
-                comptime config: Self,
+                comptime config: ConfigType,
                 uart: rp2xxx.uart.UART,
             ) !void {
                 var matrix_change_queue = core.MatrixStateChangeQueue.Create();
