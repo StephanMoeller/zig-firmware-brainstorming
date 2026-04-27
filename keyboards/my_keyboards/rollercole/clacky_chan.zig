@@ -56,7 +56,7 @@ pub const scanner_settings = zigmkay.matrix_scanning.ScannerSettings{
 pub const clacky_pin_cols = [_]rp2xxx.gpio.Pin{p.col};
 pub const clacky_pin_rows = [_]rp2xxx.gpio.Pin{ p.k7, p.k8, p.k9, p.k12, p.k13, p.k14, p.k15, p.k16, p.k21, p.k23, p.k20, p.k22, p.k26, p.k27, p.k10 };
 
-const primary = false;
+const primary = true;
 
 pub fn main() !void {
     _ = pin_config.apply();

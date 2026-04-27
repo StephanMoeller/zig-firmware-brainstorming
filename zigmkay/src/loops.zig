@@ -47,59 +47,75 @@ pub fn GetPrimarySideConfigType(comptime dimensions: *const core.KeymapDimension
 
         pub const Runner = struct {
             config: ConfigType,
-            pub fn run_unibody(comptime self: Runner) !void {
-                try run_primary_internal(self.config, null);
-            }
-
             pub fn run_primary(comptime self: Runner, uart: rp2xxx.uart.UART) !void {
-                try run_primary_internal(self.config, uart);
+                try run_primary_internal(dimensions, self.config, uart);
             }
         };
-
-        fn run_primary_internal(
-            comptime config: ConfigType,
-            uart_or_null: ?rp2xxx.uart.UART,
-        ) !void {
-            // Data queues
-            var matrix_change_queue = core.MatrixStateChangeQueue.Create();
-            var encoder_change_queue = core.EncoderEventQueue.Create();
-            var usb_command_queue = core.OutputCommandQueue.Create();
-
-            // Input scanning
-            const matrix_scanner = comptime matrix_scanning.CreateMatrixScannerType(dimensions, config.pin_cols, config.pin_rows, config.pin_mappings, config.scanner_settings){};
-            var encoder_scanner = comptime encoder_scanning.CreateEncoderScannerType(config.encoder_configs){};
-
-            // Processing
-            var processor = processing.CreateProcessorType(dimensions, config.keymap, config.side_definition, config.combos, config.custom_functions){
-                .input_matrix_changes = &matrix_change_queue,
-                .output_usb_commands = &usb_command_queue,
-                .encoder_event_changes = &encoder_change_queue,
-            };
-
-            // uart byte queue
-            var uart_receiver = split_protocol.UartReceiveHelper{};
-
-            // USB events
-            const usb_command_executor = usb.CreateAndInitUsbCommandExecutor();
-            while (true) {
-                // Detect local changes
-                const current_time = core.TimeSinceBoot{ .time_since_boot_us = time.get_time_since_boot().to_us() };
-                try matrix_scanner.DetectKeyboardChanges(&matrix_change_queue, current_time); // Scan local matrix changes
-                try encoder_scanner.detectEncoderChanges(&encoder_change_queue, current_time);
-
-                // Receive from remote side
-                if (uart_or_null) |uart| {
-                    try receive_from_uart_to_queue(&uart, &uart_receiver, &matrix_change_queue, current_time);
-                }
-
-                // Processing: decide actions
-                try processor.Process(current_time);
-
-                // Execute actions: send usb commands to the host
-                try usb_command_executor.HouseKeepAndProcessCommands(&usb_command_queue, current_time);
-            }
-        }
     };
+}
+
+pub fn GetUnibodyConfigType(comptime dimensions: *const core.KeymapDimensions) type {
+    const ConfigType = CreatePrimaryConfig(dimensions);
+    return struct {
+        const Self = @This();
+        config: ConfigType,
+
+        pub fn build(comptime self: Self) Runner {
+            return Runner{ .config = self.config };
+        }
+
+        pub const Runner = struct {
+            config: ConfigType,
+            pub fn run_unibody(comptime self: Runner) !void {
+                try run_primary_internal(dimensions, self.config, null);
+            }
+        };
+    };
+}
+
+fn run_primary_internal(
+    comptime dimensions: *const core.KeymapDimensions,
+    comptime config: CreatePrimaryConfig(dimensions),
+    uart_or_null: ?rp2xxx.uart.UART,
+) !void {
+    // Data queues
+    var matrix_change_queue = core.MatrixStateChangeQueue.Create();
+    var encoder_change_queue = core.EncoderEventQueue.Create();
+    var usb_command_queue = core.OutputCommandQueue.Create();
+
+    // Input scanning
+    const matrix_scanner = comptime matrix_scanning.CreateMatrixScannerType(dimensions, config.pin_cols, config.pin_rows, config.pin_mappings, config.scanner_settings){};
+    var encoder_scanner = comptime encoder_scanning.CreateEncoderScannerType(config.encoder_configs){};
+
+    // Processing
+    var processor = processing.CreateProcessorType(dimensions, config.keymap, config.side_definition, config.combos, config.custom_functions){
+        .input_matrix_changes = &matrix_change_queue,
+        .output_usb_commands = &usb_command_queue,
+        .encoder_event_changes = &encoder_change_queue,
+    };
+
+    // uart byte queue
+    var uart_receiver = split_protocol.UartReceiveHelper{};
+
+    // USB events
+    const usb_command_executor = usb.CreateAndInitUsbCommandExecutor();
+    while (true) {
+        // Detect local changes
+        const current_time = core.TimeSinceBoot{ .time_since_boot_us = time.get_time_since_boot().to_us() };
+        try matrix_scanner.DetectKeyboardChanges(&matrix_change_queue, current_time); // Scan local matrix changes
+        try encoder_scanner.detectEncoderChanges(&encoder_change_queue, current_time);
+
+        // Receive from remote side
+        if (uart_or_null) |uart| {
+            try receive_from_uart_to_queue(&uart, &uart_receiver, &matrix_change_queue, current_time);
+        }
+
+        // Processing: decide actions
+        try processor.Process(current_time);
+
+        // Execute actions: send usb commands to the host
+        try usb_command_executor.HouseKeepAndProcessCommands(&usb_command_queue, current_time);
+    }
 }
 
 pub fn CreateSecondaryConfig(comptime dimensions: *const core.KeymapDimensions) type {
