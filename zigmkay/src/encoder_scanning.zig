@@ -21,8 +21,8 @@ pub const EncoderState = struct {
     last_detected_state: u2 = 0,
     accumulator: i8 = 0,
 
-    last_change_detected: core.TimeSinceBoot,
-    last_announced_change: core.TimeSinceBoot,
+    last_change_detected: core.TimeSinceBoot = core.TimeSinceBoot{ .time_since_boot_us = 0 },
+    last_announced_change: core.TimeSinceBoot = core.TimeSinceBoot{ .time_since_boot_us = 0 },
 };
 
 /// Represents a physical rotary encoder connected to two GPIO pins.
@@ -35,58 +35,32 @@ pub const EncoderConfig = struct {
 pub fn CreateEncoderScannerType(comptime encoder_configs: []const EncoderConfig) type {
     return struct {
         const Self = @This();
-        encoders: [encoder_configs.len]Encoder = @splat(.{}),
+        states: [encoder_configs.len]EncoderState = @splat(.{}),
         configs: [encoder_configs.len]EncoderConfig,
-        pub fn init(self: *Self) void {
-            const current_time = core.TimeSinceBoot{ .time_since_boot_us = 0 };
-            for (self.configs, 0..) |enc_config, idx| {
-                self.encoders[idx] = Encoder{
-                    .config = enc_config,
-                    .state = .{
-                        .last_announced_change = current_time,
-                        .last_change_detected = current_time,
-                    },
-                };
-            }
-        }
+
         pub fn detectEncoderChanges(self: *Self, encoder_event_queue: *core.EncoderEventQueue, current_time: core.TimeSinceBoot) !void {
             var i: usize = 0;
-            while (i < self.encoders.len) {
-                var enc = &self.encoders[i];
-                if (enc.update(current_time)) |event| {
+            while (i < self.configs.len) {
+                const config = &self.configs[i];
+                if (update(config, &self.states[i], current_time)) |event| {
                     try encoder_event_queue.enqueue(event);
                 }
 
                 i += 1;
             }
         }
-    };
-}
 
-pub const Encoder = struct {
-    config: EncoderConfig = undefined,
-    state: EncoderState = undefined,
+        fn read_state(pins: EncoderPins) u2 {
+            const a = pins.pin_a.read();
+            const b = pins.pin_b.read();
+            return (@as(u2, a) << 1) | @as(u2, b);
+        }
 
-    fn read_state(pins: EncoderPins) u2 {
-        const a = pins.pin_a.read();
-        const b = pins.pin_b.read();
-        return (@as(u2, a) << 1) | @as(u2, b);
-    }
+        fn update(config: *const EncoderConfig, state: *EncoderState, current_time: core.TimeSinceBoot) ?core.EncoderEvent {
+            const new_state = read_state(config.pins);
 
-    /// Polls the current encoder state and computes any rotation events.
-    /// Should be called repeatedly within the matrix scanning loop.
-    ///
-    /// Uses a direction accumulator to suppress jitter: each quadrature transition
-    /// votes +1 (CW) or -1 (CCW). An event is only emitted when the encoder reaches
-    /// the resting detent (state 00) with an accumulated vote of ±2 or more.
-    /// The accumulator is not reset at intermediate states (e.g. 11), so a full step
-    /// (00→01→11→10→00) accumulates +4 before firing. A single jitter bounce
-    /// (e.g. 00→01→00) nets zero and is discarded.
-    pub fn update(self: *Encoder, current_time: core.TimeSinceBoot) ?core.EncoderEvent {
-        const new_state = read_state(self.config.pins);
-
-        const transition_table: [4][4]i8 = comptime .{
-            // zig fmt: off
+            const transition_table: [4][4]i8 = comptime .{
+                // zig fmt: off
             //  new: 00   01   10   11
                      .{ 0,   1,  -1,   0}, // old: 00
                      .{-1,   0,   0,   1}, // old: 01
@@ -94,8 +68,6 @@ pub const Encoder = struct {
                       .{0,  -1,   1,   0}, // old: 11
             // zig fmt: on
         };
-
-        var state = &self.state;
 
         if (new_state != state.last_detected_state) {
             state.accumulator += transition_table[new_state][state.last_detected_state];
@@ -114,16 +86,16 @@ pub const Encoder = struct {
         }
 
         // If sensitivity threshold exceeded, return an event
-        if (state.accumulator >= self.config.pins.sensitivity) {
-            state.accumulator -= self.config.pins.sensitivity;
+        if (state.accumulator >= config.pins.sensitivity) {
+            state.accumulator -= config.pins.sensitivity;
             state.last_announced_change = current_time;
-            if(self.config.actions.tap_cw)|tap|{
+            if(config.actions.tap_cw)|tap|{
                 return core.EncoderEvent{ .tap = tap };
             } 
-        } else if (state.accumulator <= -self.config.pins.sensitivity) {
-            state.accumulator += self.config.pins.sensitivity;
+        } else if (state.accumulator <= -config.pins.sensitivity) {
+            state.accumulator += config.pins.sensitivity;
             state.last_announced_change = current_time;
-            if(self.config.actions.tap_ccw)|tap|{
+            if(config.actions.tap_ccw)|tap|{
                 return core.EncoderEvent{ .tap = tap };
             }
         }
@@ -131,4 +103,7 @@ pub const Encoder = struct {
         // Not enough change to trigger an announcement yet.
         return null;
     }
-};
+    };
+}
+
+

@@ -75,7 +75,6 @@ pub fn run() !void {
     var encoder_scanner = comptime encoder_scanning.CreateEncoderScannerType(configs_slice){
         .configs = configs,
     };
-    encoder_scanner.init();
     while (true) {
         current_time = get_current_time();
         try usb_command_executor.HouseKeepAndProcessCommands(&usb_command_queue, current_time);
