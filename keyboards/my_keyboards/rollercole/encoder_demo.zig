@@ -60,7 +60,7 @@ pub fn run() !void {
     blink_led(1, 300); // Show the user that the keyboard has actually booted up.
 
     // Mandatory
-    comptime var config = zigmkay.loops.GetConfigType(&dimensions){
+    comptime var config = zigmkay.loops.GetPrimarySideConfigType(&dimensions){
         .keymap = &keymap,
         .pin_cols = pins_cols[0..],
         .pin_rows = pins_rows[0..],
