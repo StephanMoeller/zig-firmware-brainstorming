@@ -40,23 +40,23 @@ pub const keymap = [_][key_count]core.KeyDef{
     },
     // L_NUM
     .{
-              _______, TC(CUSTOM_TAP_ALT_TAB),   T(dk.R), _______,           _______,            _______,   T(dk.N7),   T(dk.N8),   T(dk.N9),    _______,
-     T(_Gui(us.LEFT)),                   UNDO,   _______,    REDO, T(_Gui(us.RIGHT)),            _______, SFT(dk.N4), CTL(dk.N5), ALT(dk.N6), T(dk.PLUS),
-            T(us.ESC),          T(_Ctl(dk.C)), T(us.DEL), _______,        PrintStats,           T(dk.N1),   T(dk.N2),   T(dk.N3),
-                                                   _______,                C( us.N0, CUSTOM_HOLD_RIGHT)
+              _______, TC(CUSTOM_TAP_ALT_TAB),       T(dk.R),   _______,           _______,            _______,   T(dk.N7),   T(dk.N8),   T(dk.N9),    _______,
+     T(_Gui(us.LEFT)),                   UNDO,       _______,      REDO, T(_Gui(us.RIGHT)),            _______, SFT(dk.N4), CTL(dk.N5), ALT(dk.N6), T(dk.PLUS),
+                                    T(us.ESC), T(_Ctl(dk.C)), T(us.DEL),           _______,         PrintStats,   T(dk.N1),   T(dk.N2),   T(dk.N3),
+                                                                                   _______,  C( us.N0, CUSTOM_HOLD_RIGHT)
     },
         // BOTH
     .{
-    PrintStats,   T(us.F7),   T(us.F8),   T(us.F9), T(us.F10),            T(dk.TILD), T(us.SPACE), T(us.SPACE), T(us.SPACE), T(dk.GRV),
-        MEDIA(.VolumeDown),    MEDIA(.VolumeUp), CTL(us.F5), SFT(us.F6), T(us.F11),             T(dk.DLR),  SFT(us.BSPC),  CTL(us.BSPC),  ALT(us.BSPC),   _______,
-                  T(us.F1),   T(us.F2),   T(us.F3), T(us.F12),            T(dk.CIRC),   T(us.DEL),   T(us.DEL),   T(us.DEL),
-                                                   _______,              T(dk.N0)
+            PrintStats,         T(us.F7),   T(us.F8),   T(us.F9), T(us.F10),            T(dk.TILD),  T(us.SPACE),  T(us.SPACE),  T(us.SPACE), T(dk.GRV),
+    MEDIA(.VolumeDown), MEDIA(.VolumeUp), CTL(us.F5), SFT(us.F6), T(us.F11),             T(dk.DLR), SFT(us.BSPC), CTL(us.BSPC), ALT(us.BSPC),   _______,
+                                T(us.F1),   T(us.F2),   T(us.F3), T(us.F12),            T(dk.CIRC),    T(us.DEL),    T(us.DEL),    T(us.DEL),
+                                                                    _______,              T(dk.N0)
     },
     // GAMING
     .{
-      T(us.ESCAPE), T(dk.Q), T(dk.W), T(dk.E),    _______,                   _______,       _______,   T(us.UP),                                  _______, custom_key(CUSTOM_TAP_DISABLE_GAMING),
-           T(dk.F), T(dk.A), T(dk.S), T(dk.D),    _______,                   _______, T(us.LEFT), T(us.DOWN),                           T(us.RIGHT), _______,
-           T(dk.G), T(dk.G),    _______,    _______,                            _______,       _______,       _______, custom_key(CUSTOM_TAP_DISABLE_GAMING),
+      T(us.ESCAPE), T(dk.Q), T(dk.W), T(dk.E),    _______,                   _______,    _______,   T(us.UP),     _______, custom_key(CUSTOM_TAP_DISABLE_GAMING),
+           T(dk.F), T(dk.A), T(dk.S), T(dk.D),    _______,                   _______, T(us.LEFT), T(us.DOWN), T(us.RIGHT),                              _______,
+           T(dk.G), T(dk.G),    _______,    _______,                         _______,    _______,    _______,     _______,
                                         T(us.SPACE),                  _______
     },
 };
