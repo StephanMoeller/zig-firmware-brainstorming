@@ -56,7 +56,7 @@ pub const scanner_settings = zigmkay.matrix_scanning.ScannerSettings{
 pub const clacky_pin_cols = [_]rp2xxx.gpio.Pin{p.col};
 pub const clacky_pin_rows = [_]rp2xxx.gpio.Pin{ p.k7, p.k8, p.k9, p.k12, p.k13, p.k14, p.k15, p.k16, p.k21, p.k23, p.k20, p.k22, p.k26, p.k27, p.k10 };
 
-const primary = true;
+const primary = false;
 
 pub fn main() !void {
     _ = pin_config.apply();
@@ -64,22 +64,36 @@ pub fn main() !void {
     const uart = init_uart();
 
     // Mandatory
-    comptime var config = zigmkay.loops.GetConfigType(&rollercole_shared_keymap.dimensions).init();
 
     // Optionals
-    comptime config.set_combos(rollercole_shared_keymap.combos[0..]);
-    comptime config.set_scanner_settings(&scanner_settings);
-    comptime config.set_custom_functions(&rollercole_shared_keymap.custom_functions);
-    comptime config.set_side_definitions(&rollercole_shared_keymap.sides);
-
     if (primary) {
-        comptime config.set_keymap(&rollercole_shared_keymap.keymap, clacky_pin_cols[0..], clacky_pin_rows[0..], &pin_mappings_right);
+        comptime var config = zigmkay.loops.GetConfigType(&rollercole_shared_keymap.dimensions){
+            .keymap = &rollercole_shared_keymap.keymap,
+            .pin_cols = clacky_pin_cols[0..],
+            .pin_rows = clacky_pin_rows[0..],
+            .pin_mappings = &pin_mappings_right,
+            .combos = rollercole_shared_keymap.combos[0..],
+            .scanner_settings = &scanner_settings,
+            .custom_functions = &rollercole_shared_keymap.custom_functions,
+            .side_definition = &rollercole_shared_keymap.sides,
+        };
+
         comptime var runner = config.build();
         runner.run_primary(uart) catch {
             blink_led(10000000, 500); // in case of an error, let the keyboard start blinking
         };
     } else {
-        comptime config.set_keymap(&rollercole_shared_keymap.keymap, clacky_pin_cols[0..], clacky_pin_rows[0..], &pin_mappings_left);
+        comptime var config = zigmkay.loops.GetConfigType(&rollercole_shared_keymap.dimensions){
+            .keymap = &rollercole_shared_keymap.keymap,
+            .pin_cols = clacky_pin_cols[0..],
+            .pin_rows = clacky_pin_rows[0..],
+            .pin_mappings = &pin_mappings_left,
+            .combos = rollercole_shared_keymap.combos[0..],
+            .scanner_settings = &scanner_settings,
+            .custom_functions = &rollercole_shared_keymap.custom_functions,
+            .side_definition = &rollercole_shared_keymap.sides,
+        };
+
         comptime var runner = config.build();
         runner.run_secondary(uart) catch {
             blink_led(10000000, 500); // in case of an error, let the keyboard start blinking
