@@ -56,7 +56,7 @@ pub const scanner_settings = zigmkay.matrix_scanning.ScannerSettings{
 pub const clacky_pin_cols = [_]rp2xxx.gpio.Pin{p.col};
 pub const clacky_pin_rows = [_]rp2xxx.gpio.Pin{ p.k7, p.k8, p.k9, p.k12, p.k13, p.k14, p.k15, p.k16, p.k21, p.k23, p.k20, p.k22, p.k26, p.k27, p.k10 };
 
-const primary = true;
+const primary = false;
 
 pub fn main() !void {
     _ = pin_config.apply();
@@ -65,14 +65,16 @@ pub fn main() !void {
 
     if (primary) {
         comptime var config = zigmkay.loops.GetPrimarySideConfigType(&rollercole_shared_keymap.dimensions){
-            .keymap = &rollercole_shared_keymap.keymap,
-            .pin_cols = clacky_pin_cols[0..],
-            .pin_rows = clacky_pin_rows[0..],
-            .pin_mappings = &pin_mappings_right,
-            .combos = rollercole_shared_keymap.combos[0..],
-            .scanner_settings = &scanner_settings,
-            .custom_functions = &rollercole_shared_keymap.custom_functions,
-            .side_definition = &rollercole_shared_keymap.sides,
+            .config = .{
+                .keymap = &rollercole_shared_keymap.keymap,
+                .pin_cols = clacky_pin_cols[0..],
+                .pin_rows = clacky_pin_rows[0..],
+                .pin_mappings = &pin_mappings_right,
+                .combos = rollercole_shared_keymap.combos[0..],
+                .scanner_settings = &scanner_settings,
+                .custom_functions = &rollercole_shared_keymap.custom_functions,
+                .side_definition = &rollercole_shared_keymap.sides,
+            },
         };
 
         comptime var runner = config.build();
@@ -81,11 +83,13 @@ pub fn main() !void {
         };
     } else {
         comptime var config = zigmkay.loops.GetSecondarySideConfigType(&rollercole_shared_keymap.dimensions){
-            .keymap = &rollercole_shared_keymap.keymap,
-            .pin_cols = clacky_pin_cols[0..],
-            .pin_rows = clacky_pin_rows[0..],
-            .pin_mappings = &pin_mappings_left,
-            .scanner_settings = &scanner_settings,
+            .config = .{
+                .keymap = &rollercole_shared_keymap.keymap,
+                .pin_cols = clacky_pin_cols[0..],
+                .pin_rows = clacky_pin_rows[0..],
+                .pin_mappings = &pin_mappings_left,
+                .scanner_settings = &scanner_settings,
+            },
         };
 
         comptime var runner = config.build();

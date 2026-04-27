@@ -12,10 +12,8 @@ const microzig = @import("microzig");
 const rp2xxx = microzig.hal;
 const time = rp2xxx.time;
 
-pub fn GetPrimarySideConfigType(comptime dimensions: *const core.KeymapDimensions) type {
+fn CreatePrimaryConfig(comptime dimensions: *const core.KeymapDimensions) type {
     return struct {
-        const Self = @This();
-
         dimensions: *const core.KeymapDimensions = dimensions,
 
         // Mandatory
@@ -34,56 +32,50 @@ pub fn GetPrimarySideConfigType(comptime dimensions: *const core.KeymapDimension
         },
         side_definition: *const [dimensions.key_count]core.Side = &[_]core.Side{core.Side.X} ** dimensions.key_count,
         encoder_configs: []encoder_scanning.EncoderConfig = &.{},
-
-        pub fn build(comptime self: Self) Runner {
-            return Runner{ .config = self };
-        }
-
-        pub const Runner = struct {
-            config: Self,
-            pub fn run_unibody(comptime self: Runner) !void {
-                try run_primary_internal(self.config.dimensions, self.config, null);
-            }
-
-            pub fn run_primary(comptime self: Runner, uart: rp2xxx.uart.UART) !void {
-                try run_primary_internal(self.config.dimensions, self.config, uart);
-            }
-        };
     };
 }
 
-pub fn GetSecondarySideConfigType(comptime dimensions: *const core.KeymapDimensions) type {
+pub fn GetPrimarySideConfigType(comptime dimensions: *const core.KeymapDimensions) type {
+    const ConfigType = CreatePrimaryConfig(dimensions);
     return struct {
         const Self = @This();
-
-        dimensions: *const core.KeymapDimensions = dimensions,
-
-        // Mandatory
-        keymap: *const [dimensions.layer_count][dimensions.key_count]core.KeyDef,
-        pin_mappings: *const [dimensions.key_count]?[2]usize,
-        pin_cols: []const rp2xxx.gpio.Pin,
-        pin_rows: []const rp2xxx.gpio.Pin,
-
-        // Extras (both sides)
-        scanner_settings: *const matrix_scanning.ScannerSettings = &.{},
+        config: ConfigType,
 
         pub fn build(comptime self: Self) Runner {
-            return Runner{ .config = self };
+            return Runner{ .config = self.config };
         }
 
         pub const Runner = struct {
-            config: Self,
-
-            pub fn run_secondary(comptime self: Runner, uart: rp2xxx.uart.UART) !void {
-                try run_secondary_internal(self.config.dimensions, self.config, uart);
+            config: ConfigType,
+            pub fn run_primary(comptime self: Runner, uart: rp2xxx.uart.UART) !void {
+                try run_primary_internal(dimensions, self.config, uart);
             }
         };
     };
 }
 
-pub fn run_primary_internal(
+pub fn GetUnibodyConfigType(comptime dimensions: *const core.KeymapDimensions) type {
+    const ConfigType = CreatePrimaryConfig(dimensions);
+    return struct {
+        const Self = @This();
+        config: ConfigType,
+
+        pub fn build(comptime self: Self) Runner {
+            return Runner{ .config = self.config };
+        }
+
+        pub const Runner = struct {
+            config: ConfigType,
+            pub fn run_unibody(comptime self: Runner) !void {
+                try run_primary_internal(dimensions, self.config, null);
+            }
+        };
+    };
+}
+
+fn run_primary_internal(
     comptime dimensions: *const core.KeymapDimensions,
-    comptime config: GetPrimarySideConfigType(dimensions),
+    comptime config: CreatePrimaryConfig(dimensions),
     uart_or_null: ?rp2xxx.uart.UART,
 ) !void {
     // Data queues
@@ -126,9 +118,44 @@ pub fn run_primary_internal(
     }
 }
 
-pub fn run_secondary_internal(
+fn CreateSecondaryConfig(comptime dimensions: *const core.KeymapDimensions) type {
+    return struct {
+        dimensions: *const core.KeymapDimensions = dimensions,
+
+        // Mandatory
+        keymap: *const [dimensions.layer_count][dimensions.key_count]core.KeyDef,
+        pin_mappings: *const [dimensions.key_count]?[2]usize,
+        pin_cols: []const rp2xxx.gpio.Pin,
+        pin_rows: []const rp2xxx.gpio.Pin,
+
+        // Extras (both sides)
+        scanner_settings: *const matrix_scanning.ScannerSettings = &.{},
+    };
+}
+
+pub fn GetSecondarySideConfigType(comptime dimensions: *const core.KeymapDimensions) type {
+    const ConfigType = CreateSecondaryConfig(dimensions);
+    return struct {
+        const Self = @This();
+        config: ConfigType,
+
+        pub fn build(comptime self: Self) Runner {
+            return Runner{ .config = self.config };
+        }
+
+        pub const Runner = struct {
+            config: ConfigType,
+
+            pub fn run_secondary(comptime self: Runner, uart: rp2xxx.uart.UART) !void {
+                try run_secondary_internal(dimensions, self.config, uart);
+            }
+        };
+    };
+}
+
+fn run_secondary_internal(
     comptime dimensions: *const core.KeymapDimensions,
-    comptime config: GetSecondarySideConfigType(dimensions),
+    comptime config: CreateSecondaryConfig(dimensions),
     uart: rp2xxx.uart.UART,
 ) !void {
     var matrix_change_queue = core.MatrixStateChangeQueue.Create();
@@ -146,7 +173,7 @@ pub fn run_secondary_internal(
     }
 }
 
-pub fn receive_from_uart_to_queue(uart: *const rp2xxx.uart.UART, receiver: *split_protocol.UartReceiveHelper, matrix_change_queue: *core.MatrixStateChangeQueue, current_time: core.TimeSinceBoot) !void {
+fn receive_from_uart_to_queue(uart: *const rp2xxx.uart.UART, receiver: *split_protocol.UartReceiveHelper, matrix_change_queue: *core.MatrixStateChangeQueue, current_time: core.TimeSinceBoot) !void {
     while (uart.read_word() catch {
         uart.clear_errors();
         return;
@@ -162,7 +189,7 @@ pub fn receive_from_uart_to_queue(uart: *const rp2xxx.uart.UART, receiver: *spli
     }
 }
 
-pub fn send_from_queue_to_uart(uart: *const rp2xxx.uart.UART, uart_sender: *split_protocol.UartSendHelper, matrix_change_queue: *core.MatrixStateChangeQueue) !void {
+fn send_from_queue_to_uart(uart: *const rp2xxx.uart.UART, uart_sender: *split_protocol.UartSendHelper, matrix_change_queue: *core.MatrixStateChangeQueue) !void {
     while (matrix_change_queue.dequeue()) |matrix_change| {
         try uart_sender.sendMessage(.{ .MatrixStateChange = .{ .key_index = matrix_change.key_index, .pressed = matrix_change.pressed } });
 
