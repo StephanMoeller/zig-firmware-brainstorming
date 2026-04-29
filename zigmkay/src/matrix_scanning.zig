@@ -7,8 +7,7 @@ const time = rp2xxx.time;
 pub fn CreateScannerConfig(comptime keymap_dimensions: *const core.KeymapDimensions) type {
     const DirectWiredWithGroundAsOutput = struct {
         debounce: core.TimeSpan = .{ .ms = 50 },
-        input_pins: []const rp2xxx.gpio.Pin,
-        pins_to_keys_mapping: *const [keymap_dimensions.key_count]?usize,
+        switch_pins: *const [keymap_dimensions.key_count]?rp2xxx.gpio.Pin,
     };
 
     const Matrix = struct {
@@ -98,7 +97,32 @@ pub fn CreateMatrixScannerType(
      }
     };
         },
-        else => @panic("unsupported pin settings")
+        .direct_wiring => |pins| {
+
+            return struct {
+                const Self = @This();
+// current_states should be a packed struct
+                current_states: [keymap_dimensions.key_count]bool = [1]bool{false} ** (keymap_dimensions.key_count),
+                current_states_last_changed: [keymap_dimensions.key_count]u64 = [1]u64{0} ** (keymap_dimensions.key_count),
+                pub fn DetectKeyboardChanges(self: *Self, output_queue: *core.MatrixStateChangeQueue, current_time: core.TimeSinceBoot) !void{
+                    for(pins.switch_pins, 0..) |pin_or_null, key_index|{
+                        if(pin_or_null) |pin|{
+                            const pressed = pin.read() == 0;
+                            if(self.current_states[key_index] != pressed){
+                                 const last_changed_time = self.current_states_last_changed[key_index];
+                                 if (current_time.time_since_boot_us - last_changed_time > pins.debounce.ms * 1000) {
+                                    self.current_states[key_index] = pressed;
+                                    self.current_states_last_changed[key_index] = current_time.time_since_boot_us;
+                                    const key_index_typed: core.KeyIndex =@intCast(key_index);
+                                    try output_queue.enqueue(.{ .pressed = pressed, .key_index = key_index_typed, .time = current_time });
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+            
+        }
     }
     
 }

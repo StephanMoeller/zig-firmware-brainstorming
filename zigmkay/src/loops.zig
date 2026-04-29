@@ -83,7 +83,7 @@ fn run_primary_internal(
     var usb_command_queue = core.OutputCommandQueue.Create();
 
     // Input scanning
-    const matrix_scanner = comptime matrix_scanning.CreateMatrixScannerType(dimensions, config.scanner_settings){};
+    var matrix_scanner = comptime matrix_scanning.CreateMatrixScannerType(dimensions, config.scanner_settings){};
     var encoder_scanner = comptime encoder_scanning.CreateEncoderScannerType(config.encoder_pin_configs){};
 
     // Processing
