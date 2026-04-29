@@ -53,9 +53,9 @@ const primary = true;
 pub fn main() !void {
     _ = pin_config.apply();
     blink_led(1, 300); // Show the user that the keyboard has actually booted up.
-    const uart = init_uart();
 
     if (primary) {
+        var uart = init_uart();
         comptime var config = zigmkay.loops.GetPrimarySideConfigType(&rollercole_shared_keymap.dimensions){
             .config = .{
                 .keymap = &rollercole_shared_keymap.keymap,
@@ -72,19 +72,36 @@ pub fn main() !void {
         };
 
         comptime var runner = config.build();
-        runner.run_primary(uart) catch {
+        runner.run_primary(&uart) catch {
             blink_led(10000000, 500); // in case of an error, let the keyboard start blinking
         };
-    } else {}
+    } else {
+        var uart = init_uart();
+        comptime var config = zigmkay.loops.GetSecondarySideConfigType(&rollercole_shared_keymap.dimensions){
+            .config = .{
+                .scanner_settings = &.{
+                    .direct_wiring = .{
+                        .debounce = .{ .ms = 50 },
+                        .switch_pins = &switch_pins_left,
+                    },
+                },
+            },
+        };
+
+        comptime var runner = config.build();
+        runner.run_secondary(&uart) catch {
+            blink_led(10000000, 500); // in case of an error, let the keyboard start blinking
+        };
+    }
 }
 
-pub fn init_uart() rp2xxx.uart.UART {
+pub fn init_uart() zigmkay.split_communication.UartClient {
     // uart init
     uart_tx_pin.set_function(.uart);
     uart_rx_pin.set_function(.uart);
     const uart = rp2xxx.uart.instance.num(0);
     uart.apply(.{ .clock_config = rp2xxx.clock_config, .baud_rate = 9600 });
-    return uart;
+    return zigmkay.split_communication.UartClient{ .uart = uart };
 }
 
 pub fn blink_led(blink_count: u32, interval_ms: u32) void {
