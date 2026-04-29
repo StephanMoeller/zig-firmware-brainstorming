@@ -53,7 +53,7 @@ pub const switch_pins_left = [_]?rp2xxx.gpio.Pin{
 pub const switch_pins_right = [_]?rp2xxx.gpio.Pin{
         null,null,null,null,null, p.GP0, p.GP29, p.GP12, p.GP28, p.GP13,  
         null,null,null,null,null, p.GP27, p.GP4, p.GP26, p.GP14,  p.GP22, 
-        null,null,null,null,              p.GP20, p.GP7,  p.GP23, p.GP21,  
+        null,null,null,null,              p.GP6, p.GP20,  p.GP7, p.GP23,  
         null,                     p.GP9,                                  
 };
 // zig fmt: on
