@@ -16,7 +16,7 @@ pub fn CreateScannerConfig(comptime keymap_dimensions: *const core.KeymapDimensi
             pin_rows: []const rp2xxx.gpio.Pin,
             pin_raise_wait_us: u64 = 30,
             pins_to_keys_mapping: *const [keymap_dimensions.key_count]?[2]usize,
-            direction: enum { col2row, row2col } = .col2row,
+            direction: enum { col2row, row2col },
         },
     };
 }
