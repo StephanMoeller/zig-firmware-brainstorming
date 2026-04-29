@@ -15,6 +15,8 @@ const uart_rx_pin = gpio.num(1);
 // zig fmt: off
 pub const pin_config = rp2xxx.pins.GlobalConfiguration{
     .GPIO17 = .{ .name = "led", .direction = .out },
+    .GPIO19 = .{ .name = "usb_detection", .direction = .in, .pull = .down },
+
     .GPIO6 = .{ .name = "col", .direction = .out },
 
     .GPIO7 = .{ .name = "k7", .direction = .in },
@@ -33,7 +35,10 @@ pub const pin_config = rp2xxx.pins.GlobalConfiguration{
     .GPIO27 = .{ .name = "k27", .direction = .in },
     .GPIO10 = .{ .name = "k10", .direction = .in },
 };
-pub const p = pin_config.pins();
+pub const p = blk: {
+    @setEvalBranchQuota(10_000);
+    break :blk pin_config.pins();
+};
 pub const pin_mappings_right = [rollercole_shared_keymap.key_count]?[2]usize{
    null, null, null, null, null,  .{0,13},.{0,12},.{0,11},.{0,10},.{0,5},
    null, null, null, null, null,   .{0,9},.{0,8},.{0,7},.{0,6},.{0,0},
@@ -52,13 +57,13 @@ pub const pin_mappings_left = [rollercole_shared_keymap.key_count]?[2]usize{
 pub const clacky_pin_cols = [_]rp2xxx.gpio.Pin{p.col};
 pub const clacky_pin_rows = [_]rp2xxx.gpio.Pin{ p.k7, p.k8, p.k9, p.k12, p.k13, p.k14, p.k15, p.k16, p.k21, p.k23, p.k20, p.k22, p.k26, p.k27, p.k10 };
 
-const primary = false;
 
 pub fn main() !void {
     _ = pin_config.apply();
     blink_led(1, 300); // Show the user that the keyboard has actually booted up.
     var uart = init_uart();
 
+const primary = check_is_primary_side();
     if (primary) {
         comptime var config = zigmkay.loops.GetPrimarySideConfigType(&rollercole_shared_keymap.dimensions){
             .config = .{
@@ -100,6 +105,15 @@ pub fn main() !void {
             blink_led(10000000, 500); // in case of an error, let the keyboard start blinking
         };
     }
+}
+pub fn check_is_primary_side() bool {
+    const usb_detect_pin = gpio.num(19);
+    usb_detect_pin.set_function(.sio);
+    usb_detect_pin.set_direction(.in);
+    usb_detect_pin.set_pull(.down);
+    time.sleep_ms(1);
+    const primary = usb_detect_pin.read() == 1;
+    return primary;
 }
 
 pub fn init_uart() zigmkay.split_communication.UartClient {
