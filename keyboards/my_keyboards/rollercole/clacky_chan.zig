@@ -65,13 +65,11 @@ pub fn main() !void {
                 .keymap = &rollercole_shared_keymap.keymap,
                 .combos = rollercole_shared_keymap.combos[0..],
                 .scanner_settings = &.{
-                    .debounce = .{ .ms = 50 },
-                    .pin_settings = .{
-                        .matrix = .{
-                            .pin_cols = clacky_pin_cols[0..],
-                            .pin_rows = clacky_pin_rows[0..],
-                            .pins_to_keys_mapping = &pin_mappings_right,
-                        },
+                    .matrix = .{
+                        .debounce = .{ .ms = 50 },
+                        .pin_cols = clacky_pin_cols[0..],
+                        .pin_rows = clacky_pin_rows[0..],
+                        .pins_to_keys_mapping = &pin_mappings_right,
                     },
                 },
                 .custom_functions = &rollercole_shared_keymap.custom_functions,
@@ -87,13 +85,11 @@ pub fn main() !void {
         comptime var config = zigmkay.loops.GetSecondarySideConfigType(&rollercole_shared_keymap.dimensions){
             .config = .{
                 .scanner_settings = &.{
-                    .debounce = .{ .ms = 50 },
-                    .pin_settings = .{
-                        .matrix = .{
-                            .pin_cols = clacky_pin_cols[0..],
-                            .pin_rows = clacky_pin_rows[0..],
-                            .pins_to_keys_mapping = &pin_mappings_left,
-                        },
+                    .matrix = .{
+                        .debounce = .{ .ms = 50 },
+                        .pin_cols = clacky_pin_cols[0..],
+                        .pin_rows = clacky_pin_rows[0..],
+                        .pins_to_keys_mapping = &pin_mappings_left,
                     },
                 },
             },

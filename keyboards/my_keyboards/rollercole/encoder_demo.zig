@@ -64,9 +64,14 @@ pub fn run() !void {
     comptime var config = zigmkay.loops.GetUnibodyConfigType(&dimensions){
         .config = .{
             .keymap = &keymap,
-            .pin_cols = pins_cols[0..],
-            .pin_rows = pins_rows[0..],
-            .pin_mappings = &no_pin_mappings,
+            .scanner_settings = &.{
+                .matrix = .{
+                    .pin_cols = pins_cols[0..],
+                    .pin_rows = pins_rows[0..],
+                    .pin_mappings = &no_pin_mappings,
+                },
+            },
+
             .encoder_pin_configs = encoder_pin_configs[0..],
             .encoder_actions = encoder_actions[0..],
         },
