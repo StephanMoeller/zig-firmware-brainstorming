@@ -9,7 +9,6 @@ const zigmkay = @import("zigmkay");
 const zkeycodes = @import("zkeycodes");
 
 // uart
-const uart_tx_pin = gpio.num(0);
 const uart_rx_pin = gpio.num(1);
 
 // zig fmt: off
@@ -46,9 +45,16 @@ pub const switch_pins_left = [_]?rp2xxx.gpio.Pin{
             p.GP23, p.GP7,  p.GP20, p.GP6,      null,null,null,null,
     p.GP9,                                      null,
 };
+
+pub const switch_pins_right = [_]?rp2xxx.gpio.Pin{
+    p.GP13, p.GP28, p.GP12, p.GP29, p.GP0,      null,null,null,null,null,
+    p.GP22, p.GP14, p.GP26, p.GP4,  p.GP27,     null,null,null,null,null,
+            p.GP23, p.GP7,  p.GP20, p.GP6,      null,null,null,null,
+    p.GP9,                                      null,
+};
 // zig fmt: on
 
-const primary = true;
+const primary = false;
 
 pub fn main() !void {
     _ = pin_config.apply();
@@ -76,7 +82,7 @@ pub fn main() !void {
             blink_led(10000000, 500); // in case of an error, let the keyboard start blinking
         };
     } else {
-        var uart = init_uart();
+        var uart = init_pio_uart();
         comptime var config = zigmkay.loops.GetSecondarySideConfigType(&rollercole_shared_keymap.dimensions){
             .config = .{
                 .scanner_settings = &.{
@@ -96,12 +102,17 @@ pub fn main() !void {
 }
 
 pub fn init_uart() zigmkay.split_communication.UartClient {
-    // uart init
-    uart_tx_pin.set_function(.uart);
+    // Primary side: GPIO1 is UART0 RX only (hardwired in RP2040 silicon)
     uart_rx_pin.set_function(.uart);
     const uart = rp2xxx.uart.instance.num(0);
     uart.apply(.{ .clock_config = rp2xxx.clock_config, .baud_rate = 9600 });
     return zigmkay.split_communication.UartClient{ .uart = uart };
+}
+
+pub fn init_pio_uart() zigmkay.split_communication.UartClient {
+    // Secondary side: PIO TX on GPIO1 (hardware UART cannot TX on GPIO1)
+    const pio_tx = zigmkay.split_communication.init_pio_uart_tx(gpio.num(1), 9600);
+    return zigmkay.split_communication.UartClient{ .pio_uart_tx = pio_tx };
 }
 
 pub fn blink_led(blink_count: u32, interval_ms: u32) void {
