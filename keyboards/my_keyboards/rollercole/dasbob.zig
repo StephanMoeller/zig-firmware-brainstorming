@@ -27,7 +27,7 @@ pub const pin_config = rp2xxx.pins.GlobalConfiguration{
     .GPIO4 = .{ .name = "GP4", .direction = .in, .pull = .up},
     .GPIO27 = .{ .name = "GP27", .direction = .in, .pull = .up},
 
-    //.GPIO21 = .{ .name = "GP21", .direction = .in, .pull = .up},
+    .GPIO21 = .{ .name = "GP21", .direction = .in, .pull = .up},
     .GPIO23 = .{ .name = "GP23", .direction = .in, .pull = .up},
     .GPIO7 = .{ .name = "GP7", .direction = .in, .pull = .up},
     .GPIO20 = .{ .name = "GP20", .direction = .in, .pull = .up},
@@ -47,10 +47,10 @@ pub const switch_pins_left = [_]?rp2xxx.gpio.Pin{
 };
 
 pub const switch_pins_right = [_]?rp2xxx.gpio.Pin{
-    p.GP13, p.GP28, p.GP12, p.GP29, p.GP0,      null,null,null,null,null,
-    p.GP22, p.GP14, p.GP26, p.GP4,  p.GP27,     null,null,null,null,null,
-            p.GP23, p.GP7,  p.GP20, p.GP6,      null,null,null,null,
-    p.GP9,                                      null,
+        null,null,null,null,null, p.GP0, p.GP29, p.GP12, p.GP28, p.GP13,  
+        null,null,null,null,null, p.GP27, p.GP4, p.GP26, p.GP14,  p.GP22, 
+        null,null,null,null,              p.GP20, p.GP7,  p.GP23, p.GP21,  
+        null,                     p.GP9,                                  
 };
 // zig fmt: on
 
@@ -88,7 +88,7 @@ pub fn main() !void {
                 .scanner_settings = &.{
                     .direct_wiring = .{
                         .debounce = .{ .ms = 50 },
-                        .switch_pins = &switch_pins_left,
+                        .switch_pins = &switch_pins_right,
                     },
                 },
             },
