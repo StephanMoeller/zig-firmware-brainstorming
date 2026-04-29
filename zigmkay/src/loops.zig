@@ -11,6 +11,7 @@ const std = @import("std");
 const microzig = @import("microzig");
 const rp2xxx = microzig.hal;
 const time = rp2xxx.time;
+const UartClient = @import("split_communication.zig").UartClient;
 
 fn CreatePrimaryConfig(comptime dimensions: *const core.KeymapDimensions) type {
     return struct {
@@ -46,7 +47,7 @@ pub fn GetPrimarySideConfigType(comptime dimensions: *const core.KeymapDimension
 
         pub const Runner = struct {
             config: ConfigType,
-            pub fn run_primary(comptime self: Runner, uart: rp2xxx.uart.UART) !void {
+            pub fn run_primary(comptime self: Runner, uart: *UartClient) !void {
                 try run_primary_internal(dimensions, self.config, uart);
             }
         };
@@ -75,7 +76,7 @@ pub fn GetUnibodyConfigType(comptime dimensions: *const core.KeymapDimensions) t
 fn run_primary_internal(
     comptime dimensions: *const core.KeymapDimensions,
     comptime config: CreatePrimaryConfig(dimensions),
-    uart_or_null: ?rp2xxx.uart.UART,
+    uart_or_null: ?*UartClient,
 ) !void {
     // Data queues
     var matrix_change_queue = core.MatrixStateChangeQueue.Create();
@@ -106,7 +107,7 @@ fn run_primary_internal(
 
         // Receive from remote side
         if (uart_or_null) |uart| {
-            try receive_from_uart_to_queue(&uart, &uart_receiver, &matrix_change_queue, &encoder_change_queue, current_time);
+            try receive_from_uart_to_queue(uart, &uart_receiver, &matrix_change_queue, &encoder_change_queue, current_time);
         }
 
         // Processing: decide actions
@@ -140,7 +141,7 @@ pub fn GetSecondarySideConfigType(comptime dimensions: *const core.KeymapDimensi
         pub const Runner = struct {
             config: ConfigType,
 
-            pub fn run_secondary(comptime self: Runner, uart: rp2xxx.uart.UART) !void {
+            pub fn run_secondary(comptime self: Runner, uart: *UartClient) !void {
                 try run_secondary_internal(dimensions, self.config, uart);
             }
         };
@@ -150,7 +151,7 @@ pub fn GetSecondarySideConfigType(comptime dimensions: *const core.KeymapDimensi
 fn run_secondary_internal(
     comptime dimensions: *const core.KeymapDimensions,
     comptime config: CreateSecondaryConfig(dimensions),
-    uart: rp2xxx.uart.UART,
+    uart: *UartClient,
 ) !void {
     var matrix_change_queue = core.MatrixStateChangeQueue.Create();
     var encoder_change_queue = core.EncoderEventQueue.Create();
@@ -167,15 +168,12 @@ fn run_secondary_internal(
         try encoder_scanner.detectEncoderChanges(&encoder_change_queue, current_time);
 
         // Send to primary side
-        try send_from_queue_to_uart(&uart, &uart_sender, &matrix_change_queue, &encoder_change_queue);
+        try send_from_queue_to_uart(uart, &uart_sender, &matrix_change_queue, &encoder_change_queue);
     }
 }
 
-fn receive_from_uart_to_queue(uart: *const rp2xxx.uart.UART, receiver: *split_protocol.UartReceiveHelper, matrix_change_queue: *core.MatrixStateChangeQueue, encoder_change_queue: *core.EncoderEventQueue, current_time: core.TimeSinceBoot) !void {
-    while (uart.read_word() catch {
-        uart.clear_errors();
-        return;
-    }) |byte| {
+fn receive_from_uart_to_queue(uart: *const UartClient, receiver: *split_protocol.UartReceiveHelper, matrix_change_queue: *core.MatrixStateChangeQueue, encoder_change_queue: *core.EncoderEventQueue, current_time: core.TimeSinceBoot) !void {
+    while (uart.receive_byte_or_null()) |byte| {
         if (receiver.receiveByte(byte)) |msg| {
             switch (msg) {
                 .MatrixStateChange => |e| {
@@ -189,7 +187,7 @@ fn receive_from_uart_to_queue(uart: *const rp2xxx.uart.UART, receiver: *split_pr
     }
 }
 
-fn send_from_queue_to_uart(uart: *const rp2xxx.uart.UART, uart_sender: *split_protocol.UartSendHelper, matrix_change_queue: *core.MatrixStateChangeQueue, encoder_event_queue: *core.EncoderEventQueue) !void {
+fn send_from_queue_to_uart(uart: *const UartClient, uart_sender: *split_protocol.UartSendHelper, matrix_change_queue: *core.MatrixStateChangeQueue, encoder_event_queue: *core.EncoderEventQueue) !void {
     while (matrix_change_queue.dequeue()) |matrix_change| {
         try uart_sender.sendMessage(.{ .MatrixStateChange = .{ .key_index = matrix_change.key_index, .pressed = matrix_change.pressed } });
     }
@@ -198,9 +196,6 @@ fn send_from_queue_to_uart(uart: *const rp2xxx.uart.UART, uart_sender: *split_pr
     }
 
     while (uart_sender.byte_queue.dequeue()) |msg| {
-        const uart_send_buffer = [1]u8{msg};
-        uart.write_blocking(&uart_send_buffer, microzig.drivers.time.Deadline{ .timeout = microzig.drivers.time.Absolute.from_us(100 * 1000) }) catch {
-            uart.clear_errors();
-        };
+        uart.send_blocking(msg) catch {};
     }
 }
