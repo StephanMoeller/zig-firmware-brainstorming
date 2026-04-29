@@ -14,7 +14,7 @@ const uart_rx_pin = gpio.num(1);
 // zig fmt: off
 pub const pin_config = rp2xxx.pins.GlobalConfiguration{
     .GPIO17 = .{ .name = "led", .direction = .out },
-    //.GPIO19 = .{ .name = "usb_detection", .direction = .in, .pull = .down },
+    .GPIO19 = .{ .name = "usb_detection", .direction = .in, .pull = .down },
 
     .GPIO13 = .{ .name = "GP13", .direction = .in, .pull = .up},
     .GPIO28 = .{ .name = "GP28", .direction = .in, .pull = .up},
@@ -58,10 +58,12 @@ pub const switch_pins_right = [_]?rp2xxx.gpio.Pin{
 };
 // zig fmt: on
 
-const primary = true;
 pub fn main() !void {
     _ = pin_config.apply();
     blink_led(1, 300); // Show the user that the keyboard has actually booted up.
+
+    const primary = check_is_primary_side();
+    p.led.put(if (primary) 1 else 0);
 
     if (primary) {
         var uart = init_uart();
@@ -102,6 +104,16 @@ pub fn main() !void {
             blink_led(10000000, 500); // in case of an error, let the keyboard start blinking
         };
     }
+}
+
+pub fn check_is_primary_side() bool {
+    const usb_detect_pin = gpio.num(19);
+    usb_detect_pin.set_function(.sio);
+    usb_detect_pin.set_direction(.in);
+    usb_detect_pin.set_pull(.down);
+    time.sleep_ms(1);
+    const primary = usb_detect_pin.read() == 1;
+    return primary;
 }
 
 pub fn init_uart() zigmkay.split_communication.UartClient {
