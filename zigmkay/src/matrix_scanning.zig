@@ -7,7 +7,7 @@ const time = rp2xxx.time;
 pub fn CreateScannerConfig(comptime keymap_dimensions: *const core.KeymapDimensions) type {
     const DirectWiredWithGroundAsOutput = struct {
         debounce: core.TimeSpan = .{ .ms = 50 },
-        input_pins: []const rp2xxx.gpio.Pin,
+        switch_pins: []const rp2xxx.gpio.Pin,
         pins_to_keys_mapping: *const [keymap_dimensions.key_count]?usize,
     };
 
