@@ -12,7 +12,7 @@ const microzig = @import("microzig");
 const rp2xxx = microzig.hal;
 const time = rp2xxx.time;
 
-pub const UartClient = struct {
+pub const UartClient = union(enum) {
     uart: rp2xxx.uart.UART,
     pub fn send_blocking(self: *const UartClient, data: u8) !void {
         const uart_send_buffer = [1]u8{data};
