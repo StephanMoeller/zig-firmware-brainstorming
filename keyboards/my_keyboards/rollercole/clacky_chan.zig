@@ -57,14 +57,13 @@ pub const pin_mappings_left = [rollercole_shared_keymap.key_count]?[2]usize{
 pub const clacky_pin_cols = [_]rp2xxx.gpio.Pin{p.col};
 pub const clacky_pin_rows = [_]rp2xxx.gpio.Pin{ p.k7, p.k8, p.k9, p.k12, p.k13, p.k14, p.k15, p.k16, p.k21, p.k23, p.k20, p.k22, p.k26, p.k27, p.k10 };
 
-
 pub fn main() !void {
     _ = pin_config.apply();
-    blink_led(1, 300); // Show the user that the keyboard has actually booted up.
     var uart = init_uart();
 
-const primary = check_is_primary_side();
+    const primary = check_is_primary_side();
     if (primary) {
+        blink_led(3, 200); // Show the user that the keyboard has actually booted up.
         comptime var config = zigmkay.loops.GetPrimarySideConfigType(&rollercole_shared_keymap.dimensions){
             .config = .{
                 .keymap = &rollercole_shared_keymap.keymap,
@@ -87,6 +86,7 @@ const primary = check_is_primary_side();
             blink_led(10000000, 500); // in case of an error, let the keyboard start blinking
         };
     } else {
+        blink_led(1, 1000); // Show the user that the keyboard has actually booted up.
         comptime var config = zigmkay.loops.GetSecondarySideConfigType(&rollercole_shared_keymap.dimensions){
             .config = .{
                 .scanner_settings = &.{
