@@ -128,17 +128,6 @@ pub const pin_mappings = [keymap.key_count]?[2]usize{
 // =============================================================================
 // Configuration for the matrix scanning algorithm that detects key presses.
 
-pub const scanner_settings = zigmkay.matrix_scanning.ScannerSettings{
-    // Debounce time: How long a key must be stable before registering as "pressed"
-    // This filters out electrical noise and switch bounce
-    //
-    // ADJUSTMENT GUIDE:
-    //   - 50ms is a good default for most mechanical switches
-    //   - Too low = false key presses from bounce noise
-    //   - Too high = sluggish/laggy key response
-    .debounce = .{ .ms = 50 },
-};
-
 // =============================================================================
 // PIN ARRAYS FOR MATRIX SCANNER
 // =============================================================================
@@ -177,11 +166,16 @@ pub fn main() !void {
     comptime var config = zigmkay.loops.GetUnibodyConfigType(&keymap.dimensions){
         .config = .{
             .keymap = &keymap.keymap,
-            .pin_cols = molekula_pin_cols[0..],
-            .pin_rows = molekula_pin_rows[0..],
-            .pin_mappings = &pin_mappings,
+            .scanner_settings = &.{
+                .matrix = .{
+                    .debounce = .{ .ms = 50 },
+                    .pin_cols = molekula_pin_cols[0..],
+                    .pin_rows = molekula_pin_rows[0..],
+                    .pins_to_keys_mapping = &pin_mappings,
+                },
+            },
+
             .combos = keymap.combos[0..],
-            .scanner_settings = &scanner_settings,
             .custom_functions = &keymap.custom_functions,
             .side_definition = &keymap.sides,
         },
