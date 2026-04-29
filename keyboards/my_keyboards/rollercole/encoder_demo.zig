@@ -68,7 +68,7 @@ pub fn run() !void {
                 .matrix = .{
                     .pin_cols = pins_cols[0..],
                     .pin_rows = pins_rows[0..],
-                    .pin_mappings = &no_pin_mappings,
+                    .pins_to_keys_mapping = &no_pin_mappings,
                 },
             },
 
