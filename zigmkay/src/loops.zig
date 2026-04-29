@@ -18,12 +18,9 @@ fn CreatePrimaryConfig(comptime dimensions: *const core.KeymapDimensions) type {
 
         // Mandatory
         keymap: *const [dimensions.layer_count][dimensions.key_count]core.KeyDef,
-        pin_mappings: *const [dimensions.key_count]?[2]usize,
-        pin_cols: []const rp2xxx.gpio.Pin,
-        pin_rows: []const rp2xxx.gpio.Pin,
 
         // Extras (both sides)
-        scanner_settings: *const matrix_scanning.ScannerSettings = &.{},
+        scanner_settings: *const matrix_scanning.CreateScannerConfig(dimensions),
 
         // Extras (primary side only)
         combos: []const core.Combo2Def = &.{},
@@ -86,7 +83,7 @@ fn run_primary_internal(
     var usb_command_queue = core.OutputCommandQueue.Create();
 
     // Input scanning
-    const matrix_scanner = comptime matrix_scanning.CreateMatrixScannerType(dimensions, config.pin_cols, config.pin_rows, config.pin_mappings, config.scanner_settings){};
+    const matrix_scanner = comptime matrix_scanning.CreateMatrixScannerType(dimensions, config.scanner_settings){};
     var encoder_scanner = comptime encoder_scanning.CreateEncoderScannerType(config.encoder_pin_configs){};
 
     // Processing
@@ -124,13 +121,8 @@ fn CreateSecondaryConfig(comptime dimensions: *const core.KeymapDimensions) type
     return struct {
         dimensions: *const core.KeymapDimensions = dimensions,
 
-        // Mandatory
-        pin_mappings: *const [dimensions.key_count]?[2]usize,
-        pin_cols: []const rp2xxx.gpio.Pin,
-        pin_rows: []const rp2xxx.gpio.Pin,
-
-        // Extras (both sides)
-        scanner_settings: *const matrix_scanning.ScannerSettings = &.{},
+        //
+        scanner_settings: *const matrix_scanning.CreateScannerConfig(dimensions),
         encoder_pin_configs: []encoder_scanning.EncoderPinConfig = &.{},
     };
 }
@@ -163,7 +155,7 @@ fn run_secondary_internal(
     var matrix_change_queue = core.MatrixStateChangeQueue.Create();
     var encoder_change_queue = core.EncoderEventQueue.Create();
 
-    const matrix_scanner = comptime matrix_scanning.CreateMatrixScannerType(dimensions, config.pin_cols, config.pin_rows, config.pin_mappings, config.scanner_settings){};
+    const matrix_scanner = comptime matrix_scanning.CreateMatrixScannerType(dimensions, config.scanner_settings){};
     var encoder_scanner = comptime encoder_scanning.CreateEncoderScannerType(config.encoder_pin_configs){};
 
     var uart_sender = split_protocol.UartSendHelper{};

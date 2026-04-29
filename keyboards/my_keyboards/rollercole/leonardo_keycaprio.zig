@@ -36,10 +36,6 @@ pub const pin_mappings = [rollercole_shared_keymap.key_count]?[2]usize{
                                  .{0, 2},   .{0, 5}
 };
 
-pub const scanner_settings = zigmkay.matrix_scanning.ScannerSettings{
-    .debounce = .{ .ms = 50 },
-};
-
 // zig fmt: on
 pub const clacky_pin_cols = [_]rp2xxx.gpio.Pin{ p.col0, p.col1, p.col2, p.col3, p.col4 };
 pub const clacky_pin_rows = [_]rp2xxx.gpio.Pin{ p.row0, p.row1, p.row2, p.row3, p.row4, p.row5 };
@@ -52,11 +48,16 @@ pub fn main() !void {
     comptime var config = zigmkay.loops.GetUnibodyConfigType(&rollercole_shared_keymap.dimensions){
         .config = .{
             .keymap = &rollercole_shared_keymap.keymap,
-            .pin_mappings = &pin_mappings,
-            .pin_cols = clacky_pin_cols[0..],
-            .pin_rows = clacky_pin_rows[0..],
+
             .combos = rollercole_shared_keymap.combos[0..],
-            .scanner_settings = &scanner_settings,
+            .scanner_settings = &.{
+                .matrix = .{
+                    .debounce = .{ .ms = 50 },
+                    .pins_to_keys_mapping = &pin_mappings,
+                    .pin_cols = clacky_pin_cols[0..],
+                    .pin_rows = clacky_pin_rows[0..],
+                },
+            },
             .custom_functions = &rollercole_shared_keymap.custom_functions,
             .side_definition = &rollercole_shared_keymap.sides,
         },
