@@ -46,11 +46,11 @@ pub fn CreateMatrixScannerType(
                     const col_idx = pin_coordinates[0];
                     const row_idx = pin_coordinates[1];
 
-                    if (col_idx >= pin_coordinates.len) {
-                        @compileError(std.fmt.comptimePrint("A col index {d} exceeds the total number of pin_cols provided ({d}).", .{ col_idx, pin_coordinates.len }));
+                    if (col_idx >= pins.pin_cols.len) {
+                        @compileError(std.fmt.comptimePrint("A col index {d} exceeds the total number of pin_cols provided ({d}).", .{ col_idx, pins.pin_cols.len }));
                     }
-                    if (row_idx >= pin_coordinates.len) {
-                        @compileError(std.fmt.comptimePrint("A row index {d} exceeds the total number of pin_rows provided ({d}).", .{ row_idx, pin_coordinates.len }));
+                    if (row_idx >= pins.pin_rows.len) {
+                        @compileError(std.fmt.comptimePrint("A row index {d} exceeds the total number of pin_rows provided ({d}).", .{ row_idx, pins.pin_rows.len }));
                     }
 
                     row_col_to_keyindex[col_idx][row_idx] = key_index;
@@ -66,14 +66,14 @@ pub fn CreateMatrixScannerType(
                 const Self = @This();
                 pub fn DetectKeyboardChanges(_: *const Self, output_queue: *core.MatrixStateChangeQueue, current_time: core.TimeSinceBoot) !void {
                     for (pins.pin_cols, 0..) |col, col_idx| {
-                        col.put(settings.activated_value);
-                        time.sleep_us(settings.pin_raise_wait_us);
+                        col.put(1);
+                        time.sleep_us(pins.pin_raise_wait_us);
 
                         for (pins.pin_rows, 0..) |row, row_idx| {
                             // find the key index for this combination
                             const key_index_or_null = row_col_to_keyindex[col_idx][row_idx];
                             if (key_index_or_null) |key_index| {
-                                const pressed = row.read() == settings.activated_value;
+                                const pressed = row.read() == 1;
 
                                 if (pressed != current_states[key_index]) {
                                     // DEBOUNCE HANDLING
@@ -95,7 +95,7 @@ pub fn CreateMatrixScannerType(
                             }
                         }
 
-                        col.put(1 - settings.activated_value);
+                        col.put(0);
                     }
                     // zig fmt: off
      }
