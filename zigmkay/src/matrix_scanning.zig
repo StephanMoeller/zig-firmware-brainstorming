@@ -5,22 +5,18 @@ const rp2xxx = microzig.hal;
 const time = rp2xxx.time;
 
 pub fn CreateScannerConfig(comptime keymap_dimensions: *const core.KeymapDimensions) type {
-    const DirectWiredWithGroundAsOutput = struct {
-        debounce: core.TimeSpan = .{ .ms = 50 },
-        switch_pins: *const [keymap_dimensions.key_count]?rp2xxx.gpio.Pin,
-    };
-
-    const Matrix = struct {
-        debounce: core.TimeSpan = .{ .ms = 50 },
-        pin_cols: []const rp2xxx.gpio.Pin,
-        pin_rows: []const rp2xxx.gpio.Pin,
-        pin_raise_wait_us: u64 = 30,
-        pins_to_keys_mapping: *const [keymap_dimensions.key_count]?[2]usize,
-    };
-
     return union(enum) {
-        direct_wiring: DirectWiredWithGroundAsOutput,
-        matrix: Matrix,
+        direct_wiring: struct {
+            debounce: core.TimeSpan = .{ .ms = 50 },
+            switch_pins: *const [keymap_dimensions.key_count]?rp2xxx.gpio.Pin,
+        },
+        matrix: struct {
+            debounce: core.TimeSpan = .{ .ms = 50 },
+            pin_cols: []const rp2xxx.gpio.Pin,
+            pin_rows: []const rp2xxx.gpio.Pin,
+            pin_raise_wait_us: u64 = 30,
+            pins_to_keys_mapping: *const [keymap_dimensions.key_count]?[2]usize,
+        },
     };
 }
 

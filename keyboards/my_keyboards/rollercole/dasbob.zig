@@ -9,7 +9,6 @@ const zigmkay = @import("zigmkay");
 const zkeycodes = @import("zkeycodes");
 
 // uart
-const uart_tx_pin = gpio.num(0);
 const uart_rx_pin = gpio.num(1);
 
 // zig fmt: off
@@ -28,7 +27,7 @@ pub const pin_config = rp2xxx.pins.GlobalConfiguration{
     .GPIO4 = .{ .name = "GP4", .direction = .in, .pull = .up},
     .GPIO27 = .{ .name = "GP27", .direction = .in, .pull = .up},
 
-    //.GPIO21 = .{ .name = "GP21", .direction = .in, .pull = .up},
+    .GPIO21 = .{ .name = "GP21", .direction = .in, .pull = .up},
     .GPIO23 = .{ .name = "GP23", .direction = .in, .pull = .up},
     .GPIO7 = .{ .name = "GP7", .direction = .in, .pull = .up},
     .GPIO20 = .{ .name = "GP20", .direction = .in, .pull = .up},
@@ -46,16 +45,23 @@ pub const switch_pins_left = [_]?rp2xxx.gpio.Pin{
             p.GP23, p.GP7,  p.GP20, p.GP6,      null,null,null,null,
     p.GP9,                                      null,
 };
+
+pub const switch_pins_right = [_]?rp2xxx.gpio.Pin{
+        null,null,null,null,null, p.GP0, p.GP29, p.GP12, p.GP28, p.GP13,  
+        null,null,null,null,null, p.GP27, p.GP4, p.GP26, p.GP14,  p.GP22, 
+        null,null,null,null,              p.GP20, p.GP7,  p.GP23, p.GP21,  
+        null,                     p.GP9,                                  
+};
 // zig fmt: on
 
-const primary = true;
+const primary = false;
 
 pub fn main() !void {
     _ = pin_config.apply();
     blink_led(1, 300); // Show the user that the keyboard has actually booted up.
-    const uart = init_uart();
 
     if (primary) {
+        var uart = init_uart();
         comptime var config = zigmkay.loops.GetPrimarySideConfigType(&rollercole_shared_keymap.dimensions){
             .config = .{
                 .keymap = &rollercole_shared_keymap.keymap,
@@ -72,19 +78,41 @@ pub fn main() !void {
         };
 
         comptime var runner = config.build();
-        runner.run_primary(uart) catch {
+        runner.run_primary(&uart) catch {
             blink_led(10000000, 500); // in case of an error, let the keyboard start blinking
         };
-    } else {}
+    } else {
+        var uart = init_pio_uart();
+        comptime var config = zigmkay.loops.GetSecondarySideConfigType(&rollercole_shared_keymap.dimensions){
+            .config = .{
+                .scanner_settings = &.{
+                    .direct_wiring = .{
+                        .debounce = .{ .ms = 50 },
+                        .switch_pins = &switch_pins_right,
+                    },
+                },
+            },
+        };
+
+        comptime var runner = config.build();
+        runner.run_secondary(&uart) catch {
+            blink_led(10000000, 500); // in case of an error, let the keyboard start blinking
+        };
+    }
 }
 
-pub fn init_uart() rp2xxx.uart.UART {
-    // uart init
-    uart_tx_pin.set_function(.uart);
+pub fn init_uart() zigmkay.split_communication.UartClient {
+    // Primary side: GPIO1 is UART0 RX only (hardwired in RP2040 silicon)
     uart_rx_pin.set_function(.uart);
     const uart = rp2xxx.uart.instance.num(0);
     uart.apply(.{ .clock_config = rp2xxx.clock_config, .baud_rate = 9600 });
-    return uart;
+    return zigmkay.split_communication.UartClient{ .uart = uart };
+}
+
+pub fn init_pio_uart() zigmkay.split_communication.UartClient {
+    // Secondary side: PIO TX on GPIO1 (hardware UART cannot TX on GPIO1)
+    const pio_tx = zigmkay.split_communication.init_pio_uart_tx(gpio.num(1), 9600);
+    return zigmkay.split_communication.UartClient{ .pio_uart_tx = pio_tx };
 }
 
 pub fn blink_led(blink_count: u32, interval_ms: u32) void {

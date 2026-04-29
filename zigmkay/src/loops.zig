@@ -156,7 +156,7 @@ fn run_secondary_internal(
     var matrix_change_queue = core.MatrixStateChangeQueue.Create();
     var encoder_change_queue = core.EncoderEventQueue.Create();
 
-    const matrix_scanner = comptime matrix_scanning.CreateMatrixScannerType(dimensions, config.scanner_settings){};
+    var matrix_scanner = comptime matrix_scanning.CreateMatrixScannerType(dimensions, config.scanner_settings){};
     var encoder_scanner = comptime encoder_scanning.CreateEncoderScannerType(config.encoder_pin_configs){};
 
     var uart_sender = split_protocol.UartSendHelper{};
