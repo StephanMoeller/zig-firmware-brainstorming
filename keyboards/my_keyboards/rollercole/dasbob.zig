@@ -39,28 +39,12 @@ pub const pin_config = rp2xxx.pins.GlobalConfiguration{
     //.GPIO8 = .{ .name = "GP8", .direction = .in, .pull = .up},
 };
 pub const p = pin_config.pins();
-pub const pin_mappings_right = [rollercole_shared_keymap.key_count]?[2]usize{
-   null, null, null, null, null,  .{0,13},.{0,12},.{0,11},.{0,10},.{0,5},
-   null, null, null, null, null,   .{0,9},.{0,8},.{0,7},.{0,6},.{0,0},
-         null, null, null, null,   .{0,4},.{0,3},.{0,2},.{0,1},
-                           null,   .{0, 14}
-};
 
-pub const pin_mappings_left = [rollercole_shared_keymap.key_count]?usize{
-    0, 1, 2, 3, 4,     null, null, null, null, null,
-    5, 6, 7, 8, 9,     null, null, null, null, null,
-      10,11,12,13,     null, null, null, null, 
-               14,     null,
-};
-
-pub const scanner_settings = zigmkay.matrix_scanning.ScannerSettings{
-};
-
-pub const switch_pins = [_]rp2xxx.gpio.Pin{
-    p.GP13, p.GP28, p.GP12, p.GP29, p.GP0,
-    p.GP22, p.GP14, p.GP26, p.GP4,  p.GP27,
-            p.GP23, p.GP7,  p.GP20, p.GP6,  
-    p.GP9,
+pub const switch_pins_left = [_]?rp2xxx.gpio.Pin{
+    p.GP13, p.GP28, p.GP12, p.GP29, p.GP0,      null,null,null,null,null,
+    p.GP22, p.GP14, p.GP26, p.GP4,  p.GP27,     null,null,null,null,null,
+            p.GP23, p.GP7,  p.GP20, p.GP6,      null,null,null,null,
+    p.GP9,                                      null,
 };
 // zig fmt: on
 
@@ -78,8 +62,7 @@ pub fn main() !void {
                 .scanner_settings = &.{
                     .direct_wiring = .{
                         .debounce = .{ .ms = 50 },
-                        .switch_pins = &switch_pins,
-                        .pins_to_keys_mapping = &pin_mappings_left,
+                        .switch_pins = &switch_pins_left,
                     },
                 },
                 .combos = rollercole_shared_keymap.combos[0..],
