@@ -16,6 +16,7 @@ pub fn CreateScannerConfig(comptime keymap_dimensions: *const core.KeymapDimensi
             pin_rows: []const rp2xxx.gpio.Pin,
             pin_raise_wait_us: u64 = 30,
             pins_to_keys_mapping: *const [keymap_dimensions.key_count]?[2]usize,
+            direction: enum { col2row, row2col },
         },
     };
 }
@@ -57,59 +58,78 @@ pub fn CreateMatrixScannerType(
 
                 const Self = @This();
                 pub fn DetectKeyboardChanges(_: *const Self, output_queue: *core.MatrixStateChangeQueue, current_time: core.TimeSinceBoot) !void {
-                    for (matrix_settings.pin_cols, 0..) |col, col_idx| {
-                        col.put(1);
-                        time.sleep_us(matrix_settings.pin_raise_wait_us);
+                    if (matrix_settings.direction == .col2row) {
+                        for (matrix_settings.pin_cols, 0..) |col, col_idx| {
+                            col.put(1);
+                            time.sleep_us(matrix_settings.pin_raise_wait_us);
 
-                        for (matrix_settings.pin_rows, 0..) |row, row_idx| {
-                            // find the key index for this combination
-                            const key_index_or_null = row_col_to_keyindex[col_idx][row_idx];
-                            if (key_index_or_null) |key_index| {
-                                const pressed = row.read() == 1;
+                            for (matrix_settings.pin_rows, 0..) |row, row_idx| {
+                                // find the key index for this combination
+                                const key_index_or_null = row_col_to_keyindex[col_idx][row_idx];
+                                if (key_index_or_null) |key_index| {
+                                    const pressed = row.read() == 1;
 
-                                if (pressed != current_states[key_index]) {
-                                    // DEBOUNCE HANDLING
-                                    // This state has changed. If this happened last time very recently, this could be a debounce.
-                                    // Then let it be for now. In a future tick this will be picked up and handled correctly if it is still at the current state by then.
-                                    const last_changed_time = current_states_last_changed[key_index];
+                                    if (pressed != current_states[key_index]) {
+                                        const last_changed_time = current_states_last_changed[key_index];
+                                        if (current_time.time_since_boot_us - last_changed_time > matrix_settings.debounce.ms * 1000) {
+                                            current_states[key_index] = pressed;
+                                            current_states_last_changed[key_index] = current_time.time_since_boot_us;
 
-                                    if (current_time.time_since_boot_us - last_changed_time > matrix_settings.debounce.ms * 1000) {
-                                        current_states[key_index] = pressed;
-                                        current_states_last_changed[key_index] = current_time.time_since_boot_us;
-
-                                        const key_index_with_type: core.KeyIndex = @intCast(key_index);
-                                        try output_queue.enqueue(.{ .pressed = pressed, .key_index = key_index_with_type, .time = current_time });
-                                        //p.led_red.put(read_value);
-                                        //p.led_green.put(1 - read_value);
-                                        //p.led_blue.put(1);
+                                            const key_index_with_type: core.KeyIndex = @intCast(key_index);
+                                            try output_queue.enqueue(.{ .pressed = pressed, .key_index = key_index_with_type, .time = current_time });
+                                        }
                                     }
                                 }
                             }
-                        }
 
-                        col.put(0);
+                            col.put(0);
+                        }
+                    } else {
+                        for (matrix_settings.pin_rows, 0..) |row, row_idx| {
+                            row.put(1);
+                            time.sleep_us(matrix_settings.pin_raise_wait_us);
+
+                            for (matrix_settings.pin_cols, 0..) |col, col_idx| {
+                                // find the key index for this combination
+                                const key_index_or_null = row_col_to_keyindex[col_idx][row_idx];
+                                if (key_index_or_null) |key_index| {
+                                    const pressed = col.read() == 1;
+
+                                    if (pressed != current_states[key_index]) {
+                                        const last_changed_time = current_states_last_changed[key_index];
+                                        if (current_time.time_since_boot_us - last_changed_time > matrix_settings.debounce.ms * 1000) {
+                                            current_states[key_index] = pressed;
+                                            current_states_last_changed[key_index] = current_time.time_since_boot_us;
+
+                                            const key_index_with_type: core.KeyIndex = @intCast(key_index);
+                                            try output_queue.enqueue(.{ .pressed = pressed, .key_index = key_index_with_type, .time = current_time });
+                                        }
+                                    }
+                                }
+                            }
+
+                            row.put(0);
+                        }
                     }
-                    // zig fmt: off
-     }
-    };
+                }
+            };
         },
         .direct_wiring => |pins| {
-
             return struct {
                 const Self = @This();
-// current_states should be a packed struct
+                // current_states should be a packed struct
                 current_states: [keymap_dimensions.key_count]bool = [1]bool{false} ** (keymap_dimensions.key_count),
                 current_states_last_changed: [keymap_dimensions.key_count]u64 = [1]u64{0} ** (keymap_dimensions.key_count),
-                pub fn DetectKeyboardChanges(self: *Self, output_queue: *core.MatrixStateChangeQueue, current_time: core.TimeSinceBoot) !void{
-                    for(pins.switch_pins, 0..) |pin_or_null, key_index|{
-                        if(pin_or_null) |pin|{
+                pub fn DetectKeyboardChanges(self: *Self, output_queue: *core.MatrixStateChangeQueue, current_time: core.TimeSinceBoot) !void {
+                    for (pins.switch_pins, 0..) |pin_or_null, key_index| {
+                        if (pin_or_null) |pin| {
                             const pressed = pin.read() == 0;
-                            if(self.current_states[key_index] != pressed){
-                                 const last_changed_time = self.current_states_last_changed[key_index];
-                                 if (current_time.time_since_boot_us - last_changed_time > pins.debounce.ms * 1000) {
+                            if (self.current_states[key_index] != pressed) {
+                                const last_changed_time = self.current_states_last_changed[key_index];
+                                if (current_time.time_since_boot_us - last_changed_time > pins.debounce.ms * 1000) {
                                     self.current_states[key_index] = pressed;
                                     self.current_states_last_changed[key_index] = current_time.time_since_boot_us;
-                                    const key_index_typed: core.KeyIndex =@intCast(key_index);
+                                    const key_index_typed: core.KeyIndex = @intCast(key_index);
                                     try output_queue.enqueue(.{ .pressed = pressed, .key_index = key_index_typed, .time = current_time });
                                 }
                             }
@@ -117,9 +137,6 @@ pub fn CreateMatrixScannerType(
                     }
                 }
             };
-            
-        }
+        },
     }
-    
 }
-

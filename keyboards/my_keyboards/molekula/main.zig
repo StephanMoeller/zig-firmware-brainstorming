@@ -172,6 +172,7 @@ pub fn main() !void {
                     .pin_cols = molekula_pin_cols[0..],
                     .pin_rows = molekula_pin_rows[0..],
                     .pins_to_keys_mapping = &pin_mappings,
+                    .direction = .col2row,
                 },
             },
 

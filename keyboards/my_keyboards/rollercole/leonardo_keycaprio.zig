@@ -56,6 +56,7 @@ pub fn main() !void {
                     .pins_to_keys_mapping = &pin_mappings,
                     .pin_cols = clacky_pin_cols[0..],
                     .pin_rows = clacky_pin_rows[0..],
+                    .direction = .col2row,
                 },
             },
             .custom_functions = &rollercole_shared_keymap.custom_functions,
