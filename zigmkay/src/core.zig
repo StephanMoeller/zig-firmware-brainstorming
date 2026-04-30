@@ -36,6 +36,9 @@ pub const Modifiers = packed struct {
     right_shift: bool = false,
     right_alt: bool = false,
     right_gui: bool = false,
+    pub fn has_any(self: *const Modifiers) bool {
+        return self.left_gui or self.left_alt or self.left_shift or self.left_ctrl or self.right_gui or self.right_alt or self.right_shift or self.right_ctrl;
+    }
 
     pub fn add(self: *const Modifiers, other: Modifiers) Modifiers {
         const self_bytes = self.toByte();
@@ -169,7 +172,7 @@ pub const EncoderEvent = struct {
 };
 pub const KeyCodeFire = struct {
     tap_keycode: u8 = 0,
-    tap_modifiers: ?Modifiers = null,
+    tap_modifiers: Modifiers = .{},
     dead: bool = false,
 };
 
@@ -224,8 +227,8 @@ pub const OutputCommandQueue = struct {
             self.currently_pressed_keycodes[tap.tap_keycode] = false;
         }
 
-        if (tap.tap_modifiers) |mod| {
-            const temp_mods = self.current_mods.add(mod);
+        if (tap.tap_modifiers.has_any()) {
+            const temp_mods = self.current_mods.add(tap.tap_modifiers);
             try self.queue.enqueue(.{ .ModifiersChanged = temp_mods });
 
             try self.queue.enqueue(.{ .KeyCodePress = tap.tap_keycode });
@@ -238,7 +241,7 @@ pub const OutputCommandQueue = struct {
         }
     }
     pub fn release_key(self: *OutputCommandQueue, tap: KeyCodeFire) !void {
-        if (tap.tap_modifiers != null) {
+        if (tap.tap_modifiers.has_any()) {
             return; // if modifiers exist, release has already been fire
         }
         if (self.currently_pressed_keycodes[tap.tap_keycode] == false) {
