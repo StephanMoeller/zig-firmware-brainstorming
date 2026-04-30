@@ -76,12 +76,26 @@ pub const MouseAction = enum(u8) {
     WheelLeft,
     WheelRight,
 };
+
+pub const ModAddErrors = error{
+    KeyPressNotDefinedOnTapError,
+};
+
 pub const TapDef = struct {
     key_press: ?KeyCodeFire = null,
     one_shot: ?HoldDef = null,
     custom: ?u8 = null,
     media_key: ?MediaCode = null, // Optional media keycode for consumer control (e.g., volume, play/pause).
     mouse_action: ?MouseAction = null, // Optional mouse action to be executed on tap.
+    pub fn add_mods(self: TapDef, mods: Modifiers) ModAddErrors!TapDef {
+        if (self.key_press) |key_press| {
+            var copy = self;
+            copy.key_press = key_press.add_mods(mods);
+            return copy;
+        } else {
+            return ModAddErrors.KeyPressNotDefinedOnTapError;
+        }
+    }
 };
 
 // this list comes from here: https://www.usb.org/sites/default/files/documents/hut1_12v2.pdf
