@@ -79,6 +79,7 @@ pub const MouseAction = enum(u8) {
 
 pub const ModAddErrors = error{
     KeyPressNotDefinedOnTapError,
+    KeyDefinitionDoesNotContainTapDefinition,
 };
 
 pub const TapDef = struct {
@@ -124,6 +125,24 @@ pub const KeyDef = union(enum) {
     hold_only: HoldDef,
     tap_hold: TapHoldDef,
     tap_with_autofire: AutoFireDef,
+    pub fn with_tap_mods(self: KeyDef, mods: Modifiers) ModAddErrors!KeyDef {
+        switch (self) {
+            .tap_only => |t| return KeyDef{ .tap_only = t.add_mods(mods) },
+            .tap_with_autofire => |ta| {
+                const copy = ta;
+                copy.tap = copy.tap.add_mods(mods);
+                return copy;
+            },
+            .tap_hold => |th| {
+                const copy = th;
+                copy.tap = copy.tap.add_mods(mods);
+                return copy;
+            },
+            .transparent => return ModAddErrors.KeyDefinitionDoesNotContainTapDefinition,
+            .none => return ModAddErrors.KeyDefinitionDoesNotContainTapDefinition,
+            .hold_only => return ModAddErrors.KeyDefinitionDoesNotContainTapDefinition,
+        }
+    }
 };
 
 /// Defines the physical placement of a key or component. L=Left, R=Right, TL=Thumb Left, TR=Thumb Right, E=Encoder.
