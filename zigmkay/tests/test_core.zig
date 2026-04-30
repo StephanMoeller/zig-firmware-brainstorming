@@ -49,6 +49,48 @@ test "Modifiers.remove" {
     try std.testing.expectEqual(core.Modifiers{ .left_gui = true, .left_shift = true }, result);
 }
 
+test "KeyCodeFire.add_mods" {
+    const key = core.KeyCodeFire{
+        .dead = true,
+        .tap_keycode = 123,
+        .tap_modifiers = .{ .left_alt = true, .left_ctrl = true },
+    };
+
+    const new_key = key.with_mods(.{ .right_ctrl = true, .left_ctrl = false });
+
+    try std.testing.expectEqual(core.KeyCodeFire{ .dead = true, .tap_keycode = 123, .tap_modifiers = core.Modifiers{ .left_alt = true, .left_ctrl = true, .right_ctrl = true } }, new_key);
+}
+
+test "TapDef.add_mods - with key_press defined - expect added" {
+    const tap_def = core.TapDef{
+        .key_press = core.KeyCodeFire{
+            .dead = true,
+            .tap_keycode = 123,
+            .tap_modifiers = .{ .left_alt = true, .left_ctrl = true },
+        },
+        .media_key = .VolumeDown,
+    };
+
+    const new_tap_def = try tap_def.with_mods(.{ .right_ctrl = true, .left_ctrl = false });
+
+    try std.testing.expectEqual(core.TapDef{
+        .key_press = core.KeyCodeFire{
+            .dead = true,
+            .tap_keycode = 123,
+            .tap_modifiers = .{ .left_alt = true, .left_ctrl = true, .right_ctrl = true },
+        },
+        .media_key = .VolumeDown,
+    }, new_tap_def);
+}
+
+test "TapDef.add_mods - with key_press null - expect error" {
+    const tap_def = core.TapDef{
+        .key_press = null,
+        .media_key = .VolumeDown,
+    };
+    try std.testing.expectEqual(core.ModAddErrors.KeyPressNotDefinedOnTapError, tap_def.with_mods(.{ .left_ctrl = true }));
+}
+
 test "LayerActivations" {
     var layers = core.LayerActivations{};
     try std.testing.expectEqual(true, layers.is_layer_active(0)); // base is always active

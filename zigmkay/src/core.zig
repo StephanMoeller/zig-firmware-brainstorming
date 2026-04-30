@@ -76,12 +76,27 @@ pub const MouseAction = enum(u8) {
     WheelLeft,
     WheelRight,
 };
+
+pub const ModAddErrors = error{
+    KeyPressNotDefinedOnTapError,
+    KeyDefinitionDoesNotContainTapDefinition,
+};
+
 pub const TapDef = struct {
     key_press: ?KeyCodeFire = null,
     one_shot: ?HoldDef = null,
     custom: ?u8 = null,
     media_key: ?MediaCode = null, // Optional media keycode for consumer control (e.g., volume, play/pause).
     mouse_action: ?MouseAction = null, // Optional mouse action to be executed on tap.
+    pub fn with_mods(self: TapDef, mods: Modifiers) ModAddErrors!TapDef {
+        if (self.key_press) |key_press| {
+            var copy = self;
+            copy.key_press = key_press.with_mods(mods);
+            return copy;
+        } else {
+            return ModAddErrors.KeyPressNotDefinedOnTapError;
+        }
+    }
 };
 
 // this list comes from here: https://www.usb.org/sites/default/files/documents/hut1_12v2.pdf
@@ -110,6 +125,24 @@ pub const KeyDef = union(enum) {
     hold_only: HoldDef,
     tap_hold: TapHoldDef,
     tap_with_autofire: AutoFireDef,
+    pub fn with_tap_mods(self: KeyDef, mods: Modifiers) ModAddErrors!KeyDef {
+        switch (self) {
+            .tap_only => |t| return KeyDef{ .tap_only = try t.with_mods(mods) },
+            .tap_with_autofire => |ta| {
+                var copy = ta;
+                copy.tap = try copy.tap.with_mods(mods);
+                return KeyDef{ .tap_with_autofire = copy };
+            },
+            .tap_hold => |th| {
+                var copy = th;
+                copy.tap = try copy.tap.with_mods(mods);
+                return KeyDef{ .tap_hold = copy };
+            },
+            .transparent => return ModAddErrors.KeyDefinitionDoesNotContainTapDefinition,
+            .none => return ModAddErrors.KeyDefinitionDoesNotContainTapDefinition,
+            .hold_only => return ModAddErrors.KeyDefinitionDoesNotContainTapDefinition,
+        }
+    }
 };
 
 /// Defines the physical placement of a key or component. L=Left, R=Right, TL=Thumb Left, TR=Thumb Right, E=Encoder.
@@ -174,6 +207,11 @@ pub const KeyCodeFire = struct {
     tap_keycode: u8 = 0,
     tap_modifiers: Modifiers = .{},
     dead: bool = false,
+    pub fn with_mods(self: KeyCodeFire, mods: Modifiers) KeyCodeFire {
+        var copy = self;
+        copy.tap_modifiers = copy.tap_modifiers.add(mods);
+        return copy;
+    }
 };
 
 // Media Key Codes (Consumer Page)
