@@ -36,6 +36,9 @@ pub const Modifiers = packed struct {
     right_shift: bool = false,
     right_alt: bool = false,
     right_gui: bool = false,
+    pub fn empty(self: *const Modifiers) bool {
+        return !self.has_any();
+    }
     pub fn has_any(self: *const Modifiers) bool {
         return self.left_gui or self.left_alt or self.left_shift or self.left_ctrl or self.right_gui or self.right_alt or self.right_shift or self.right_ctrl;
     }
@@ -107,7 +110,7 @@ pub const MediaCode = enum(u16) {
 };
 
 pub const HoldDef = struct {
-    hold_modifiers: ?Modifiers = null,
+    hold_modifiers: Modifiers = .{},
     hold_layer: ?LayerIndex = null,
     custom: ?u8 = null,
 };
