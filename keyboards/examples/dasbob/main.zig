@@ -60,6 +60,7 @@ pub const switch_pins_right = [_]?rp2xxx.gpio.Pin{
 // zig fmt: on
 
 pub fn main() !void {
+    @setEvalBranchQuota(10_000);
     _ = pin_config.apply();
     blink_led(1, 300); // Show the user that the keyboard has actually booted up.
 
@@ -140,3 +141,4 @@ pub fn blink_led(blink_count: u32, interval_ms: u32) void {
         time.sleep_us(interval_ms * 1000);
     }
 }
+
