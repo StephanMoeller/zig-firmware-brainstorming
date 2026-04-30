@@ -86,31 +86,19 @@ const REDO = T(_Ctl(dk.Y));
 
 fn _Ctl(fire: core.KeyCodeFire) core.KeyCodeFire {
     var copy = fire;
-    if (copy.tap_modifiers) |mods| {
-        mods.left_ctrl = true;
-    } else {
-        copy.tap_modifiers = .{ .left_ctrl = true };
-    }
+    copy.tap_modifiers = copy.tap_modifiers.add(.{ .left_ctrl = true });
     return copy;
 }
 
 fn _Sft(fire: core.KeyCodeFire) core.KeyCodeFire {
     var copy = fire;
-    if (copy.tap_modifiers) |mods| {
-        mods.left_shift = true;
-    } else {
-        copy.tap_modifiers = .{ .left_shift = true };
-    }
+    copy.tap_modifiers = copy.tap_modifiers.add(.{ .left_shift = true });
     return copy;
 }
 
 fn _Gui(fire: core.KeyCodeFire) core.KeyCodeFire {
     var copy = fire;
-    if (copy.tap_modifiers) |mods| {
-        mods.left_gui = true;
-    } else {
-        copy.tap_modifiers = .{ .left_gui = true };
-    }
+    copy.tap_modifiers = copy.tap_modifiers.add(.{ .left_gui = true });
     return copy;
 }
 

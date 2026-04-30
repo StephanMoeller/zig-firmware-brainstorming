@@ -4,11 +4,8 @@ const core = zigmkay.core;
 pub fn L_CTL(fire: core.KeyCodeFire) core.KeyCodeFire {
     var copy = fire;
     copy.dead = false;
-    if (copy.tap_modifiers) |mods| {
-        copy.tap_modifiers = mods.add(.{ .left_ctrl = true });
-    } else {
-        copy.tap_modifiers = .{ .left_ctrl = true };
-    }
+    copy.tap_modifiers = copy.tap_modifiers.add(.{ .left_ctrl = true });
+
     return copy;
 }
 
@@ -16,11 +13,8 @@ pub fn L_CTL(fire: core.KeyCodeFire) core.KeyCodeFire {
 pub fn R_CTL(fire: core.KeyCodeFire) core.KeyCodeFire {
     var copy = fire;
     copy.dead = false;
-    if (copy.tap_modifiers) |mods| {
-        copy.tap_modifiers = mods.add(.{ .right_ctrl = true });
-    } else {
-        copy.tap_modifiers = .{ .right_ctrl = true };
-    }
+    copy.tap_modifiers = copy.tap_modifiers.add(.{ .right_ctrl = true });
+
     return copy;
 }
 
@@ -28,11 +22,7 @@ pub fn R_CTL(fire: core.KeyCodeFire) core.KeyCodeFire {
 pub fn L_SFT(fire: core.KeyCodeFire) core.KeyCodeFire {
     var copy = fire;
     copy.dead = false;
-    if (copy.tap_modifiers) |mods| {
-        copy.tap_modifiers = mods.add(.{ .left_shift = true });
-    } else {
-        copy.tap_modifiers = .{ .left_shift = true };
-    }
+    copy.tap_modifiers = copy.tap_modifiers.add(.{ .left_shift = true });
     return copy;
 }
 
@@ -40,11 +30,8 @@ pub fn L_SFT(fire: core.KeyCodeFire) core.KeyCodeFire {
 pub fn R_SFT(fire: core.KeyCodeFire) core.KeyCodeFire {
     var copy = fire;
     copy.dead = false;
-    if (copy.tap_modifiers) |mods| {
-        copy.tap_modifiers = mods.add(.{ .right_shift = true });
-    } else {
-        copy.tap_modifiers = .{ .right_shift = true };
-    }
+    copy.tap_modifiers = copy.tap_modifiers.add(.{ .right_shift = true });
+
     return copy;
 }
 
@@ -52,11 +39,8 @@ pub fn R_SFT(fire: core.KeyCodeFire) core.KeyCodeFire {
 pub fn L_GUI(fire: core.KeyCodeFire) core.KeyCodeFire {
     var copy = fire;
     copy.dead = false;
-    if (copy.tap_modifiers) |mods| {
-        copy.tap_modifiers = mods.add(.{ .left_gui = true });
-    } else {
-        copy.tap_modifiers = .{ .left_gui = true };
-    }
+    copy.tap_modifiers = copy.tap_modifiers.add(.{ .left_gui = true });
+
     return copy;
 }
 
@@ -64,11 +48,8 @@ pub fn L_GUI(fire: core.KeyCodeFire) core.KeyCodeFire {
 pub fn R_GUI(fire: core.KeyCodeFire) core.KeyCodeFire {
     var copy = fire;
     copy.dead = false;
-    if (copy.tap_modifiers) |mods| {
-        copy.tap_modifiers = mods.add(.{ .right_gui = true });
-    } else {
-        copy.tap_modifiers = .{ .right_gui = true };
-    }
+    copy.tap_modifiers = copy.tap_modifiers.add(.{ .right_gui = true });
+
     return copy;
 }
 
@@ -76,11 +57,8 @@ pub fn R_GUI(fire: core.KeyCodeFire) core.KeyCodeFire {
 pub fn L_ALT(fire: core.KeyCodeFire) core.KeyCodeFire {
     var copy = fire;
     copy.dead = false;
-    if (copy.tap_modifiers) |mods| {
-        copy.tap_modifiers = mods.add(.{ .left_alt = true });
-    } else {
-        copy.tap_modifiers = .{ .left_alt = true };
-    }
+    copy.tap_modifiers = copy.tap_modifiers.add(.{ .left_alt = true });
+
     return copy;
 }
 
@@ -88,11 +66,8 @@ pub fn L_ALT(fire: core.KeyCodeFire) core.KeyCodeFire {
 pub fn R_ALT(fire: core.KeyCodeFire) core.KeyCodeFire {
     var copy = fire;
     copy.dead = false;
-    if (copy.tap_modifiers) |mods| {
-        copy.tap_modifiers = mods.add(.{ .right_alt = true });
-    } else {
-        copy.tap_modifiers = .{ .right_alt = true };
-    }
+    copy.tap_modifiers = copy.tap_modifiers.add(.{ .right_alt = true });
+
     return copy;
 }
 

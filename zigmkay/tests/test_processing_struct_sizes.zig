@@ -43,7 +43,7 @@ test "Struct size: AutoFireDef" {
     try std.testing.expectEqual(24, @sizeOf(core.AutoFireDef));
 }
 test "Struct size: KeyCodeFire" {
-    try std.testing.expectEqual(4, @sizeOf(core.KeyCodeFire));
+    try std.testing.expectEqual(3, @sizeOf(core.KeyCodeFire));
     try std.testing.expectEqual(1, @alignOf(core.KeyCodeFire));
 }
 test "Keymap of 36 keys with 5 layers - sanity checking" {

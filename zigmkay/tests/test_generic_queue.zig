@@ -6,7 +6,7 @@ const q = zigmkay.generic_queue;
 test "queue" {
     var queue = q.GenericQueue(i32, 10).Create();
     try std.testing.expectEqual(0, queue.Count());
-    try queue.enqueue(10);
+    try queue.enqueue(11);
     try queue.enqueue(11);
     try queue.enqueue(12);
 
