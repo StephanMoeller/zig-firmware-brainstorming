@@ -92,7 +92,7 @@ pub const MediaCode = enum(u16) {
 };
 
 pub const HoldDef = struct {
-    hold_modifiers: ?Modifiers = null,
+    hold_modifiers: Modifiers = .{},
     hold_layer: ?LayerIndex = null,
     custom: ?u8 = null,
 };

@@ -281,10 +281,10 @@ pub fn CreateProcessorType(
         }
 
         fn hold_remove_modifiers_and_layers(self: *Self, hold: core.HoldDef) !void {
-            if (hold.hold_modifiers != null) {
+            if (hold.hold_modifiers.has_any()) {
                 // Cancel the hold modifier(s)
                 var modifiers = self.output_usb_commands.get_current_modifiers();
-                modifiers = modifiers.remove(hold.hold_modifiers.?);
+                modifiers = modifiers.remove(hold.hold_modifiers);
                 try self.output_usb_commands.set_mods(modifiers);
             }
             if (hold.hold_layer != null) {
@@ -292,10 +292,10 @@ pub fn CreateProcessorType(
             }
         }
         fn hold_apply_modifiers_and_layers(self: *Self, hold: core.HoldDef) !void {
-            if (hold.hold_modifiers != null) {
+            if (hold.hold_modifiers.has_any()) {
                 // Apply the hold modifier(s)
                 var modifiers = self.output_usb_commands.get_current_modifiers();
-                modifiers = modifiers.add(hold.hold_modifiers.?);
+                modifiers = modifiers.add(hold.hold_modifiers);
                 try self.output_usb_commands.set_mods(modifiers);
             }
             if (hold.hold_layer != null) {
