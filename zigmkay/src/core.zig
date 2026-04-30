@@ -88,10 +88,10 @@ pub const TapDef = struct {
     custom: ?u8 = null,
     media_key: ?MediaCode = null, // Optional media keycode for consumer control (e.g., volume, play/pause).
     mouse_action: ?MouseAction = null, // Optional mouse action to be executed on tap.
-    pub fn add_mods(self: TapDef, mods: Modifiers) ModAddErrors!TapDef {
+    pub fn with_mods(self: TapDef, mods: Modifiers) ModAddErrors!TapDef {
         if (self.key_press) |key_press| {
             var copy = self;
-            copy.key_press = key_press.add_mods(mods);
+            copy.key_press = key_press.with_mods(mods);
             return copy;
         } else {
             return ModAddErrors.KeyPressNotDefinedOnTapError;
@@ -127,15 +127,15 @@ pub const KeyDef = union(enum) {
     tap_with_autofire: AutoFireDef,
     pub fn with_tap_mods(self: KeyDef, mods: Modifiers) ModAddErrors!KeyDef {
         switch (self) {
-            .tap_only => |t| return KeyDef{ .tap_only = try t.add_mods(mods) },
+            .tap_only => |t| return KeyDef{ .tap_only = try t.with_mods(mods) },
             .tap_with_autofire => |ta| {
                 var copy = ta;
-                copy.tap = try copy.tap.add_mods(mods);
+                copy.tap = try copy.tap.with_mods(mods);
                 return KeyDef{ .tap_with_autofire = copy };
             },
             .tap_hold => |th| {
                 var copy = th;
-                copy.tap = try copy.tap.add_mods(mods);
+                copy.tap = try copy.tap.with_mods(mods);
                 return KeyDef{ .tap_hold = copy };
             },
             .transparent => return ModAddErrors.KeyDefinitionDoesNotContainTapDefinition,
@@ -207,7 +207,7 @@ pub const KeyCodeFire = struct {
     tap_keycode: u8 = 0,
     tap_modifiers: Modifiers = .{},
     dead: bool = false,
-    pub fn add_mods(self: KeyCodeFire, mods: Modifiers) KeyCodeFire {
+    pub fn with_mods(self: KeyCodeFire, mods: Modifiers) KeyCodeFire {
         var copy = self;
         copy.tap_modifiers = copy.tap_modifiers.add(mods);
         return copy;

@@ -56,7 +56,7 @@ test "KeyCodeFire.add_mods" {
         .tap_modifiers = .{ .left_alt = true, .left_ctrl = true },
     };
 
-    const new_key = key.add_mods(.{ .right_ctrl = true, .left_ctrl = false });
+    const new_key = key.with_mods(.{ .right_ctrl = true, .left_ctrl = false });
 
     try std.testing.expectEqual(core.KeyCodeFire{ .dead = true, .tap_keycode = 123, .tap_modifiers = core.Modifiers{ .left_alt = true, .left_ctrl = true, .right_ctrl = true } }, new_key);
 }
@@ -71,7 +71,7 @@ test "TapDef.add_mods - with key_press defined - expect added" {
         .media_key = .VolumeDown,
     };
 
-    const new_tap_def = try tap_def.add_mods(.{ .right_ctrl = true, .left_ctrl = false });
+    const new_tap_def = try tap_def.with_mods(.{ .right_ctrl = true, .left_ctrl = false });
 
     try std.testing.expectEqual(core.TapDef{
         .key_press = core.KeyCodeFire{
@@ -88,7 +88,7 @@ test "TapDef.add_mods - with key_press null - expect error" {
         .key_press = null,
         .media_key = .VolumeDown,
     };
-    try std.testing.expectEqual(core.ModAddErrors.KeyPressNotDefinedOnTapError, tap_def.add_mods(.{ .left_ctrl = true }));
+    try std.testing.expectEqual(core.ModAddErrors.KeyPressNotDefinedOnTapError, tap_def.with_mods(.{ .left_ctrl = true }));
 }
 
 test "LayerActivations" {
