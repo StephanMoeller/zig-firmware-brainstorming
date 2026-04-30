@@ -34,7 +34,7 @@ pub const keymap = [_][key_count]core.KeyDef{
     // L_ARROWS
     .{
     T(dk.EXLM),   T(dk.LABK),  GUI(dk.EQL),   T(dk.RABK), T(dk.PERC),             T(dk.SLSH),       T(us.HOME),   AF_fast(us.UP),         T(us.END),  T(us.APP),
-    T(dk.AT),   ALT(dk.LCBR), CTL(dk.LPRN), SFT(dk.RPRN), T(dk.RCBR),             T(us.PGUP), AF_fast(us.LEFT), AF_fast(us.DOWN), AF_fast(us.RIGHT), T(us.PGDN),
+AF_slow(dk.AT),   ALT(dk.LCBR), CTL(dk.LPRN), SFT(dk.RPRN), T(dk.RCBR),             T(us.PGUP), AF_fast(us.LEFT), AF_fast(us.DOWN), AF_fast(us.RIGHT), T(us.PGDN),
                   T(dk.HASH),   T(dk.LBRC),   T(dk.RBRC),    _______,                _______,        T(us.TAB),     CTL(dk.DQUO),         T(us.ESC),
                                                         C(us.SPACE, CUSTOM_HOLD_LEFT),                _______
     },
