@@ -127,16 +127,16 @@ pub const KeyDef = union(enum) {
     tap_with_autofire: AutoFireDef,
     pub fn with_tap_mods(self: KeyDef, mods: Modifiers) ModAddErrors!KeyDef {
         switch (self) {
-            .tap_only => |t| return KeyDef{ .tap_only = t.add_mods(mods) },
+            .tap_only => |t| return KeyDef{ .tap_only = try t.add_mods(mods) },
             .tap_with_autofire => |ta| {
-                const copy = ta;
-                copy.tap = copy.tap.add_mods(mods);
-                return copy;
+                var copy = ta;
+                copy.tap = try copy.tap.add_mods(mods);
+                return KeyDef{ .tap_with_autofire = copy };
             },
             .tap_hold => |th| {
-                const copy = th;
-                copy.tap = copy.tap.add_mods(mods);
-                return copy;
+                var copy = th;
+                copy.tap = try copy.tap.add_mods(mods);
+                return KeyDef{ .tap_hold = copy };
             },
             .transparent => return ModAddErrors.KeyDefinitionDoesNotContainTapDefinition,
             .none => return ModAddErrors.KeyDefinitionDoesNotContainTapDefinition,
