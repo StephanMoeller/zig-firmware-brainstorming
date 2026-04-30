@@ -4,9 +4,10 @@ const microzig = @import("microzig");
 const rp2xxx = microzig.hal;
 const time = rp2xxx.time;
 const gpio = rp2xxx.gpio;
-const rollercole_shared_keymap = @import("shared_keymap.zig");
+const rollercole_shared_keymap = @import("keymap.zig");
 const zigmkay = @import("zigmkay");
 const zkeycodes = @import("zkeycodes");
+const keymap = @import("keymap.zig");
 
 // uart
 const uart_rx_pin = gpio.num(1);
@@ -34,9 +35,9 @@ pub const pin_config = rp2xxx.pins.GlobalConfiguration{
     .GPIO20 = .{ .name = "GP20", .direction = .in, .pull = .up},
     .GPIO6 = .{ .name = "GP6", .direction = .in, .pull = .up},
 
-    //.GPIO16 = .{ .name = "GP16", .direction = .in, .pull = .up},
+    .GPIO16 = .{ .name = "GP16", .direction = .in, .pull = .up},
     .GPIO9 = .{ .name = "GP9", .direction = .in, .pull = .up},
-    //.GPIO8 = .{ .name = "GP8", .direction = .in, .pull = .up},
+    .GPIO8 = .{ .name = "GP8", .direction = .in, .pull = .up},
 };
 pub const p = blk: {
     @setEvalBranchQuota(10_000);
@@ -46,15 +47,15 @@ pub const p = blk: {
 pub const switch_pins_left = [_]?rp2xxx.gpio.Pin{
     p.GP13, p.GP28, p.GP12, p.GP29, p.GP0,      null,null,null,null,null,
     p.GP22, p.GP14, p.GP26, p.GP4,  p.GP27,     null,null,null,null,null,
-            p.GP23, p.GP7,  p.GP20, p.GP6,      null,null,null,null,
-    p.GP9,                                      null,
+    p.GP21, p.GP23, p.GP7,  p.GP20, p.GP6,      null,null,null,null,null,
+                    p.GP16, p.GP9,  p.GP8,      null,null,null,
 };
 
 pub const switch_pins_right = [_]?rp2xxx.gpio.Pin{
-        null,null,null,null,null, p.GP0, p.GP29, p.GP12, p.GP28, p.GP13,  
-        null,null,null,null,null, p.GP27, p.GP4, p.GP26, p.GP14,  p.GP22, 
-        null,null,null,null,              p.GP6, p.GP20,  p.GP7, p.GP23,  
-        null,                     p.GP9,                                  
+        null,null,null,null,null,        p.GP0, p.GP29, p.GP12, p.GP28, p.GP13,  
+        null,null,null,null,null,       p.GP27,  p.GP4, p.GP26, p.GP14,  p.GP22, 
+        null,null,null,null,null,        p.GP6, p.GP20,  p.GP7, p.GP23, p.GP21,  
+                  null,null,null,        p.GP8,  p.GP9, p.GP16                                  
 };
 // zig fmt: on
 
@@ -76,9 +77,9 @@ pub fn main() !void {
                         .switch_pins = &switch_pins_left,
                     },
                 },
-                .combos = rollercole_shared_keymap.combos[0..],
-                .custom_functions = &rollercole_shared_keymap.custom_functions,
-                .side_definition = &rollercole_shared_keymap.sides,
+                //.combos = rollercole_shared_keymap.combos[0..],
+                //.custom_functions = &rollercole_shared_keymap.custom_functions,
+                //.side_definition = &rollercole_shared_keymap.sides,
             },
         };
 
