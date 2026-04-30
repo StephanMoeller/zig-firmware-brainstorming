@@ -63,6 +63,11 @@ pub fn main() !void {
     @setEvalBranchQuota(10_000);
     _ = pin_config.apply();
 
+    const keymap_dimensions = zigmkay.core.KeymapDimensions{
+        .key_count = keymap.key_count,
+        .layer_count = keymap.keymap.len,
+    };
+
     blink_led(1, 300); // Show the user that the keyboard has actually booted up.
 
     const primary = check_is_primary_side();
@@ -70,7 +75,7 @@ pub fn main() !void {
 
     if (primary) {
         var uart = init_uart();
-        comptime var config = zigmkay.loops.GetPrimarySideConfigType(&keymap.keymap_dimensions){
+        comptime var config = zigmkay.loops.GetPrimarySideConfigType(&keymap_dimensions){
             .config = .{
                 .keymap = &keymap.keymap,
                 .scanner_settings = &.{
@@ -91,7 +96,7 @@ pub fn main() !void {
         };
     } else {
         var uart = init_pio_uart();
-        comptime var config = zigmkay.loops.GetSecondarySideConfigType(&keymap.keymap_dimensions){
+        comptime var config = zigmkay.loops.GetSecondarySideConfigType(&keymap_dimensions){
             .config = .{
                 .scanner_settings = &.{
                     .direct_wiring = .{

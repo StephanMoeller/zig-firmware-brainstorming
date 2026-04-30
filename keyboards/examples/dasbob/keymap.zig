@@ -32,10 +32,10 @@ pub const keymap = [_][key_count]zigmkay.core.KeyDef{
     },
     // ARROW_KEYS_LAYER: 2
     .{
-         ________, ________, ________, ________, ________,                  ________, T(us.HOME), T(us.UP),   T(us.END),   ________,
-          VolDown,    VolUp, ________, ________, ________,                  ________, T(us.LEFT), T(us.DOWN), T(us.RIGHT), ________,
-         ________, ________, ________, ________, ________,                  ________, ________,   ________,   ________,    ________,
-                             ________, ________, ________,                  ________, ________,   ________,
+         CloseWindow, ________, ________, ________, ________,                  ________, T(us.HOME), T(us.UP),   T(us.END),   ________,
+         VolDown,     VolUp,    ________, ________, ________,                  ________, T(us.LEFT), T(us.DOWN), T(us.RIGHT), ________,
+         ________,    ________, ________, ________, ________,                  ________, ________,   ________,   ________,    ________,
+                                ________, ________, ________,                  ________, ________,   ________,
     },
 };
 
@@ -58,13 +58,17 @@ pub const Space_Arrows = core.KeyDef{
     },
 };
 
+// fires alt+f4
+const CloseWindow = core.KeyDef{
+    .tap_only = .{
+        .key_press = us.F4,
+        //.hold_modifiers = .{ .left_alt = true },
+    },
+};
+
 pub const VolUp = core.KeyDef{ .tap_only = .{ .media_key = .VolumeUp } };
 pub const VolDown = core.KeyDef{ .tap_only = .{ .media_key = .VolumeDown } };
 
-pub const keymap_dimensions = core.KeymapDimensions{
-    .key_count = key_count,
-    .layer_count = keymap.len,
-};
 fn T(keycode_fire: core.KeyCodeFire) core.KeyDef {
     return core.KeyDef{
         .tap_only = .{ .key_press = keycode_fire },
