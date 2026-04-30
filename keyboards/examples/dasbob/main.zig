@@ -70,9 +70,9 @@ pub fn main() !void {
 
     if (primary) {
         var uart = init_uart();
-        comptime var config = zigmkay.loops.GetPrimarySideConfigType(&rollercole_shared_keymap.dimensions){
+        comptime var config = zigmkay.loops.GetPrimarySideConfigType(&keymap.keymap_dimensions){
             .config = .{
-                .keymap = &rollercole_shared_keymap.keymap,
+                .keymap = &keymap.keymap,
                 .scanner_settings = &.{
                     .direct_wiring = .{
                         .debounce = .{ .ms = 50 },
@@ -91,7 +91,7 @@ pub fn main() !void {
         };
     } else {
         var uart = init_pio_uart();
-        comptime var config = zigmkay.loops.GetSecondarySideConfigType(&rollercole_shared_keymap.dimensions){
+        comptime var config = zigmkay.loops.GetSecondarySideConfigType(&keymap.keymap_dimensions){
             .config = .{
                 .scanner_settings = &.{
                     .direct_wiring = .{
@@ -142,4 +142,3 @@ pub fn blink_led(blink_count: u32, interval_ms: u32) void {
         time.sleep_us(interval_ms * 1000);
     }
 }
-
