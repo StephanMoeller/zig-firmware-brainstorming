@@ -49,6 +49,18 @@ test "Modifiers.remove" {
     try std.testing.expectEqual(core.Modifiers{ .left_gui = true, .left_shift = true }, result);
 }
 
+test "KeyCodeFire.add_mods" {
+    const key = core.KeyCodeFire{
+        .dead = true,
+        .tap_keycode = 123,
+        .tap_modifiers = .{ .left_alt = true, .left_ctrl = true },
+    };
+
+    const new_key = key.add_mods(.{ .right_ctrl = true, .left_ctrl = false });
+
+    try std.testing.expectEqual(core.KeyCodeFire{ .dead = true, .tap_keycode = 123, .tap_modifiers = core.Modifiers{ .left_alt = true, .left_ctrl = true, .right_ctrl = true } }, new_key);
+}
+
 test "LayerActivations" {
     var layers = core.LayerActivations{};
     try std.testing.expectEqual(true, layers.is_layer_active(0)); // base is always active

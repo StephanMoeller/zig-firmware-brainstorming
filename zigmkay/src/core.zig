@@ -174,6 +174,11 @@ pub const KeyCodeFire = struct {
     tap_keycode: u8 = 0,
     tap_modifiers: Modifiers = .{},
     dead: bool = false,
+    pub fn add_mods(self: KeyCodeFire, mods: Modifiers) KeyCodeFire {
+        var copy = self;
+        copy.tap_modifiers = copy.tap_modifiers.add(mods);
+        return copy;
+    }
 };
 
 // Media Key Codes (Consumer Page)
