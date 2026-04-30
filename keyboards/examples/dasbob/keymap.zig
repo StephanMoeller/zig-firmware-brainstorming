@@ -18,10 +18,10 @@ pub const ARROW_KEYS_LAYER = 1;
 pub const keymap = [_][key_count]zigmkay.core.KeyDef{
     // BASE_LAYER 
     .{
-         T(dk.Q), T(dk.W), T(dk.E), T(dk.R), T(dk.T),                  T(dk.Y), T(dk.U),   T(dk.I),    T(dk.O),   T(dk.P),
-         T(dk.A), T(dk.S), T(dk.D), T(dk.F), T(dk.G),                  T(dk.H), T(dk.J),   T(dk.K),    T(dk.L),   T(dk.SCLN),
-         T(dk.Z), T(dk.X), T(dk.C), T(dk.V), T(dk.B),                  T(dk.N), T(dk.M),   T(dk.COMM), T(dk.DOT), T(dk.SLSH),
-                           T(dk.A), T(us.ENTER), T(dk.B),              T(dk.T), Space_Num, T(dk.C)
+         T(dk.Q), T(dk.W), T(dk.E), T(dk.R),     T(dk.T),                  T(dk.Y), T(dk.U),   T(dk.I),    T(dk.O),   T(dk.P),
+         T(dk.A), T(dk.S), T(dk.D), T(dk.F),     T(dk.G),                  T(dk.H), T(dk.J),   T(dk.K),    T(dk.L),   T(dk.SCLN),
+         T(dk.Z), T(dk.X), T(dk.C), T(dk.V),     T(dk.B),                  T(dk.N), T(dk.M),   T(dk.COMM), T(dk.DOT), T(dk.SLSH),
+                           T(dk.A), Enter_Shift, T(dk.B),                  T(dk.T), Space_Num, T(dk.C)
     }, 
     // NUMBER_LAYER
     .{
@@ -39,18 +39,23 @@ pub const keymap = [_][key_count]zigmkay.core.KeyDef{
     },
 };
 
-pub const Space_Num = core.KeyDef{
+// zig fmt: on
+pub const tapping_term = core.TimeSpan{ .ms = 250 };
+pub const Enter_Shift = core.KeyDef{
     .tap_hold = .{
-        .tap = .{
-            .key_press = .{ dk.A } 
-        },
-        .hold = .{
-            .hold_layer = NUMBER_LAYER
-        }
-    }
+        .tap = .{ .key_press = us.ENTER },
+        .hold = .{ .hold_modifiers = .{ .left_shift = true } },
+        .tapping_term = tapping_term,
+    },
 };
 
-// zig fmt: on
+pub const Space_Num = core.KeyDef{
+    .tap_hold = .{
+        .tap = .{ .key_press = dk.A },
+        .hold = .{ .hold_layer = NUMBER_LAYER },
+        .tapping_term = tapping_term,
+    },
+};
 
 pub const dimensions = core.KeymapDimensions{
     .key_count = key_count,
