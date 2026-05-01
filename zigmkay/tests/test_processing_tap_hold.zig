@@ -25,9 +25,9 @@ test "MT tap within tapping term - process with both in queue" {
     const tapping_term: core.TimeSpan = .{ .ms = 250 };
     const mo_layer1_cWithLeftAlt = comptime helpers.MT(core.TapDef{ .key_press = .{ .tap_keycode = c } }, .{ .left_shift = true }, tapping_term);
 
-    const base_layer = comptime [_]core.KeyDef{ mo_layer1_cWithLeftAlt, B, A };
-    const layer_1 = comptime [_]core.KeyDef{ D, E, F };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, layer_1 };
+    const base_layer = comptime [_]?core.KeyDef{ mo_layer1_cWithLeftAlt, B, A };
+    const layer_1 = comptime [_]?core.KeyDef{ D, E, F };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{ base_layer, layer_1 };
 
     var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
     // Ensure nothing happens at first press when the key has multiple functions (both tap and hold)
@@ -49,9 +49,9 @@ test "MT tap within tapping term - process with multiple calls" {
     const tapping_term: core.TimeSpan = .{ .ms = 250 };
     const mo_layer1_cWithLeftAlt = comptime helpers.MT(core.TapDef{ .key_press = .{ .tap_keycode = c } }, .{ .left_shift = true }, tapping_term);
 
-    const base_layer = comptime [_]core.KeyDef{ mo_layer1_cWithLeftAlt, B, A };
-    const layer_1 = comptime [_]core.KeyDef{ D, E, F };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, layer_1 };
+    const base_layer = comptime [_]?core.KeyDef{ mo_layer1_cWithLeftAlt, B, A };
+    const layer_1 = comptime [_]?core.KeyDef{ D, E, F };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{ base_layer, layer_1 };
 
     var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
     // Ensure nothing happens at first press when the key has multiple functions (both tap and hold)
@@ -75,9 +75,9 @@ test "MT hold case: release after tapping term => hold" {
     const tapping_term: core.TimeSpan = .{ .ms = 250 };
     const mo_layer1_cWithLeftAlt = comptime helpers.MT(core.TapDef{ .key_press = .{ .tap_keycode = c } }, .{ .left_alt = true }, tapping_term);
 
-    const base_layer = comptime [_]core.KeyDef{ mo_layer1_cWithLeftAlt, B, A };
-    const layer_1 = comptime [_]core.KeyDef{ D, E, F };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, layer_1 };
+    const base_layer = comptime [_]?core.KeyDef{ mo_layer1_cWithLeftAlt, B, A };
+    const layer_1 = comptime [_]?core.KeyDef{ D, E, F };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{ base_layer, layer_1 };
 
     var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
     // Ensure nothing happens at first press when the key has multiple functions (both tap and hold)
@@ -101,9 +101,9 @@ test "MT hold case: timeout => hold" {
     const tapping_term: core.TimeSpan = .{ .ms = 250 };
     const mo_layer1_cWithLeftAlt = comptime helpers.MT(core.TapDef{ .key_press = .{ .tap_keycode = c } }, .{ .left_alt = true }, tapping_term);
 
-    const base_layer = comptime [_]core.KeyDef{ mo_layer1_cWithLeftAlt, B, A };
-    const layer_1 = comptime [_]core.KeyDef{ D, E, F };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, layer_1 };
+    const base_layer = comptime [_]?core.KeyDef{ mo_layer1_cWithLeftAlt, B, A };
+    const layer_1 = comptime [_]?core.KeyDef{ D, E, F };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{ base_layer, layer_1 };
 
     var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
     // Ensure nothing happens at first press when the key has multiple functions (both tap and hold)

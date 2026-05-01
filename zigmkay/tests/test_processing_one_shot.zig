@@ -31,8 +31,8 @@ test "Simple one-shot" {
 
     const current_time: core.TimeSinceBoot = .from_absolute_us(100);
     const one_shot_shift = comptime helpers.ONE_SHOT_MOD(core.Modifiers{ .left_shift = true });
-    const base_layer = comptime [_]core.KeyDef{ A, one_shot_shift, C, D };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
+    const base_layer = comptime [_]?core.KeyDef{ A, one_shot_shift, C, D };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{base_layer};
 
     var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = true, .key_index = 0 }); // Press A
@@ -64,8 +64,8 @@ test "one-shot in a rolling manner" {
 
     const current_time: core.TimeSinceBoot = .from_absolute_us(100);
     const one_shot_shift = comptime helpers.ONE_SHOT_MOD(core.Modifiers{ .left_shift = true });
-    const base_layer = comptime [_]core.KeyDef{ A, B, one_shot_shift, C, D };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
+    const base_layer = comptime [_]?core.KeyDef{ A, B, one_shot_shift, C, D };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{base_layer};
 
     var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = true, .key_index = 0 }); // Press A

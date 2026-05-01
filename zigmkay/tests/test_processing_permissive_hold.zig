@@ -39,8 +39,8 @@ fn run_permissive_hold_test(comptime config: PermissiveHoldParameters) !void {
     } };
 
     const other_key_def = comptime helpers.TAP(b);
-    const base_layer = comptime [_]core.KeyDef{ key_with_permissive_hold, other_key_def, A };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
+    const base_layer = comptime [_]?core.KeyDef{ key_with_permissive_hold, other_key_def, A };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{base_layer};
 
     var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
 
@@ -101,8 +101,8 @@ test "MT - multiple holds, release in same order" {
     const key_c = comptime helpers.MT(core.TapDef{ .key_press = .{ .tap_keycode = c } }, .{ .left_ctrl = true }, tapping_term);
     const key_d = comptime helpers.MT(core.TapDef{ .key_press = .{ .tap_keycode = d } }, .{ .left_gui = true }, tapping_term);
 
-    const base_layer = comptime [_]core.KeyDef{ key_a, key_b, key_c, key_d };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
+    const base_layer = comptime [_]?core.KeyDef{ key_a, key_b, key_c, key_d };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{base_layer};
 
     // intexes
     const _a = 0;
@@ -148,8 +148,8 @@ test "MT - multiple holds, release in reverse order" {
     const key_c = comptime helpers.MT(core.TapDef{ .key_press = .{ .tap_keycode = c } }, .{ .left_ctrl = true }, tapping_term);
     const key_d = comptime helpers.MT(core.TapDef{ .key_press = .{ .tap_keycode = d } }, .{ .left_gui = true }, tapping_term);
 
-    const base_layer = comptime [_]core.KeyDef{ key_a, key_b, key_c, key_d };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
+    const base_layer = comptime [_]?core.KeyDef{ key_a, key_b, key_c, key_d };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{base_layer};
 
     // intexes
     const _a = 0;

@@ -28,8 +28,8 @@ test "Dead keys - ensure space added IFF dead is true - single true case" {
     const tap_without_dead = core.KeyDef{ .tap_only = .{ .key_press = .{ .tap_keycode = b, .dead = false } } };
 
     const current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
-    const base_layer = comptime [_]core.KeyDef{ tap_with_dead, tap_without_dead };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
+    const base_layer = comptime [_]?core.KeyDef{ tap_with_dead, tap_without_dead };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{base_layer};
     var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
 
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = true, .key_index = 0 }); // dead
@@ -54,8 +54,8 @@ test "Dead keys - ensure space added IFF dead is true - single false case" {
     const tap_without_dead = core.KeyDef{ .tap_only = .{ .key_press = .{ .tap_keycode = b, .dead = false } } };
 
     const current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
-    const base_layer = comptime [_]core.KeyDef{ tap_with_dead, tap_without_dead };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
+    const base_layer = comptime [_]?core.KeyDef{ tap_with_dead, tap_without_dead };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{base_layer};
     var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
 
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = true, .key_index = 1 }); // non dead
@@ -84,8 +84,8 @@ test "Dead keys - with retrotapping" {
     };
 
     var current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
-    const base_layer = comptime [_]core.KeyDef{dead_with_retro_tapping};
-    const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
+    const base_layer = comptime [_]?core.KeyDef{dead_with_retro_tapping};
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{base_layer};
     var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
 
     try o.press_key(0, current_time);

@@ -45,8 +45,8 @@ fn run_retrotest_test(comptime config: RetroTestParameters) !void {
         .retro_tapping = config.retro_enabled,
     } };
 
-    const base_layer = comptime [_]core.KeyDef{ key_with_retro_tapping, B, A };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
+    const base_layer = comptime [_]?core.KeyDef{ key_with_retro_tapping, B, A };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{base_layer};
 
     var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
 

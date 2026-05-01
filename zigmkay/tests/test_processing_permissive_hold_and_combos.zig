@@ -26,8 +26,8 @@ const I = helpers.TAP(i);
 test "combo hold, single key press" {
     const current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
     const combo_timeout = core.TimeSpan{ .ms = 30 };
-    const base_layer = comptime [_]core.KeyDef{ A, B, C };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
+    const base_layer = comptime [_]?core.KeyDef{ A, B, C };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{base_layer};
     const combos = comptime [_]core.Combo2Def{.{ .key_indexes = .{ 0, 1 }, .layer = 0, .timeout = combo_timeout, .key_def = core.KeyDef{ .hold_only = .{ .hold_modifiers = .{ .left_shift = true } } } }};
 
     var o = helpers.init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap, .combos = &combos }){};
@@ -53,8 +53,8 @@ test "single key hold, combo key press" {
     const current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
     const combo_timeout = core.TimeSpan{ .ms = 30 };
     const key_hold = core.KeyDef{ .hold_only = .{ .hold_modifiers = .{ .left_shift = true } } };
-    const base_layer = comptime [_]core.KeyDef{ key_hold, B, C };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
+    const base_layer = comptime [_]?core.KeyDef{ key_hold, B, C };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{base_layer};
     const combos = comptime [_]core.Combo2Def{
         .{ .key_indexes = .{ 1, 2 }, .layer = 0, .timeout = combo_timeout, .key_def = core.KeyDef{ .tap_only = .{ .key_press = .{ .tap_keycode = e } } } },
     };
@@ -80,8 +80,8 @@ test "single key hold, combo key press" {
 test "combo hold, combo key press" {
     const current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
     const combo_timeout = core.TimeSpan{ .ms = 30 };
-    const base_layer = comptime [_]core.KeyDef{ A, B, C, D };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
+    const base_layer = comptime [_]?core.KeyDef{ A, B, C, D };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{base_layer};
     const combos = comptime [_]core.Combo2Def{
         .{ .key_indexes = .{ 0, 1 }, .layer = 0, .timeout = combo_timeout, .key_def = core.KeyDef{ .hold_only = .{ .hold_modifiers = .{ .left_shift = true } } } },
         .{ .key_indexes = .{ 2, 3 }, .layer = 0, .timeout = combo_timeout, .key_def = core.KeyDef{ .tap_only = .{ .key_press = .{ .tap_keycode = e } } } },

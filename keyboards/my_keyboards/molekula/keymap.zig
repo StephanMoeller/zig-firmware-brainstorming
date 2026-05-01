@@ -31,11 +31,11 @@ const zigmkay = @import("zigmkay");
 // Re-export zigmkay's core module for convenience in this file
 pub const core = zigmkay.core;
 
-// ______ (six underscores) is the "transparent" key - it passes through to the
+// _______ (seven underscores) is the "transparent" key - null means pass through to the
 // next active layer instead of defining its own action. This is useful for
 // making some keys in a layer "fall through" to the base layer while defining
 // custom actions for other keys.
-const _______ = core.KeyDef.transparent;
+const _______: ?core.KeyDef = null;
 
 const zkeycodes = @import("zkeycodes");
 // kc = "keycodes basic" - OS-agnostic keycodes that work the same on all systems
@@ -336,7 +336,7 @@ pub const sides = [key_count]core.Side{
 //
 
 // zig fmt: off
-pub const keymap = [_][key_count]core.KeyDef{
+pub const keymap = [_][key_count]?core.KeyDef{
     // =============================================================================
     // LAYER 0: L_BASE - Main QWERTY Layer
     // =============================================================================

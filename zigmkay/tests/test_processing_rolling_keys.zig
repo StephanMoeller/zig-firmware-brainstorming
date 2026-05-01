@@ -23,8 +23,8 @@ const G = helpers.TAP(g);
 // test stuff
 test "Rolling - only tap keys" {
     var current_time = core.TimeSinceBoot.from_absolute_us(100);
-    const base_layer = comptime [_]core.KeyDef{ A, B, C, D };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
+    const base_layer = comptime [_]?core.KeyDef{ A, B, C, D };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{base_layer};
     var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
 
     try o.press_key(0, current_time);
@@ -69,9 +69,9 @@ test "Rolling - tap/hold keys" {
     const _c = comptime helpers.MT(core.TapDef{ .key_press = .{ .tap_keycode = c } }, .{ .left_shift = true }, tapping_term);
     const _d = comptime helpers.MT(core.TapDef{ .key_press = .{ .tap_keycode = d } }, .{ .left_shift = true }, tapping_term);
 
-    const base_layer = comptime [_]core.KeyDef{ _a, _b, _c, _d };
+    const base_layer = comptime [_]?core.KeyDef{ _a, _b, _c, _d };
 
-    const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{base_layer};
 
     var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
     try o.press_key(0, current_time);
@@ -110,9 +110,9 @@ test "Rolling - with sudden shift usage" {
     const key_d = comptime helpers.MT(core.TapDef{ .key_press = .{ .tap_keycode = d } }, .{}, tapping_term);
     const key_e = comptime helpers.MT(core.TapDef{ .key_press = .{ .tap_keycode = e } }, .{ .left_shift = true }, tapping_term);
 
-    const base_layer = comptime [_]core.KeyDef{ key_a, key_b, key_c, key_d, key_e };
+    const base_layer = comptime [_]?core.KeyDef{ key_a, key_b, key_c, key_d, key_e };
 
-    const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{base_layer};
 
     // intexes
     const _a = 0;
@@ -175,10 +175,10 @@ test "Rolling - with sudden permanent layer shift" {
 
     const layer_hold = comptime helpers.LT(1, b, .{}, tapping_term);
 
-    const base_layer = comptime [_]core.KeyDef{ A, A, A, A, layer_hold };
-    const layer_1 = comptime [_]core.KeyDef{ C, C, C, C, C };
+    const base_layer = comptime [_]?core.KeyDef{ A, A, A, A, layer_hold };
+    const layer_1 = comptime [_]?core.KeyDef{ C, C, C, C, C };
 
-    const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, layer_1 };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{ base_layer, layer_1 };
 
     // intexes
     var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};

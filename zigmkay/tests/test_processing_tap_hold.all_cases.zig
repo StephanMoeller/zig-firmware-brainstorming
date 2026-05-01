@@ -95,8 +95,8 @@ fn run(events: []TestEvent, expect: TestExpectation) !void {
     } };
     const b_tap = core.KeyDef{ .tap_only = .{ .key_press = .{ .tap_keycode = KC_B } } };
 
-    const base_layer = comptime [_]core.KeyDef{ a_with_tap_hold, b_tap };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
+    const base_layer = comptime [_]?core.KeyDef{ a_with_tap_hold, b_tap };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{base_layer};
 
     var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
 

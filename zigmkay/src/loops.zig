@@ -18,7 +18,7 @@ fn CreatePrimaryConfig(comptime dimensions: *const core.KeymapDimensions) type {
         dimensions: *const core.KeymapDimensions = dimensions,
 
         // Mandatory
-        keymap: *const [dimensions.layer_count][dimensions.key_count]core.KeyDef,
+        keymap: *const [dimensions.layer_count][dimensions.key_count]?core.KeyDef,
 
         // Extras (both sides)
         scanner_settings: *const matrix_scanning.CreateScannerConfig(dimensions),

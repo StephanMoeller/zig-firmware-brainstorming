@@ -23,8 +23,8 @@ fn run_test(
 
     const A_shift = comptime helpers.MT(core.TapDef{ .key_press = .{ .tap_keycode = a } }, .{ .left_shift = true }, tapping_term);
 
-    const base_layer = comptime [_]core.KeyDef{ A_shift, B };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
+    const base_layer = comptime [_]?core.KeyDef{ A_shift, B };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{base_layer};
     const dim = core.KeymapDimensions{ .key_count = base_layer.len, .layer_count = keymap.len };
     const sides: [dim.key_count]core.Side = .{ tap_hold_side, tap_side };
     var o = helpers.init_with_config(dim, .{ .keymap = &keymap, .sides = sides }){};

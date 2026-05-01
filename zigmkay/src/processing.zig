@@ -4,7 +4,7 @@ const stats_collector = @import("stats_collector.zig");
 
 pub fn CreateProcessorType(
     comptime keymap_dimensions: *const core.KeymapDimensions,
-    comptime keymap: *const [keymap_dimensions.layer_count][keymap_dimensions.key_count]core.KeyDef,
+    comptime keymap: *const [keymap_dimensions.layer_count][keymap_dimensions.key_count]?core.KeyDef,
     comptime sides: *const [keymap_dimensions.key_count]core.Side,
     comptime combos: []const core.Combo2Def,
     comptime custom: *const core.CustomFunctions,
@@ -68,8 +68,8 @@ pub fn CreateProcessorType(
                     return ProcessContinuation.Stop;
                 };
 
-                switch (next_key_info.key_def) {
-                    .transparent => return ProcessContinuation{ .DequeueAndRunAgain = .{ .dequeue_count = next_key_info.consumed_event_count } }, // only happening if the base layer has a transparent key
+                const key_def = next_key_info.key_def orelse return ProcessContinuation{ .DequeueAndRunAgain = .{ .dequeue_count = next_key_info.consumed_event_count } };
+                switch (key_def) {
                     .none => return ProcessContinuation{ .DequeueAndRunAgain = .{ .dequeue_count = next_key_info.consumed_event_count } },
                     .tap_only => |tap| {
                         try decide_tap_press(self, tap, head_event, TapReleaseMode.AwaitKeyReleased);
@@ -81,7 +81,7 @@ pub fn CreateProcessorType(
                         return ProcessContinuation{ .DequeueAndRunAgain = .{ .dequeue_count = next_key_info.consumed_event_count } };
                     },
                     .hold_only => |hold| {
-                        try decide_hold_decided(self, hold, next_key_info.key_def, head_event);
+                        try decide_hold_decided(self, hold, key_def, head_event);
                         return ProcessContinuation{ .DequeueAndRunAgain = .{ .dequeue_count = next_key_info.consumed_event_count } };
                     },
                     .tap_hold => |tap_and_hold| {
@@ -92,7 +92,7 @@ pub fn CreateProcessorType(
 
                             // Exceeding tapping term?
                             if (try head_event.time.up_til_ms(&ev.time) >= tap_and_hold.tapping_term.ms) {
-                                try decide_hold_decided(self, tap_and_hold.hold, next_key_info.key_def, head_event);
+                                try decide_hold_decided(self, tap_and_hold.hold, key_def, head_event);
                                 return ProcessContinuation{ .DequeueAndRunAgain = .{ .dequeue_count = next_key_info.consumed_event_count } };
                             }
 
@@ -106,7 +106,7 @@ pub fn CreateProcessorType(
                                 if (press_and_release_same_key_detected) {
                                     const tapped_key_same_side_as_first_key = sides[earlier_event.key_index] == sides[head_event.key_index] and sides[head_event.key_index] != .X;
                                     if (!tapped_key_same_side_as_first_key) {
-                                        try decide_hold_decided(self, tap_and_hold.hold, next_key_info.key_def, head_event);
+                                        try decide_hold_decided(self, tap_and_hold.hold, key_def, head_event);
                                         return ProcessContinuation{ .DequeueAndRunAgain = .{ .dequeue_count = next_key_info.consumed_event_count } };
                                     } else {
                                         try decide_tap_press(self, tap_and_hold.tap, head_event, TapReleaseMode.AwaitKeyReleased);
@@ -124,7 +124,7 @@ pub fn CreateProcessorType(
 
                         // Exceeding tapping term?
                         if (try head_event.time.up_til_ms(&current_time) >= tap_and_hold.tapping_term.ms) {
-                            try decide_hold_decided(self, tap_and_hold.hold, next_key_info.key_def, head_event);
+                            try decide_hold_decided(self, tap_and_hold.hold, key_def, head_event);
                             return ProcessContinuation{ .DequeueAndRunAgain = .{ .dequeue_count = next_key_info.consumed_event_count } };
                         }
 
@@ -325,14 +325,13 @@ pub fn CreateProcessorType(
             on_event(self, .{ .OnHoldEnterAfter = .{ .hold = hold } });
         }
 
-        fn determine_key_def(self: *Self, key_index: usize) core.KeyDef {
+        fn determine_key_def(self: *Self, key_index: usize) ?core.KeyDef {
             // Find key on active position
-            var pressed_key_def = keymap[0][key_index]; // Start out picking the key from the base layer
+            var pressed_key_def: ?core.KeyDef = keymap[0][key_index]; // Start out picking the key from the base layer
 
             var layer_index: core.LayerIndex = keymap_dimensions.layer_count - 1;
             while (layer_index > 0) {
-                // transparent support: ...
-                if (self.layers_activations.is_layer_active(layer_index) and keymap[layer_index][key_index] != core.KeyDef.transparent) {
+                if (self.layers_activations.is_layer_active(layer_index) and keymap[layer_index][key_index] != null) { // if null, the key is transparent
                     pressed_key_def = keymap[@as(usize, layer_index)][key_index];
                     break;
                 }
@@ -404,7 +403,7 @@ const ReleaseMapEntry = union(enum) {
     None,
 };
 const NextKeyFindResult = struct {
-    key_def: core.KeyDef,
+    key_def: ?core.KeyDef,
     consumed_event_count: u2,
 };
 const ComboDecision = union(enum) {
