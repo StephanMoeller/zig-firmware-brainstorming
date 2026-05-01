@@ -29,7 +29,7 @@ test "Struct size: TapDef" {
     try std.testing.expectEqual(18, @sizeOf(core.TapDef));
 }
 test "Struct size: HoldDef" {
-    try std.testing.expectEqual(5, @sizeOf(core.HoldDef));
+    try std.testing.expectEqual(4, @sizeOf(core.HoldDef));
     try std.testing.expectEqual(1, @alignOf(core.HoldDef));
 }
 test "Struct size: Modifiers" {

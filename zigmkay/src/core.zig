@@ -94,7 +94,7 @@ pub const MediaCode = enum(u16) {
 pub const HoldDef = struct {
     hold_modifiers: Modifiers = .{},
     hold_layer: ?LayerIndex = null,
-    custom: ?u8 = null,
+    custom: u8 = 0,
 };
 
 pub const TapHoldDef = struct {
@@ -120,6 +120,7 @@ pub const Combo2Def = struct {
     layer: LayerIndex,
     key_def: KeyDef,
 };
+
 pub const AutoFireDef = struct {
     tap: TapDef,
     initial_delay: TimeSpan,
