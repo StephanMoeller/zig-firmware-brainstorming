@@ -94,6 +94,3 @@ pub fn MT(tap: core.TapDef, hold_mods: core.Modifiers, tapping_term: core.TimeSp
 pub fn NONE() core.KeyDef {
     return core.KeyDef.none;
 }
-pub fn TRANSPARENT() ?core.KeyDef {
-    return null;
-}
