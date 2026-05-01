@@ -24,7 +24,7 @@ pub const sides = [key_count]core.Side{
              .X,       .X
 };
 
-pub const keymap = [_][key_count]core.KeyDef{
+pub const keymap = [_][key_count]?core.KeyDef{
     .{
          T(dk.Q), AF_slow(dk.W), GUI(dk.R),   T(dk.P), AF_slow(dk.B),                  T(dk.K),   T(dk.L),   GUI(dk.O),   T(dk.U), T(dk.QUOT),
          T(dk.F),     ALT(dk.A), CTL(dk.S), SFT(dk.T),       T(dk.G),                  T(dk.M), SFT(dk.N),   CTL(dk.E), ALT(dk.I),    T(dk.Y),

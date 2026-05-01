@@ -22,8 +22,8 @@ const F = helpers.TAP(f);
 const G = helpers.TAP(g);
 test "Encoders - encoder action event raised - expect tap fired" {
     const current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
-    const base_layer = comptime [_]core.KeyDef{ A, B, C, D };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
+    const base_layer = comptime [_]?core.KeyDef{ A, B, C, D };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{base_layer};
 
     const a_tap = core.TapDef{ .key_press = .{ .tap_keycode = a } };
     const b_tap = core.TapDef{ .key_press = .{ .tap_keycode = b } };
@@ -50,8 +50,8 @@ test "Encoders - encoder action event raised - expect tap fired" {
 
 test "Encoders - no encoder actions defined - ensure not breaking when encoder event raised" {
     const current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
-    const base_layer = comptime [_]core.KeyDef{ A, B, C, D };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
+    const base_layer = comptime [_]?core.KeyDef{ A, B, C, D };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{base_layer};
     var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
 
     try o.encoder_event_queue.enqueue(.{ .encoder_action_index = 1 });
@@ -63,8 +63,8 @@ test "Encoders - no encoder actions defined - ensure not breaking when encoder e
 
 test "Encoders - action index out of bounds - ensure not breaking when encoder event raised" {
     const current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
-    const base_layer = comptime [_]core.KeyDef{ A, B, C, D };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
+    const base_layer = comptime [_]?core.KeyDef{ A, B, C, D };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{base_layer};
 
     const a_tap = core.TapDef{ .key_press = .{ .tap_keycode = a } };
     const b_tap = core.TapDef{ .key_press = .{ .tap_keycode = a } };

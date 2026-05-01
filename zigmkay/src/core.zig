@@ -105,7 +105,6 @@ pub const TapHoldDef = struct {
 };
 pub const KeyDef = union(enum) {
     none,
-    transparent,
     tap_only: TapDef,
     hold_only: HoldDef,
     tap_hold: TapHoldDef,
@@ -130,8 +129,6 @@ pub const AutoFireDef = struct {
 pub const TimeSpan = struct {
     ms: u16 = 0,
 };
-const TransparentLayerValue = 15;
-
 pub const KeyIndex = u7;
 pub const LayerIndex = u4;
 

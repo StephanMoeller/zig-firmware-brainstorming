@@ -15,7 +15,7 @@ pub const BASE_LAYER = 0;
 pub const NUMBER_LAYER = 1;
 pub const ARROW_KEYS_LAYER = 2;
 
-pub const keymap = [_][key_count]zigmkay.core.KeyDef{
+pub const keymap = [_][key_count]?zigmkay.core.KeyDef{
     // BASE_LAYER: 0 
     .{
          T(dk.Q), T(dk.W), T(dk.E), T(dk.R),     T(dk.T),                  T(dk.Y), T(dk.U),      T(dk.I),    T(dk.O),   T(dk.P),

@@ -74,8 +74,8 @@ test "custom code - tap events" {
         .tapping_term = core.TimeSpan{ .ms = 250 },
     } };
     const current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
-    const base_layer = comptime [_]core.KeyDef{ a_with_shift_hold, B, C, D };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
+    const base_layer = comptime [_]?core.KeyDef{ a_with_shift_hold, B, C, D };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{base_layer};
     var o = helpers.init_with_config(
         .{ .key_count = base_layer.len, .layer_count = keymap.len },
         .{ .keymap = &keymap, .custom_functions = &custom_functions },
@@ -158,8 +158,8 @@ test "custom code - hold events" {
         .tapping_term = core.TimeSpan{ .ms = 250 },
     } };
     var current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
-    const base_layer = comptime [_]core.KeyDef{ a_with_shift_hold, B, C, D };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
+    const base_layer = comptime [_]?core.KeyDef{ a_with_shift_hold, B, C, D };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{base_layer};
     var o = helpers.init_with_config(
         .{ .key_count = base_layer.len, .layer_count = keymap.len },
         .{ .keymap = &keymap, .custom_functions = &custom_functions },
@@ -223,8 +223,8 @@ test "custom code - ensure tick event" {
         .tapping_term = core.TimeSpan{ .ms = 250 },
     } };
     const current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
-    const base_layer = comptime [_]core.KeyDef{ a_with_shift_hold, B, C, D };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
+    const base_layer = comptime [_]?core.KeyDef{ a_with_shift_hold, B, C, D };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{base_layer};
     var o = helpers.init_with_config(
         .{ .key_count = base_layer.len, .layer_count = keymap.len },
         .{ .keymap = &keymap, .custom_functions = &custom_functions },

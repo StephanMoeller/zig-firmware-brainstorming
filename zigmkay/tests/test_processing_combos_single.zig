@@ -27,9 +27,9 @@ test "activate, key1, key2" {
     var current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
     const combo_timeout = core.TimeSpan{ .ms = 30 };
 
-    const base_layer = comptime [_]core.KeyDef{ A, B, C };
-    const layer_1 = comptime [_]core.KeyDef{ D, E, F };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, layer_1 };
+    const base_layer = comptime [_]?core.KeyDef{ A, B, C };
+    const layer_1 = comptime [_]?core.KeyDef{ D, E, F };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{ base_layer, layer_1 };
     const combos = comptime [_]core.Combo2Def{.{ .key_indexes = .{ 1, 2 }, .layer = 0, .timeout = combo_timeout, .key_def = G }};
 
     var o = helpers.init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap, .combos = &combos }){};
@@ -67,9 +67,9 @@ test "different layer from current" {
     var current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
     const combo_timeout = core.TimeSpan{ .ms = 30 };
 
-    const base_layer = comptime [_]core.KeyDef{ A, B, C };
-    const layer_1 = comptime [_]core.KeyDef{ D, E, F };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, layer_1 };
+    const base_layer = comptime [_]?core.KeyDef{ A, B, C };
+    const layer_1 = comptime [_]?core.KeyDef{ D, E, F };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{ base_layer, layer_1 };
     const combos = comptime [_]core.Combo2Def{.{ .key_indexes = .{ 1, 2 }, .layer = 1, .timeout = combo_timeout, .key_def = G }};
 
     var o = helpers.init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap, .combos = &combos }){};
@@ -100,9 +100,9 @@ test "activate, key2, key1" {
     var current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
     const combo_timeout = core.TimeSpan{ .ms = 30 };
 
-    const base_layer = comptime [_]core.KeyDef{ A, B, C };
-    const layer_1 = comptime [_]core.KeyDef{ D, E, F };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, layer_1 };
+    const base_layer = comptime [_]?core.KeyDef{ A, B, C };
+    const layer_1 = comptime [_]?core.KeyDef{ D, E, F };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{ base_layer, layer_1 };
     const combos = comptime [_]core.Combo2Def{.{ .key_indexes = .{ 1, 2 }, .layer = 0, .timeout = combo_timeout, .key_def = G }};
 
     var o = helpers.init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap, .combos = &combos }){};
@@ -140,9 +140,9 @@ test "tap-only: key1 timeout" {
     var current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
     const combo_timeout = core.TimeSpan{ .ms = 30 };
 
-    const base_layer = comptime [_]core.KeyDef{ A, B, C };
-    const layer_1 = comptime [_]core.KeyDef{ D, E, F };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, layer_1 };
+    const base_layer = comptime [_]?core.KeyDef{ A, B, C };
+    const layer_1 = comptime [_]?core.KeyDef{ D, E, F };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{ base_layer, layer_1 };
     const combos = comptime [_]core.Combo2Def{.{ .key_indexes = .{ 1, 2 }, .layer = 0, .timeout = combo_timeout, .key_def = G }};
 
     var o = helpers.init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap, .combos = &combos }){};
@@ -167,9 +167,9 @@ test "key2 timeout" {
     var current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
     const combo_timeout = core.TimeSpan{ .ms = 30 };
 
-    const base_layer = comptime [_]core.KeyDef{ A, B, C };
-    const layer_1 = comptime [_]core.KeyDef{ D, E, F };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, layer_1 };
+    const base_layer = comptime [_]?core.KeyDef{ A, B, C };
+    const layer_1 = comptime [_]?core.KeyDef{ D, E, F };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{ base_layer, layer_1 };
     const combos = comptime [_]core.Combo2Def{.{ .key_indexes = .{ 1, 2 }, .layer = 0, .timeout = combo_timeout, .key_def = G }};
 
     var o = helpers.init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap, .combos = &combos }){};
@@ -194,9 +194,9 @@ test "other key inbetween" {
     var current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
     const combo_timeout = core.TimeSpan{ .ms = 30 };
 
-    const base_layer = comptime [_]core.KeyDef{ A, B, C };
-    const layer_1 = comptime [_]core.KeyDef{ D, E, F };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, layer_1 };
+    const base_layer = comptime [_]?core.KeyDef{ A, B, C };
+    const layer_1 = comptime [_]?core.KeyDef{ D, E, F };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{ base_layer, layer_1 };
     const combos = comptime [_]core.Combo2Def{.{ .key_indexes = .{ 1, 2 }, .layer = 0, .timeout = combo_timeout, .key_def = G }};
 
     var o = helpers.init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap, .combos = &combos }){};
@@ -234,9 +234,9 @@ test "activate with tap/hold on one of the keys, key1, key2" {
     const a_shift = comptime helpers.MT(core.TapDef{ .key_press = .{ .tap_keycode = a } }, .{ .left_shift = true }, .{ .ms = 150 });
     const b_shift = comptime helpers.MT(core.TapDef{ .key_press = .{ .tap_keycode = b } }, .{ .left_shift = true }, .{ .ms = 150 });
     const c_shift = comptime helpers.MT(core.TapDef{ .key_press = .{ .tap_keycode = c } }, .{ .left_shift = true }, .{ .ms = 150 });
-    const base_layer = comptime [_]core.KeyDef{ a_shift, b_shift, c_shift };
-    const layer_1 = comptime [_]core.KeyDef{ D, E, F };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, layer_1 };
+    const base_layer = comptime [_]?core.KeyDef{ a_shift, b_shift, c_shift };
+    const layer_1 = comptime [_]?core.KeyDef{ D, E, F };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{ base_layer, layer_1 };
     const combos = comptime [_]core.Combo2Def{.{ .key_indexes = .{ 1, 2 }, .layer = 0, .timeout = combo_timeout, .key_def = G }};
 
     var o = helpers.init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap, .combos = &combos }){};
@@ -277,10 +277,10 @@ test "ensure correct layers combo is chosen" {
 
     const layer_1_hold = core.KeyDef{ .hold_only = .{ .hold_layer = 1 } };
 
-    const base_layer = comptime [_]core.KeyDef{ A, A, layer_1_hold };
-    const layer_1 = comptime [_]core.KeyDef{ B, B, B };
-    const layer_2 = comptime [_]core.KeyDef{ C, C, C };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, layer_1, layer_2 };
+    const base_layer = comptime [_]?core.KeyDef{ A, A, layer_1_hold };
+    const layer_1 = comptime [_]?core.KeyDef{ B, B, B };
+    const layer_2 = comptime [_]?core.KeyDef{ C, C, C };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{ base_layer, layer_1, layer_2 };
     const combos = comptime [_]core.Combo2Def{
         .{ .key_indexes = .{ 0, 1 }, .layer = 0, .timeout = combo_timeout, .key_def = D },
         .{ .key_indexes = .{ 0, 1 }, .layer = 1, .timeout = combo_timeout, .key_def = E },
@@ -339,11 +339,11 @@ test "custom code activate another layer - ensure combo works" {
     const custom_functions = core.CustomFunctions{
         .on_event = MyFunctions.on_event,
     };
-    const base_layer = comptime [_]core.KeyDef{ A, layer1_hold, layer2_hold, B };
-    const layer_1 = comptime [_]core.KeyDef{ D, layer1_hold, layer2_hold, B };
-    const layer_2 = comptime [_]core.KeyDef{ D, layer1_hold, layer2_hold, B };
-    const layer_3 = comptime [_]core.KeyDef{ E, E, E, E };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, layer_1, layer_2, layer_3 };
+    const base_layer = comptime [_]?core.KeyDef{ A, layer1_hold, layer2_hold, B };
+    const layer_1 = comptime [_]?core.KeyDef{ D, layer1_hold, layer2_hold, B };
+    const layer_2 = comptime [_]?core.KeyDef{ D, layer1_hold, layer2_hold, B };
+    const layer_3 = comptime [_]?core.KeyDef{ E, E, E, E };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{ base_layer, layer_1, layer_2, layer_3 };
     const combos = comptime [_]core.Combo2Def{.{ .key_indexes = .{ 0, 3 }, .layer = 3, .timeout = combo_timeout, .key_def = G }};
 
     var o = helpers.init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap, .combos = &combos, .custom_functions = &custom_functions }){};
@@ -379,9 +379,9 @@ test "combo is hold/tap: combo released slowly => hold" {
         .timeout = combo_timeout,
         .key_def = helpers.MT(core.TapDef{ .key_press = .{ .tap_keycode = h } }, .{ .left_shift = true }, .{ .ms = 150 }),
     }};
-    const base_layer = comptime [_]core.KeyDef{ A, B, C };
-    const layer_1 = comptime [_]core.KeyDef{ D, E, F };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, layer_1 };
+    const base_layer = comptime [_]?core.KeyDef{ A, B, C };
+    const layer_1 = comptime [_]?core.KeyDef{ D, E, F };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{ base_layer, layer_1 };
 
     var o = helpers.init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap, .combos = &combos }){};
     try o.press_key(1, current_time);
@@ -414,8 +414,8 @@ test "Ensure waiting on combos" {
         .key_def = helpers.MT(core.TapDef{ .key_press = .{ .tap_keycode = c } }, .{ .right_alt = true, .right_ctrl = true }, .{ .ms = 250 }),
     }};
 
-    const base_layer = comptime [_]core.KeyDef{ _A, _B };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
+    const base_layer = comptime [_]?core.KeyDef{ _A, _B };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{base_layer};
 
     var o = helpers.init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap, .combos = &combos }){};
     try o.press_key(0, current_time);

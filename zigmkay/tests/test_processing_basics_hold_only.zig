@@ -29,8 +29,8 @@ const TestObjects = struct {
 test "HOLD_MOD - single hold" {
     const current_time: core.TimeSinceBoot = .from_absolute_us(100);
     const hold_left_shift = comptime helpers.HOLD_MOD(core.Modifiers{ .left_shift = true });
-    const base_layer = comptime [_]core.KeyDef{ hold_left_shift, B, C, D };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
+    const base_layer = comptime [_]?core.KeyDef{ hold_left_shift, B, C, D };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{base_layer};
 
     var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
 
@@ -58,8 +58,8 @@ test "HOLD_MOD - multiple holds" {
     const current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
     const hold_left_shift = comptime helpers.HOLD_MOD(core.Modifiers{ .left_shift = true });
     const hold_left_alt = comptime helpers.HOLD_MOD(core.Modifiers{ .left_alt = true });
-    const base_layer = comptime [_]core.KeyDef{ hold_left_shift, hold_left_alt, C, D };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
+    const base_layer = comptime [_]?core.KeyDef{ hold_left_shift, hold_left_alt, C, D };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{base_layer};
 
     var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = true, .key_index = 0 }); // Press left shift
@@ -90,8 +90,8 @@ test "HOLD_MOD combined with TAP_WITH_MOD" {
 
     const c_with_left_gui_and_shift = comptime helpers.TAP_WITH_MOD(0x06, .{ .left_gui = true, .left_shift = true });
     const hold_left_shift = comptime helpers.HOLD_MOD(core.Modifiers{ .left_shift = true, .left_alt = true });
-    const base_layer = comptime [_]core.KeyDef{ hold_left_shift, c_with_left_gui_and_shift, D, E };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
+    const base_layer = comptime [_]?core.KeyDef{ hold_left_shift, c_with_left_gui_and_shift, D, E };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{base_layer};
     var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
     try o.press_key(0, current_time); // enable left shift and left alt
     try o.press_key(1, current_time);
@@ -113,9 +113,9 @@ test "HOLD_MOD combined with TAP_WITH_MOD" {
 test "Layers - simple switch" {
     const current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
     const mo_key = comptime helpers.MO(1);
-    const base_layer = comptime [_]core.KeyDef{ A, B, mo_key, D };
-    const other_layer = comptime [_]core.KeyDef{ E, F, C, D };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, other_layer };
+    const base_layer = comptime [_]?core.KeyDef{ A, B, mo_key, D };
+    const other_layer = comptime [_]?core.KeyDef{ E, F, C, D };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{ base_layer, other_layer };
     var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
     // switch layer
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = true, .key_index = 2 }); //mo_key pressed
@@ -134,9 +134,9 @@ test "Layers - simple switch" {
 test "Layers - complex switch" {
     const current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
     const mo_key = comptime helpers.MO(1);
-    const base_layer = comptime [_]core.KeyDef{ A, B, mo_key, D };
-    const other_layer = comptime [_]core.KeyDef{ E, F, C, D };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, other_layer };
+    const base_layer = comptime [_]?core.KeyDef{ A, B, mo_key, D };
+    const other_layer = comptime [_]?core.KeyDef{ E, F, C, D };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{ base_layer, other_layer };
     var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
     // Tap B
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = true, .key_index = 1 });
@@ -208,9 +208,9 @@ test "Layers - ensure correct release key" {
 
     const current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
     const mo_key = comptime helpers.MO(1);
-    const base_layer = comptime [_]core.KeyDef{ A, B, mo_key, D };
-    const other_layer = comptime [_]core.KeyDef{ E, F, C, D };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, other_layer };
+    const base_layer = comptime [_]?core.KeyDef{ A, B, mo_key, D };
+    const other_layer = comptime [_]?core.KeyDef{ E, F, C, D };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{ base_layer, other_layer };
     var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
     // Tap B
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = true, .key_index = 1 });
@@ -251,10 +251,10 @@ test "Layers - multiple layers case 1" {
     const current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
     const mo1_key = comptime helpers.MO(1);
     const mo2_key = comptime helpers.MO(2);
-    const base_layer = comptime [_]core.KeyDef{ A, B, mo1_key, D };
-    const layer_1 = comptime [_]core.KeyDef{ E, F, A, mo2_key };
-    const layer_2 = comptime [_]core.KeyDef{ C, G, C, C };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, layer_1, layer_2 };
+    const base_layer = comptime [_]?core.KeyDef{ A, B, mo1_key, D };
+    const layer_1 = comptime [_]?core.KeyDef{ E, F, A, mo2_key };
+    const layer_2 = comptime [_]?core.KeyDef{ C, G, C, C };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{ base_layer, layer_1, layer_2 };
     var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
     // Tap B
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = true, .key_index = 1 });
@@ -315,10 +315,10 @@ test "Layers - multiple layers case 2" {
     const current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
     const mo1_key = comptime helpers.MO(1);
     const mo2_key = comptime helpers.MO(2);
-    const base_layer = comptime [_]core.KeyDef{ A, B, mo1_key, D };
-    const layer_1 = comptime [_]core.KeyDef{ E, F, A, mo2_key };
-    const layer_2 = comptime [_]core.KeyDef{ C, G, C, C };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, layer_1, layer_2 };
+    const base_layer = comptime [_]?core.KeyDef{ A, B, mo1_key, D };
+    const layer_1 = comptime [_]?core.KeyDef{ E, F, A, mo2_key };
+    const layer_2 = comptime [_]?core.KeyDef{ C, G, C, C };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{ base_layer, layer_1, layer_2 };
     var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
     // Tap B
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = true, .key_index = 1 });
@@ -378,9 +378,9 @@ test "MO - invalid layer id" {
 
     const current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
     const mo4_key = comptime helpers.MO(4);
-    const base_layer = comptime [_]core.KeyDef{ A, A, A, mo4_key };
-    const layer_1 = comptime [_]core.KeyDef{ B, B, B, B };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{ base_layer, layer_1 };
+    const base_layer = comptime [_]?core.KeyDef{ A, A, A, mo4_key };
+    const layer_1 = comptime [_]?core.KeyDef{ B, B, B, B };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{ base_layer, layer_1 };
     var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
     // Hold for invalid layer switch
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = true, .key_index = 3 });

@@ -46,8 +46,8 @@ test "one-shot + retro tapping" {
         },
     };
 
-    const base_layer = comptime [_]core.KeyDef{ A, one_shot_shift, C, D };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
+    const base_layer = comptime [_]?core.KeyDef{ A, one_shot_shift, C, D };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{base_layer};
 
     var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
 

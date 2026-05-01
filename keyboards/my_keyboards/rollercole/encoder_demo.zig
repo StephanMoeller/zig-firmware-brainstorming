@@ -29,7 +29,7 @@ const dimensions = core.KeymapDimensions{
     .layer_count = 1
 };
 pub const no_pin_mappings = [dimensions.key_count]?[2]usize{ .{0,0} };
-pub const keymap = [dimensions.layer_count][dimensions.key_count]core.KeyDef{.{core.KeyDef{.tap_only = .{.key_press = .{ .tap_keycode = 10 }}}}};
+pub const keymap = [dimensions.layer_count][dimensions.key_count]?core.KeyDef{.{core.KeyDef{.tap_only = .{.key_press = .{ .tap_keycode = 10 }}}}};
 
 pub const scanner_settings = zigmkay.matrix_scanning.ScannerSettings{
     .debounce = .{ .ms = 50 },

@@ -14,7 +14,7 @@ const us = keycodes.layouts.keycodes.kcf;
 // zig fmt: off
 //
 pub const key_count = 36;
-pub const keymap = [_][key_count]zigmkay.core.KeyDef{
+pub const keymap = [_][key_count]?zigmkay.core.KeyDef{
     .{
          T(dk.Q), T(dk.W), T(dk.E), T(dk.R), T(dk.T),                  T(dk.Y), T(dk.U), T(dk.I),    T(dk.O),  T(dk.P),
          T(dk.A), T(dk.S), T(dk.D), T(dk.F), T(dk.G),                  T(dk.H), T(dk.J), T(dk.K),    T(dk.L),  T(dk.SCLN),

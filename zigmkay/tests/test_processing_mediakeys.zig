@@ -26,9 +26,9 @@ test "TAP - single key press" {
 
     const media_key_code: core.MediaCode = .VolumeUp;
     const media_key = core.KeyDef{ .tap_only = .{ .media_key = media_key_code } };
-    const base_layer = comptime [_]core.KeyDef{ A, B, media_key, D };
+    const base_layer = comptime [_]?core.KeyDef{ A, B, media_key, D };
 
-    const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{base_layer};
     var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
     try o.press_key(2, current_time);
     current_time = current_time.add_ms(20);

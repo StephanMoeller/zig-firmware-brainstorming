@@ -49,7 +49,7 @@ pub fn init_with_config(comptime keymap_dimensions: core.KeymapDimensions, compt
 
 pub fn CreateConfig(keymap_dimensions: core.KeymapDimensions) type {
     return struct {
-        keymap: *const [keymap_dimensions.layer_count][keymap_dimensions.key_count]core.KeyDef,
+        keymap: *const [keymap_dimensions.layer_count][keymap_dimensions.key_count]?core.KeyDef,
         combos: []const core.Combo2Def = &.{},
         custom_functions: *const core.CustomFunctions = &no_functions,
         sides: [keymap_dimensions.key_count]core.Side = @splat(.X),
@@ -94,6 +94,6 @@ pub fn MT(tap: core.TapDef, hold_mods: core.Modifiers, tapping_term: core.TimeSp
 pub fn NONE() core.KeyDef {
     return core.KeyDef.none;
 }
-pub fn TRANSPARENT() core.KeyDef {
-    return core.KeyDef.transparent;
+pub fn TRANSPARENT() ?core.KeyDef {
+    return null;
 }

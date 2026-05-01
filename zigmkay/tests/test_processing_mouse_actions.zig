@@ -97,8 +97,8 @@ fn run_mouse_action_test_internal(comptime action: core.MouseAction, comptime in
     const mouse_left_click = core.KeyDef{ .tap_only = .{ .mouse_action = action } };
 
     var current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
-    const base_layer = comptime [_]core.KeyDef{ key_tap, mouse_left_click };
-    const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
+    const base_layer = comptime [_]?core.KeyDef{ key_tap, mouse_left_click };
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{base_layer};
     var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
 
     try o.matrix_change_queue.enqueue(.{ .time = current_time, .pressed = true, .key_index = 1 }); // mouse action press
@@ -136,8 +136,8 @@ test "Mouse actions - in combination with key press and modifier" {
     };
 
     var current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
-    const base_layer = comptime [_]core.KeyDef{mouse_left_click};
-    const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
+    const base_layer = comptime [_]?core.KeyDef{mouse_left_click};
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{base_layer};
     var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
 
     try o.press_key(0, current_time);
@@ -169,8 +169,8 @@ test "Mouse actions - in combination with key press with dead key" {
     };
 
     var current_time: core.TimeSinceBoot = core.TimeSinceBoot.from_absolute_us(100);
-    const base_layer = comptime [_]core.KeyDef{mouse_left_click};
-    const keymap = comptime [_][base_layer.len]core.KeyDef{base_layer};
+    const base_layer = comptime [_]?core.KeyDef{mouse_left_click};
+    const keymap = comptime [_][base_layer.len]?core.KeyDef{base_layer};
     var o = init_with_config(.{ .key_count = base_layer.len, .layer_count = keymap.len }, .{ .keymap = &keymap }){};
 
     try o.press_key(0, current_time);
