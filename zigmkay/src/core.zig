@@ -79,7 +79,7 @@ pub const MouseAction = enum(u8) {
 pub const TapDef = struct {
     key_press: ?KeyCodeFire = null,
     one_shot: ?HoldDef = null,
-    custom: ?u8 = null,
+    custom: u8 = 0,
     media_key: ?MediaCode = null, // Optional media keycode for consumer control (e.g., volume, play/pause).
     mouse_action: ?MouseAction = null, // Optional mouse action to be executed on tap.
 };
