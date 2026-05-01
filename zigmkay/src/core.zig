@@ -79,7 +79,7 @@ pub const MouseAction = enum(u8) {
 pub const TapDef = struct {
     key_press: ?KeyCodeFire = null,
     one_shot: ?HoldDef = null,
-    custom: u8 = 0,
+    custom: ?u8 = null,
     media_key: ?MediaCode = null, // Optional media keycode for consumer control (e.g., volume, play/pause).
     mouse_action: ?MouseAction = null, // Optional mouse action to be executed on tap.
 };
@@ -94,7 +94,7 @@ pub const MediaCode = enum(u16) {
 pub const HoldDef = struct {
     hold_modifiers: Modifiers = .{},
     hold_layer: ?LayerIndex = null,
-    custom: u8 = 0,
+    custom: ?u8 = null,
 };
 
 pub const TapHoldDef = struct {
@@ -103,6 +103,7 @@ pub const TapHoldDef = struct {
     tapping_term: TimeSpan,
     retro_tapping: bool = false,
 };
+
 pub const KeyDef = union(enum) {
     none,
     tap_only: TapDef,
