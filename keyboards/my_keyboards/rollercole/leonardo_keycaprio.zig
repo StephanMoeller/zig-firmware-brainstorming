@@ -48,7 +48,8 @@ pub fn main() !void {
     comptime var config = zigmkay.loops.GetUnibodyConfigType(&rollercole_shared_keymap.dimensions){
         .config = .{
             .keymap = &rollercole_shared_keymap.keymap,
-
+            .custom_functions = &rollercole_shared_keymap.custom_functions,
+            .side_definition = &rollercole_shared_keymap.sides,
             .combos = rollercole_shared_keymap.combos[0..],
             .scanner_settings = &.{
                 .matrix = .{
@@ -59,8 +60,6 @@ pub fn main() !void {
                     .direction = .col2row,
                 },
             },
-            .custom_functions = &rollercole_shared_keymap.custom_functions,
-            .side_definition = &rollercole_shared_keymap.sides,
         },
     };
 
