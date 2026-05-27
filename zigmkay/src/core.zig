@@ -86,6 +86,8 @@ pub const TapDef = struct {
 
 // this list comes from here: https://www.usb.org/sites/default/files/documents/hut1_12v2.pdf
 pub const MediaCode = enum(u16) {
+    NextTrack = 0x00b5,
+    PreviousTrack = 0x00b6,
     VolumeMute = 0x00e8,
     VolumeUp = 0x00e9,
     VolumeDown = 0x00ea,

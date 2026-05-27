@@ -121,9 +121,10 @@ const BOOT = core.KC_BOOT;
 
 pub const combos = [_]core.Combo2Def{
     Combo_Tap(.{ 1, 2 }, L_BASE, dk.J),
-    Combo_Tap_HoldMod(.{ 11, 12 }, L_BASE, dk.Z, .{ .right_ctrl = true, .right_alt = true }),
 
+    Combo_Tap_HoldMod(.{ 11, 12 }, L_BASE, dk.Z, .{ .right_ctrl = true, .right_alt = true }),
     Combo_Tap_HoldMod(.{ 12, 13 }, L_BASE, dk.V, .{ .left_ctrl = true, .left_shift = true }),
+
     Combo_Tap_HoldMod(.{ 12, 13 }, L_NUM, _Ctl(dk.V), .{ .left_ctrl = true, .left_shift = true }),
     Combo_Tap_HoldMod(.{ 11, 12 }, L_NUM, _Ctl(dk.X), .{ .left_ctrl = true, .left_shift = true }),
     Combo_Tap_HoldMod(.{ 12, 13 }, L_ARROWS, dk.AMPR, .{ .left_ctrl = true, .left_shift = true }),
@@ -152,6 +153,9 @@ pub const combos = [_]core.Combo2Def{
 
     Combo_Custom(.{ 0, 9 }, L_BASE, CUSTOM_TAP_ENABLE_GAMING),
     Combo_Custom(.{ 1, 3 }, L_ARROWS, CUSTOM_TAP_EQ_COL),
+
+    Combo_Media_Tap(.{ 12, 13 }, L_BOTH, .NextTrack),
+    Combo_Media_Tap(.{ 11, 12 }, L_BOTH, .PreviousTrack),
 };
 
 // For now, all these shortcuts are placed in the custom keymap to let the user know how they are defined
@@ -162,6 +166,17 @@ fn Combo_Tap(key_indexes: [2]core.KeyIndex, layer: core.LayerIndex, keycode_fire
         .layer = layer,
         .timeout = combo_timeout,
         .key_def = core.KeyDef{ .tap_only = .{ .key_press = keycode_fire } },
+    };
+}
+
+fn Combo_Media_Tap(key_indexes: [2]core.KeyIndex, layer: core.LayerIndex, key: core.MediaCode) core.Combo2Def {
+    return core.Combo2Def{
+        .key_indexes = key_indexes,
+        .layer = layer,
+        .timeout = combo_timeout,
+        .key_def = core.KeyDef{
+            .tap_only = .{ .media_key = key },
+        },
     };
 }
 
