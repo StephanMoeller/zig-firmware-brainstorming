@@ -8,5 +8,6 @@ pkgs.mkShell {
 
   shellHook = ''
     echo "zig: $(zig version)"
+    exec fish
   '';
 }
