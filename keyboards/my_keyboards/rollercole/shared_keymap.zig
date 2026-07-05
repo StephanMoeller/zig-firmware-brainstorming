@@ -203,7 +203,7 @@ fn AF_fast(keycode_fire: core.KeyCodeFire) core.KeyDef {
     return AF_internal(keycode_fire, 100);
 }
 fn AF_slow(keycode_fire: core.KeyCodeFire) core.KeyDef {
-    return AF_internal(keycode_fire, 150);
+    return AF_internal(keycode_fire, 200);
 }
 fn AF_internal(keycode_fire: core.KeyCodeFire, initial_delay: u16) core.KeyDef {
     return core.KeyDef{
