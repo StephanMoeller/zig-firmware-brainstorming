@@ -4,7 +4,7 @@ const microzig = @import("microzig");
 const rp2xxx = microzig.hal;
 const time = rp2xxx.time;
 const gpio = rp2xxx.gpio;
-const rollercole_shared_keymap = @import("shared_keymap_28_1.zig");
+const rollercole_shared_keymap = @import("shared_keymap_3x5_2.zig");
 const zigmkay = @import("zigmkay");
 const dk = zigmkay.keycodes.dk;
 const core = zigmkay.core;
@@ -45,8 +45,8 @@ pub const p = blk: {
 pub const pin_mappings = [rollercole_shared_keymap.key_count]?[2]usize{
   .{0,0}, .{1,0}, .{2,0}, .{3,0}, .{4,0},  .{10,4},.{9,4},.{8,4},.{7,4},.{6,4},
   .{0,1}, .{1,1}, .{2,1}, .{3,1}, .{4,1},    .{10,5},.{9,5},.{8,5},.{7,5},.{6,5},
-          .{1,2}, .{2,2}, .{3,2}, .{4,2},    .{10,6},.{9,6},.{8,6},.{7,6},
-                                 .{5, 3},   .{11, 7}
+  .{0,2}, .{1,2}, .{2,2}, .{3,2}, .{4,2},    .{10,6},.{9,6},.{8,6},.{7,6},.{6,6},
+                          .{5, 3},.{5, 3},   .{11, 7},.{11, 7}
 };
 
 // zig fmt: on
