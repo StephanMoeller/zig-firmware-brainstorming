@@ -33,10 +33,10 @@ pub const pin_config = rp2xxx.pins.GlobalConfiguration{
     .GPIO16= .{ .name = "rowHomeR", .direction = .in },
     .GPIO22 = .{ .name = "rowBottomR", .direction = .in },
 
-    .GPIO5 = .{ .name = "thumbCol1L", .direction = .in },
-    .GPIO13= .{ .name = "thumbCol2L", .direction = .in },
-    .GPIO26 = .{ .name = "thumbCol1R", .direction = .in },
-    .GPIO15 = .{ .name = "thumbCol2R", .direction = .in },
+    .GPIO5 = .{ .name = "thumbCol1L", .direction = .out },
+    .GPIO13= .{ .name = "thumbCol2L", .direction = .out },
+    .GPIO26 = .{ .name = "thumbCol1R", .direction = .out },
+    .GPIO15 = .{ .name = "thumbCol2R", .direction = .out },
 };
 pub const p = blk: {
     @setEvalBranchQuota(10_000);

@@ -29,7 +29,7 @@ pub const keymap = [_][key_count]?core.KeyDef{
          T(dk.Q), AF_slow(dk.W), GUI(dk.R),   T(dk.P), AF_slow(dk.B),                  T(dk.K),   T(dk.L),   GUI(dk.O),   T(dk.U), T(dk.QUOT),
          T(dk.F),     ALT(dk.A), CTL(dk.S), SFT(dk.T),       T(dk.G),                  T(dk.M), SFT(dk.N),   CTL(dk.E), ALT(dk.I),    T(dk.Y),
          T(dk.Z),       T(dk.X),   T(dk.C),   T(dk.D),       T(dk.V),                  T(dk.J),   T(dk.H), T(dk.COMM), T(dk.DOT),     T(dk.Z),
-                                   T(dk.O),    C(us.ENTER, CUSTOM_HOLD_LEFT),          T(dk.I),   C( us.SPACE, CUSTOM_HOLD_RIGHT)
+                                   T(dk.O),    C(us.ENTER, CUSTOM_HOLD_LEFT),          C( us.SPACE, CUSTOM_HOLD_RIGHT), T(dk.I)   
     },
     // L_ARROWS
     .{
@@ -67,6 +67,10 @@ fn MEDIA(key: core.MediaCode) core.KeyDef {
         .tap_only = .{ .media_key = key },
     };
 }
+
+const ShiftOnly = core.KeyDef{
+    .tap_only = .{ .media_key = 0x00E9 },
+};
 
 const volume_test = core.KeyDef{
     .tap_only = .{ .media_key = 0x00E9 },
