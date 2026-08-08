@@ -51,14 +51,7 @@ AF_slow(dk.AT),   ALT(dk.LCBR), CTL(dk.LPRN), SFT(dk.RPRN), T(dk.RCBR),         
     MEDIA(.VolumeDown), T(us.F4), CTL(us.F5), SFT(us.F6), T(us.F11),             T(dk.DLR), SFT(us.BSPC), CTL(us.BSPC), ALT(us.BSPC),   _______,
     _______,            T(us.F1),   T(us.F2),   T(us.F3), T(us.F12),            T(dk.CIRC),    T(us.DEL),    T(us.DEL),    T(us.DEL),_______,
                                                   _______,  _______,              T(dk.N0), _______
-    },
-    // GAMING
-    .{
-      T(us.ESCAPE), T(dk.Q), T(dk.W), T(dk.E),    _______,                   _______,    _______,   T(us.UP),     _______, custom_key(CUSTOM_TAP_DISABLE_GAMING),
-           T(dk.F), T(dk.A), T(dk.S), T(dk.D),    _______,                   _______, T(us.LEFT), T(us.DOWN), T(us.RIGHT),                              _______,
-         _______,  T(dk.G), T(dk.G),    _______,    _______,                         _______,    _______,    _______,     _______, _______,
-                              _______, T(us.SPACE),                  _______, _______
-    },
+    }
 };
 // zig fmt: on
 
@@ -153,7 +146,7 @@ pub const combos = [_]core.Combo2Def{
     Combo_Tap(.{ 17, 18 }, L_NUM, dk.MINS),
     Combo_Tap(.{ 16, 17 }, L_ARROWS, dk.PIPE),
 
-    Combo_Tap(.{ 20, 21 }, L_ARROWS, dk.BSLS),
+    Combo_Tap(.{ 21, 22 }, L_ARROWS, dk.BSLS),
 
     Combo_Custom(.{ 0, 9 }, L_BASE, CUSTOM_TAP_ENABLE_GAMING),
     Combo_Custom(.{ 1, 3 }, L_ARROWS, CUSTOM_TAP_EQ_COL),
