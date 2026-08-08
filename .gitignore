@@ -2,5 +2,6 @@
 **/zig-out/
 **/.idea/
 **/.claude/
-**/zig-x86_64-linux-0.15.2/
+**/zig-x86_64-linux-*/
+**/zls-x86_64-linux-*/
 **/zig-pkg/
