@@ -111,7 +111,7 @@ fn C(key_press: core.KeyCodeFire, custom_hold: u8) core.KeyDef {
 
 pub const dimensions = core.KeymapDimensions{ .key_count = key_count, .layer_count = keymap.len };
 const PrintStats = core.KeyDef{ .tap_only = .{ .key_press = core.KC_PRINT_STATS } };
-const tapping_term = core.TimeSpan{ .ms = 250 };
+const tapping_term = core.TimeSpan{ .ms = 150 };
 const combo_timeout = core.TimeSpan{ .ms = 40 };
 
 const BOOT = core.KC_BOOT;
